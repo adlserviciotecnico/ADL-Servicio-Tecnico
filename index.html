@@ -1756,37 +1756,6 @@
                     }
                     return true;
                 }
-
-                if (result && result.reason === 'VERSION_CONFLICT') {
-                    try {
-                        const conflictBackup = {
-                            fecha: new Date().toISOString(),
-                            orders: allServices,
-                            notes: allTechNotes
-                        };
-                        localStorage.setItem("adl_conflict_backup", JSON.stringify(conflictBackup));
-                    } catch (e) {}
-
-                    if (result.serverVersion) {
-                        currentServerVersion = result.serverVersion;
-                    }
-
-                    const latest = await apiLoad();
-                    if (latest && latest.success) {
-                        if (Array.isArray(latest.orders)) allServices = latest.orders.map(sanitizeOrder).filter(Boolean);
-                        if (Array.isArray(latest.notes)) allTechNotes = latest.notes;
-                        await ADL_DB.saveOrdersList(allServices);
-                        ADL_DB.saveOrdersToLocalStorage(allServices);
-                        await ADL_DB.saveNotesList(allTechNotes);
-                        ADL_DB.saveNotesToLocalStorage(allTechNotes);
-                        rebuildClientsMap();
-                        sortAndRefreshUI();
-                    }
-
-                    updateSyncBadge('offline');
-                    return false;
-                }
-
                 return false;
             } catch (e) {
                 return false;
