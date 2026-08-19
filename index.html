@@ -3588,14 +3588,18 @@
                             <p class="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">${item.toolModel ? 'Modelo: ' + item.toolModel : 'Sin modelo especificado'}</p>
                         </div>
 
-                        ${images.length > 0 ? `
+                        ${images.length > 0 ? (() => {
+                            const firstImg = images[0];
+                            const firstImgSrc = typeof firstImg === 'string' ? firstImg : (firstImg ? (firstImg.url || firstImg.dataBase64 || '') : '');
+                            return `
                             <div class="relative cursor-pointer group" onclick="openGalleryModal('${safeId}', 0)">
-                                <img src="${images[0]}" alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity">
+                                <img src="${firstImgSrc}" alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity">
                                 <span class="absolute bottom-2.5 right-2.5 bg-slate-900/85 text-white text-xs font-black px-3 py-1.5 rounded-xl backdrop-blur-sm flex items-center shadow-lg border border-slate-700">
                                     <i class="fas fa-search-plus mr-1.5 text-sky-400 text-sm"></i> Lupa HD (${images.length} foto/s)
                                 </span>
                             </div>
-                        ` : ''}
+                            `;
+                        })() : ''}
 
                         <div class="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl text-xs space-y-2.5 border border-slate-100 dark:border-slate-800">
                             <div class="text-slate-700 dark:text-slate-300 font-semibold"><strong class="text-slate-900 dark:text-white font-extrabold">Cliente:</strong> ${item.clientName || 'Sin Nombre'}</div>
@@ -3850,30 +3854,31 @@
 
             files.forEach(file => {
                 const reader = new FileReader();
-                reader.onload = async function(evt) {
+                reader.onload = function(evt) {
                     const b64 = evt.target.result;
                     const tempIdx = currentImagesBase64.length;
                     
                     currentImagesBase64.push({ id: '', url: b64, name: file.name, pendingUpload: true, dataBase64: b64 });
                     renderImagesPreviewGrid();
 
-                    const uploaded = await apiUploadFile(b64, file.name, file.type || 'image/jpeg');
-                    if (uploaded && uploaded.url) {
-                        currentImagesBase64[tempIdx] = {
-                            id: uploaded.id || '',
-                            url: uploaded.url,
-                            name: file.name
-                        };
-                    } else {
-                        currentImagesBase64[tempIdx] = {
-                            id: '',
-                            url: b64,
-                            name: file.name,
-                            pendingUpload: true,
-                            dataBase64: b64
-                        };
-                    }
-                    renderImagesPreviewGrid();
+                    apiUploadFile(b64, file.name, file.type || 'image/jpeg').then(uploaded => {
+                        if (uploaded && uploaded.url) {
+                            currentImagesBase64[tempIdx] = {
+                                id: uploaded.id || '',
+                                url: uploaded.url,
+                                name: file.name
+                            };
+                        } else {
+                            currentImagesBase64[tempIdx] = {
+                                id: '',
+                                url: b64,
+                                name: file.name,
+                                pendingUpload: true,
+                                dataBase64: b64
+                            };
+                        }
+                        renderImagesPreviewGrid();
+                    }).catch(() => {});
                 };
                 reader.readAsDataURL(file);
             });
@@ -4095,7 +4100,8 @@
             const btnNext = document.getElementById('btn-gallery-next');
 
             if (img && activeGalleryImages.length > 0) {
-                img.src = activeGalleryImages[activeGalleryIndex];
+                const curGImg = activeGalleryImages[activeGalleryIndex];
+                img.src = typeof curGImg === 'string' ? curGImg : (curGImg ? (curGImg.url || curGImg.dataBase64 || '') : '');
                 if (counter) counter.innerText = `Imagen ${activeGalleryIndex + 1} de ${activeGalleryImages.length}`;
 
                 if (activeGalleryImages.length <= 1) {
