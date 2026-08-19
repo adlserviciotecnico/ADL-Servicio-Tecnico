@@ -1730,14 +1730,50 @@
             }
         }
 
+        function prepareOrdersForSave(orders) {
+            if (!Array.isArray(orders)) return [];
+            return orders.map(order => {
+                const cleaned = { ...order };
+                if (Array.isArray(cleaned.imagesBase64)) {
+                    cleaned.imagesBase64 = cleaned.imagesBase64.map(img => {
+                        if (typeof img === 'string') {
+                            return img.startsWith('data:') ? '' : img;
+                        } else if (img && typeof img === 'object') {
+                            return {
+                                id: img.id || '',
+                                url: img.url || '',
+                                name: img.name || ''
+                            };
+                        }
+                        return img;
+                    }).filter(Boolean);
+                }
+                if (Array.isArray(cleaned.despieceFiles)) {
+                    cleaned.despieceFiles = cleaned.despieceFiles.map(file => {
+                        if (file && typeof file === 'object') {
+                            return {
+                                id: file.id || '',
+                                url: file.url || '',
+                                name: file.name || '',
+                                type: file.type || ''
+                            };
+                        }
+                        return file;
+                    }).filter(Boolean);
+                }
+                return cleaned;
+            });
+        }
+
         async function apiSave() {
             if (!API_URL || API_URL.includes("PEGAR_URL")) return false;
             try {
                 const payload = JSON.stringify({
+                    action: 'save',
                     version: currentServerVersion,
                     updatedAt: new Date().toISOString(),
-                    orders: allServices,
-                    notes: allTechNotes
+                    orders: prepareOrdersForSave(allServices),
+                    notes: prepareOrdersForSave(allTechNotes)
                 });
                 const url = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=save';
                 const res = await fetch(url, {
