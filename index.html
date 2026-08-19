@@ -3069,12 +3069,48 @@
             showToast("Nota Eliminada", "Se quitó la nota técnica.", "info");
         }
 
+        function openDespieceFileUniversal(file) {
+            if (!file) return;
+
+            let fileUrl = typeof file === 'string' ? file : (file.url || '');
+            const fileName = typeof file === 'string' ? 'Despiece' : (file.name || 'Despiece');
+
+            if (fileUrl) {
+                if (fileUrl.includes('drive.google.com') && fileUrl.includes('export=view')) {
+                    const previewUrl = fileUrl.replace('export=view', 'view');
+                    window.open(previewUrl, '_blank');
+                    return;
+                }
+                window.open(fileUrl, '_blank');
+                return;
+            }
+
+            const b64Data = file.dataBase64 || (typeof file === 'string' && file.startsWith('data:') ? file : '');
+            if (b64Data) {
+                const isPdf = fileName.toLowerCase().endsWith('.pdf') || b64Data.startsWith('data:application/pdf');
+                try {
+                    const mime = isPdf ? 'application/pdf' : (file.type || getExtensionType(fileName));
+                    const blob = base64ToBlob(b64Data, mime);
+                    if (blob) {
+                        const blobUrl = URL.createObjectURL(blob);
+                        window.open(blobUrl, '_blank');
+                        return;
+                    }
+                } catch (e) {}
+
+                showInlineDespieceModal(file);
+                return;
+            }
+
+            showInlineDespieceModal(file);
+        }
+
         function openNoteDespiece(noteId, dIdx) {
             const note = allTechNotes.find(n => n.id === noteId);
             if (!note || !note.despieces || !note.despieces[dIdx]) return;
             const file = note.despieces[dIdx];
             activeDespieceFile = file;
-            showInlineDespieceModal(file);
+            openDespieceFileUniversal(file);
         }
 
         /* ----------------------------------------------------
@@ -4095,31 +4131,11 @@
         /* MANEJO DE DESPIECES CON VISOR INLINE Y DETECCIÓN AUTOMÁTICA DE IOS */
         function openDespieceModal(orderId, despieceIdx = 0) {
             const item = allServices.find(s => s.id === orderId);
-            if (!item || !item.despieceFiles || item.despieceFiles.length === 0) return;
+            if (!item || !item.despieceFiles || !item.despieceFiles[despieceIdx]) return;
 
             const file = item.despieceFiles[despieceIdx];
-            if (!file || !file.dataBase64) return;
-
             activeDespieceFile = file;
-
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            const isPdf = file.name.toLowerCase().endsWith('.pdf') || (file.type && file.type.includes('pdf'));
-
-            let openedWindow = null;
-            if (!isIOS) {
-                try {
-                    const mime = isPdf ? 'application/pdf' : (file.type || getExtensionType(file.name));
-                    const blob = base64ToBlob(file.dataBase64, mime);
-                    if (blob) {
-                        const blobUrl = URL.createObjectURL(blob);
-                        openedWindow = window.open(blobUrl, '_blank');
-                    }
-                } catch (e) {}
-            }
-
-            if (!openedWindow || isIOS) {
-                showInlineDespieceModal(file);
-            }
+            openDespieceFileUniversal(file);
         }
 
         function showInlineDespieceModal(file) {
