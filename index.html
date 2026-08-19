@@ -1973,6 +1973,7 @@
                 }
 
                 updateSyncBadge('synced');
+                setTimeout(autoMigrateBase64ImagesToDrive, 3000);
             } else {
                 updateSyncBadge('offline');
             }
@@ -1983,6 +1984,40 @@
             } else {
                 populateDashboardYearSelect();
                 sortAndRefreshUI();
+            }
+        }
+
+        let isMigratingImages = false;
+        async function autoMigrateBase64ImagesToDrive() {
+            if (isMigratingImages || !API_URL || API_URL.includes("PEGAR_URL")) return;
+            isMigratingImages = true;
+            try {
+                let modified = false;
+                for (let order of allServices) {
+                    if (Array.isArray(order.imagesBase64)) {
+                        for (let i = 0; i < order.imagesBase64.length; i++) {
+                            const img = order.imagesBase64[i];
+                            if (typeof img === 'string' && img.startsWith('data:image')) {
+                                const fileName = `foto_historica_ST${order.ticketNum || order.id}_${i+1}.jpg`;
+                                const uploaded = await apiUploadFile(img, fileName, 'image/jpeg');
+                                if (uploaded && uploaded.url) {
+                                    order.imagesBase64[i] = {
+                                        id: uploaded.id || '',
+                                        url: uploaded.url,
+                                        name: fileName
+                                    };
+                                    modified = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (modified) {
+                    await saveDatabaseData();
+                }
+            } catch (e) {
+            } finally {
+                isMigratingImages = false;
             }
         }
 
