@@ -1921,60 +1921,60 @@
 
         async function loadDatabaseData() {
             updateSyncBadge('syncing');
-            let loadedFromApi = false;
 
+            // 1. Cargar primero datos locales de IndexedDB y LocalStorage
+            try {
+                let dbOrders = await ADL_DB.getAllOrders();
+                let dbNotes = await ADL_DB.getAllNotes();
+
+                if (dbOrders && dbOrders.length > 0) {
+                    allServices = dbOrders.map(sanitizeOrder).filter(Boolean);
+                } else {
+                    allServices = ADL_DB.getOrdersFromLocalStorage().map(sanitizeOrder).filter(Boolean);
+                }
+
+                if (dbNotes && dbNotes.length > 0) {
+                    allTechNotes = dbNotes;
+                } else {
+                    allTechNotes = ADL_DB.getNotesFromLocalStorage();
+                }
+
+                if (!allServices || allServices.length === 0) {
+                    allServices = [...SEED_SERVICES].map(sanitizeOrder).filter(Boolean);
+                }
+                if (!allTechNotes || allTechNotes.length === 0) {
+                    allTechNotes = [...SEED_NOTES];
+                }
+            } catch (e) {
+                allServices = [...SEED_SERVICES].map(sanitizeOrder).filter(Boolean);
+                allTechNotes = [...SEED_NOTES];
+            }
+
+            rebuildClientsMap();
+            sortAndRefreshUI();
+
+            // 2. Consultar a Google Drive y FUSIONAR sin borrar lo local
             const serverData = await apiLoad();
-            if (serverData && (serverData.orders || serverData.services || serverData.notes || serverData.techNotes)) {
+            if (serverData) {
                 let rawOrders = serverData.orders || serverData.services || [];
                 let rawNotes = serverData.notes || serverData.techNotes || [];
 
-                allServices = rawOrders.map(sanitizeOrder).filter(Boolean);
-                allTechNotes = rawNotes;
+                const incomingOrders = rawOrders.map(sanitizeOrder).filter(Boolean);
+                allServices = mergeClientArrays(allServices, incomingOrders);
+                allTechNotes = mergeClientArrays(allTechNotes, rawNotes);
 
                 await ADL_DB.saveOrdersList(allServices);
                 ADL_DB.saveOrdersToLocalStorage(allServices);
                 await ADL_DB.saveNotesList(allTechNotes);
                 ADL_DB.saveNotesToLocalStorage(allTechNotes);
 
-                loadedFromApi = true;
-                updateSyncBadge('synced');
-            }
-
-            if (!loadedFromApi) {
-                try {
-                    let dbOrders = await ADL_DB.getAllOrders();
-                    let dbNotes = await ADL_DB.getAllNotes();
-
-                    if (dbOrders && dbOrders.length > 0) {
-                        allServices = dbOrders.map(sanitizeOrder).filter(Boolean);
-                    } else {
-                        allServices = ADL_DB.getOrdersFromLocalStorage().map(sanitizeOrder).filter(Boolean);
-                    }
-
-                    if (dbNotes && dbNotes.length > 0) {
-                        allTechNotes = dbNotes;
-                    } else {
-                        allTechNotes = ADL_DB.getNotesFromLocalStorage();
-                    }
-
-                    if (!allServices || allServices.length === 0) {
-                        allServices = [...SEED_SERVICES].map(sanitizeOrder).filter(Boolean);
-                        await ADL_DB.saveOrdersList(allServices);
-                        ADL_DB.saveOrdersToLocalStorage(allServices);
-                    }
-                    if (!allTechNotes || allTechNotes.length === 0) {
-                        allTechNotes = [...SEED_NOTES];
-                        await ADL_DB.saveNotesList(allTechNotes);
-                        ADL_DB.saveNotesToLocalStorage(allTechNotes);
-                    }
-
-                    updateSyncBadge('offline');
-                } catch (e) {
-                    console.error("loadDatabaseData error handled:", e);
-                    allServices = [...SEED_SERVICES].map(sanitizeOrder).filter(Boolean);
-                    allTechNotes = [...SEED_NOTES];
-                    updateSyncBadge('offline');
+                if (allServices.length > incomingOrders.length) {
+                    apiSave();
                 }
+
+                updateSyncBadge('synced');
+            } else {
+                updateSyncBadge('offline');
             }
 
             rebuildClientsMap();
