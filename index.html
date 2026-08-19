@@ -2747,8 +2747,24 @@
                         <span><i class="fas fa-clock mr-1"></i> ${dateStr}</span>
                         <span>ADL Taller</span>
                     </div>
-                </div>
-            `}).join('');
+        function getSafeImageUrl(imgItem) {
+            if (!imgItem) return '';
+            if (typeof imgItem === 'string') {
+                if (imgItem === '[object Object]') return '';
+                return imgItem;
+            }
+            if (typeof imgItem === 'object') {
+                return imgItem.dataBase64 || imgItem.url || '';
+            }
+            return '';
+        }
+
+        function getImageUploadBadge(imgItem) {
+            if (!imgItem || typeof imgItem === 'string') return '';
+            if (imgItem.pendingUpload || !imgItem.url) {
+                return `<span class="px-2 py-0.5 bg-amber-500/90 text-white text-[10px] font-black rounded-lg shadow flex items-center"><i class="fas fa-spinner fa-spin mr-1"></i> Subiendo</span>`;
+            }
+            return `<span class="px-2 py-0.5 bg-emerald-600/90 text-white text-[10px] font-black rounded-lg shadow flex items-center"><i class="fab fa-google-drive mr-1"></i> Drive HD</span>`;
         }
 
         function getNoteColorClass(color) {
@@ -3589,14 +3605,16 @@
                         </div>
 
                         ${images.length > 0 ? (() => {
-                            const firstImg = images[0];
-                            const firstImgSrc = typeof firstImg === 'string' ? firstImg : (firstImg ? (firstImg.url || firstImg.dataBase64 || '') : '');
+                            const firstImgSrc = getSafeImageUrl(images[0]);
+                            if (!firstImgSrc) return '';
+                            const badgeHtml = getImageUploadBadge(images[0]);
                             return `
                             <div class="relative cursor-pointer group" onclick="openGalleryModal('${safeId}', 0)">
-                                <img src="${firstImgSrc}" alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity">
+                                <img src="${firstImgSrc}" alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity" onerror="this.onerror=null; this.parentElement.style.display='none';">
                                 <span class="absolute bottom-2.5 right-2.5 bg-slate-900/85 text-white text-xs font-black px-3 py-1.5 rounded-xl backdrop-blur-sm flex items-center shadow-lg border border-slate-700">
                                     <i class="fas fa-search-plus mr-1.5 text-sky-400 text-sm"></i> Lupa HD (${images.length} foto/s)
                                 </span>
+                                ${badgeHtml ? `<div class="absolute top-2.5 left-2.5">${badgeHtml}</div>` : ''}
                             </div>
                             `;
                         })() : ''}
@@ -3889,10 +3907,12 @@
             if (!grid) return;
 
             grid.innerHTML = currentImagesBase64.map((item, idx) => {
-                const imgSrc = typeof item === 'string' ? item : (item.url || item.dataBase64 || '');
+                const imgSrc = getSafeImageUrl(item);
+                const badgeHtml = getImageUploadBadge(item);
                 return `
                 <div class="relative group">
                     <img src="${imgSrc}" alt="Foto ${idx+1}" class="w-full h-24 object-cover rounded-xl border border-slate-300 dark:border-slate-700">
+                    ${badgeHtml ? `<div class="absolute top-1 left-1">${badgeHtml}</div>` : ''}
                     <button type="button" onclick="removeImageFromForm(${idx})" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 text-xs hover:bg-rose-700 shadow">
                         <i class="fas fa-times"></i>
                     </button>
