@@ -310,17 +310,20 @@
                         </div>
                         <div>
                             <span class="font-black text-lg sm:text-xl tracking-wider block leading-tight text-white">ADL SERVICIO TÉCNICO</span>
-                            <span id="sync-status-badge" class="text-xs text-emerald-400 font-extrabold flex items-center space-x-1">
-                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                <span>Base de Datos Activa</span>
+                            <span id="sync-status-badge" class="text-xs text-amber-400 font-extrabold flex items-center space-x-1.5 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                <span>MODO OFFLINE (IndexedDB Local)</span>
                             </span>
                         </div>
                     </div>
 
-                    <!-- Theme toggle for compact view -->
+                    <!-- Theme and Cloud quick toggle for compact view -->
                     <div class="flex items-center space-x-2 xl:hidden">
-                        <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="p-3 text-slate-200 hover:text-amber-400 bg-slate-800 rounded-2xl border border-slate-700">
-                            <i class="theme-toggle-icon fas fa-moon text-xl"></i>
+                        <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar desde Google Drive" class="p-2.5 text-sky-300 hover:text-white bg-sky-950/80 rounded-2xl border border-sky-700/80">
+                            <i class="fas fa-cloud-arrow-down text-lg text-sky-400"></i>
+                        </button>
+                        <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="p-2.5 text-slate-200 hover:text-amber-400 bg-slate-800 rounded-2xl border border-slate-700">
+                            <i class="theme-toggle-icon fas fa-moon text-lg"></i>
                         </button>
                     </div>
                 </div>
@@ -355,14 +358,19 @@
                 </nav>
 
                 <!-- Controles Derecha (Desktop) -->
-                <div class="hidden xl:flex items-center space-x-3 shrink-0">
-                    <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-sm rounded-2xl border border-slate-700 flex items-center space-x-2 transition-all cursor-pointer">
-                        <i class="theme-toggle-icon fas fa-moon text-amber-400 text-lg"></i>
+                <div class="hidden xl:flex items-center space-x-2 shrink-0">
+                    <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar desde Google Drive" class="px-3.5 py-2.5 bg-sky-950/80 hover:bg-sky-900 text-sky-300 font-extrabold text-xs rounded-2xl border border-sky-700/80 flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm">
+                        <i class="fas fa-cloud-arrow-down text-sky-400 text-sm"></i>
+                        <span>Bajar de Drive</span>
+                    </button>
+
+                    <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-xs rounded-2xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer">
+                        <i class="theme-toggle-icon fas fa-moon text-amber-400 text-sm"></i>
                         <span>Modo</span>
                     </button>
 
-                    <button onclick="exportDatabaseJSON()" title="Descargar Respaldo JSON" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-sm rounded-2xl border border-slate-700 flex items-center space-x-2 transition-all cursor-pointer">
-                        <i class="fas fa-download text-sky-400 text-lg"></i>
+                    <button onclick="exportDatabaseJSON()" title="Descargar Respaldo JSON" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-xs rounded-2xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer">
+                        <i class="fas fa-download text-sky-400 text-sm"></i>
                         <span>Respaldo</span>
                     </button>
                 </div>
@@ -888,6 +896,75 @@
                             <i class="fas fa-sort-numeric-up mr-2 text-lg"></i> Renumerar Códigos de Clientes
                         </button>
                     </div>
+
+                    <!-- Panel de Control de Google Drive y Sincronización Manual -->
+                    <div class="bg-white dark:bg-slate-950 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-900 space-y-5 md:col-span-2">
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-900 pb-4">
+                            <div class="flex items-center space-x-3 text-sky-600 dark:text-sky-400">
+                                <div class="w-12 h-12 rounded-2xl bg-sky-100 dark:bg-sky-950 flex items-center justify-center text-xl font-bold">
+                                    <i class="fab fa-google-drive"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Conexión con Google Drive (Sincronización Controlada)</h3>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Subida y descarga manual de la base de datos sin sobreescrituras automáticas ni pérdidas de datos.</p>
+                                </div>
+                            </div>
+                            <span id="cloud-mode-status-tag" class="px-3 py-1 bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 text-xs font-black rounded-xl border border-sky-300 dark:border-sky-800">
+                                Modo Híbrido (Local + Drive)
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="bg-slate-50 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg">
+                                    <i class="fas fa-link"></i>
+                                </div>
+                                <div>
+                                    <p class="text-[11px] text-slate-400 font-bold uppercase">Conexión con Google Drive</p>
+                                    <p class="text-xs font-black text-slate-800 dark:text-slate-200">Enlace Oficial de Google Apps Script Activo</p>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">PIN de Administrador</label>
+                                <input type="password" id="cfg-admin-pin" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold focus:outline-none focus:border-sky-500" placeholder="Ingrese PIN para subir cambios">
+                            </div>
+                        </div>
+
+                        <!-- Botones de Acción Cloud -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                            <button type="button" onclick="testCloudConnection()" class="py-3.5 px-4 bg-slate-800 hover:bg-slate-700 text-white text-xs font-black rounded-2xl transition-all flex items-center justify-center shadow">
+                                <i class="fas fa-plug mr-1.5 text-sky-400"></i> Probar Conexión
+                            </button>
+                            <button type="button" onclick="downloadDatabaseFromDrive()" class="py-3.5 px-4 bg-teal-600 hover:bg-teal-700 text-white text-xs font-black rounded-2xl transition-all flex items-center justify-center shadow-md">
+                                <i class="fas fa-cloud-arrow-down mr-1.5 text-sm"></i> Bajar Base de Drive
+                            </button>
+                            <button type="button" onclick="uploadDatabaseToDrive()" class="py-3.5 px-4 bg-sky-600 hover:bg-sky-700 text-white text-xs font-black rounded-2xl transition-all flex items-center justify-center shadow-md">
+                                <i class="fas fa-cloud-arrow-up mr-1.5 text-sm"></i> Subir Base a Drive
+                            </button>
+                        </div>
+
+                        <!-- Asistente de Migración de Imágenes y Despieces -->
+                        <div class="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-extrabold text-slate-800 dark:text-slate-200 text-xs">Migración de Medios a Google Drive</h4>
+                                    <p class="text-[11px] text-slate-500">Sube automáticamente las fotos y despieces Base64 a Drive, aligerando la base para transferencias instantáneas.</p>
+                                </div>
+                                <button type="button" onclick="startMediaMigrationToDrive()" id="btn-start-migration" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all whitespace-nowrap shadow">
+                                    <i class="fas fa-images mr-1"></i> Iniciar Migración
+                                </button>
+                            </div>
+                            <div id="migration-progress-container" class="hidden space-y-1.5">
+                                <div class="flex justify-between text-[10px] font-extrabold text-slate-600 dark:text-slate-400">
+                                    <span id="migration-progress-label">Migrando archivos a Google Drive...</span>
+                                    <span id="migration-progress-percent">0%</span>
+                                </div>
+                                <div class="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                                    <div id="migration-progress-bar" class="bg-indigo-600 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -1278,11 +1355,11 @@
 
     <!-- JAVASCRIPT CORE -->
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzek-vqxhm31Pnwl4Amdvs0kbIJg5fDk38bBfNuzi9OV5yaIKtceLHJm2vDfIg_GWCQUw/exec";
+        // CONFIGURACIÓN DE EJECUCIÓN HÍBRIDA CONTROLADA
         let syncInProgress = false;
         let hasPendingSync = false;
 
-        /* Database Engine Wrapper using IndexedDB + LocalStorage Hybrid Fallback for iOS */
+        /* Database Engine Wrapper using IndexedDB (Primary) + LocalStorage (Fallback / Metadata) */
         const ADL_DB = {
             dbName: 'ADL_ServicioTecnico_DB',
             dbVersion: 2,
@@ -1294,6 +1371,7 @@
                 return new Promise((resolve) => {
                     try {
                         if (!window.indexedDB) {
+                            console.warn("IndexedDB no disponible, conmutando a LocalStorage fallback.");
                             this.useLocalStorageFallback = true;
                             return resolve(null);
                         }
@@ -1307,13 +1385,16 @@
                                 if (!db.objectStoreNames.contains('notes')) {
                                     db.createObjectStore('notes', { keyPath: 'id' });
                                 }
-                            } catch(err) {}
+                            } catch(err) {
+                                console.error("Error en onupgradeneeded:", err);
+                            }
                         };
                         request.onsuccess = (e) => {
                             this.db = e.target.result;
                             resolve(this.db);
                         };
-                        request.onerror = () => {
+                        request.onerror = (err) => {
+                            console.warn("IndexedDB error al abrir, usando fallback LocalStorage:", err);
                             this.useLocalStorageFallback = true;
                             resolve(null);
                         };
@@ -1358,10 +1439,16 @@
                             const tx = this.db.transaction('orders', 'readwrite');
                             const store = tx.objectStore('orders');
                             store.clear();
-                            ordersArray.forEach(item => store.put(item));
+                            ordersArray.forEach(item => {
+                                if (item && item.id) store.put(item);
+                            });
                             tx.oncomplete = () => resolve(true);
-                            tx.onerror = () => resolve(true);
+                            tx.onerror = (err) => {
+                                console.error("IndexedDB saveOrdersList error:", err);
+                                resolve(true);
+                            };
                         } catch(e) {
+                            console.error("IndexedDB saveOrdersList exception:", e);
                             resolve(true);
                         }
                     });
@@ -1414,10 +1501,16 @@
                             const tx = this.db.transaction('notes', 'readwrite');
                             const store = tx.objectStore('notes');
                             store.clear();
-                            notesArray.forEach(item => store.put(item));
+                            notesArray.forEach(item => {
+                                if (item && item.id) store.put(item);
+                            });
                             tx.oncomplete = () => resolve(true);
-                            tx.onerror = () => resolve(true);
+                            tx.onerror = (err) => {
+                                console.error("IndexedDB saveNotesList error:", err);
+                                resolve(true);
+                            };
                         } catch(e) {
+                            console.error("IndexedDB saveNotesList exception:", e);
                             resolve(true);
                         }
                     });
@@ -1437,7 +1530,19 @@
                 try {
                     localStorage.setItem('adl_services_backup', JSON.stringify(ordersArray));
                     return true;
-                } catch(e) { return false; }
+                } catch(e) {
+                    // Si el dataset (34MB con Base64) excede los 5MB de LocalStorage, guardamos un resumen ligero sin imágenes
+                    try {
+                        const light = (ordersArray || []).map(o => {
+                            const copy = { ...o };
+                            if (Array.isArray(copy.imagesBase64)) copy.imagesBase64 = copy.imagesBase64.length;
+                            if (Array.isArray(copy.despieceFiles)) copy.despieceFiles = copy.despieceFiles.map(d => ({ name: d.name, type: d.type }));
+                            return copy;
+                        });
+                        localStorage.setItem('adl_services_backup_light', JSON.stringify(light));
+                    } catch(err2) {}
+                    return false;
+                }
             },
 
             getNotesFromLocalStorage() {
@@ -1597,6 +1702,7 @@
         async function initApp() {
             try {
                 applyDarkModeState();
+                updateCloudSettingsUI();
                 await loadDatabaseData();
                 setupKeyboardGallery();
                 setupZoomEvents();
@@ -1669,6 +1775,20 @@
             };
         }
 
+        function sanitizeNote(item) {
+            if (!item || typeof item !== 'object') return null;
+            return {
+                id: item.id ? String(item.id) : ('note-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4)),
+                title: String(item.title || item.titulo || 'Nota Técnica'),
+                content: String(item.content || item.notes || item.contenido || item.text || ''),
+                color: item.color || 'yellow',
+                images: Array.isArray(item.images) ? item.images : (Array.isArray(item.imagesBase64) ? item.imagesBase64 : []),
+                despieces: Array.isArray(item.despieces) ? item.despieces : (Array.isArray(item.despieceFiles) ? item.despieceFiles : []),
+                createdAt: item.createdAt || item.fecha || new Date().toISOString(),
+                updatedAt: item.updatedAt || new Date().toISOString()
+            };
+        }
+
         function getTicketDisplay(item) {
             if (!item) return '1001';
             if (item.ticketNum !== undefined && item.ticketNum !== null && String(item.ticketNum).trim() !== '') {
@@ -1692,27 +1812,268 @@
             return `https://wa.me/${formattedPhone}`;
         }
 
+        /* ====================================================
+           MODO CLOUD Y ARQUITECTURA DESACOPLADA (SEMI-SYNC CONTROLADA)
+        ==================================================== */
+        const API_URL = "https://script.google.com/macros/s/AKfycbzek-vqxhm31Pnwl4Amdvs0kbIJg5fDk38bBfNuzi9OV5yaIKtceLHJm2vDfIg_GWCQUw/exec";
+        const DEFAULT_ADMIN_PIN = "2350";
+
+        function getCloudApiUrl() {
+            return API_URL;
+        }
+
+        function getAdminPin() {
+            const inputVal = (document.getElementById('cfg-admin-pin')?.value || '').trim();
+            if (inputVal) {
+                window.safeSetStorage('adl_admin_pin', inputVal);
+                return inputVal;
+            }
+            return window.safeGetStorage('adl_admin_pin', '').trim();
+        }
+
+        function updateCloudSettingsUI() {
+            const pinInput = document.getElementById('cfg-admin-pin');
+            if (pinInput && !pinInput.value) pinInput.value = window.safeGetStorage('adl_admin_pin', '').trim();
+        }
+
+        async function testCloudConnection() {
+            showToast("Probando Conexión", "Contactando backend en Google Drive...", "info");
+            try {
+                const pingUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=ping&_t=' + Date.now();
+                const res = await fetch(pingUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const data = await res.json();
+                if (data && data.success) {
+                    showToast("Conexión Exitosa", "Backend en Google Drive conectado y respondiendo correctamente.", "success");
+                } else {
+                    showToast("Respuesta Inesperada", data.message || "No se pudo validar el backend.", "warning");
+                }
+            } catch (err) {
+                showToast("Error de Conexión", "No se pudo conectar: " + err.message, "error");
+            }
+        }
+
+        async function downloadDatabaseFromDrive() {
+            showToast("Descargando de Drive", "Consultando base de datos oficial en Google Drive...", "info");
+            try {
+                const reqUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=load&_t=' + Date.now();
+                const res = await fetch(reqUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const data = await res.json();
+
+                if (!data || !data.success) {
+                    showToast("Error de Descarga", data?.error || "No se pudo obtener la base de datos de Drive.", "error");
+                    return;
+                }
+
+                const rawOrders = data.orders || data.services || [];
+                const rawNotes = data.notes || data.techNotes || [];
+
+                if (rawOrders.length === 0 && rawNotes.length === 0) {
+                    showToast("Drive Vacío", "Google Drive aún no contiene órdenes cargadas.", "info");
+                    return;
+                }
+
+                if (!confirm(`Se descargaron ${rawOrders.length} órdenes y ${rawNotes.length} notas desde Google Drive.\n\n¿Desea actualizar los datos de este dispositivo con los de Google Drive?`)) {
+                    return;
+                }
+
+                allServices = rawOrders.map(sanitizeOrder).filter(Boolean);
+                allTechNotes = rawNotes.map(sanitizeNote).filter(Boolean);
+
+                await ADL_DB.saveOrdersList(allServices);
+                await ADL_DB.saveNotesList(allTechNotes);
+
+                rebuildClientsMap();
+                sortAndRefreshUI();
+
+                showToast("Base Actualizada", `Se descargaron ${allServices.length} órdenes y ${allTechNotes.length} notas desde Google Drive.`, "success");
+            } catch (err) {
+                showToast("Error de Descarga", "Fallo al descargar de Google Drive: " + err.message, "error");
+            }
+        }
+
+        async function uploadDatabaseToDrive() {
+            const pin = getAdminPin();
+            if (!pin || pin !== '2350') {
+                showToast("PIN Requerido", "Ingrese el PIN de Administrador correcto para subir cambios.", "error");
+                return;
+            }
+
+            if (!confirm(`¿Desea enviar la base de datos local (${allServices.length} órdenes y ${allTechNotes.length} notas) a Google Drive?\n\n• Se guardará en formato liviano.\n• Se creará una copia de respaldo automática en la carpeta BACKUPS.`)) {
+                return;
+            }
+
+            showToast("Subiendo a Drive", "Guardando base de datos y creando respaldo en Google Drive...", "info");
+            try {
+                const payload = JSON.stringify({
+                    action: 'overwrite',
+                    adminToken: pin,
+                    token: pin,
+                    forceOverwrite: true,
+                    updatedAt: new Date().toISOString(),
+                    orders: prepareOrdersForSave(allServices),
+                    notes: prepareOrdersForSave(allTechNotes)
+                });
+
+                const saveUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=overwrite&token=' + encodeURIComponent(pin);
+                const res = await fetch(saveUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: payload,
+                    redirect: 'follow'
+                });
+
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const result = await res.json();
+
+                if (result && result.success) {
+                    showToast("Base Guardada en Drive", `Publicada exitosamente en Google Drive con respaldo automático (v${result.version || 1}).`, "success");
+                } else {
+                    showToast("Error al Guardar", result.error || "No se pudo guardar en Google Drive.", "error");
+                }
+            } catch (err) {
+                showToast("Error al Guardar", "Fallo al enviar a Google Drive: " + err.message, "error");
+            }
+        }
+
+        let isMigratingMedia = false;
+        async function startMediaMigrationToDrive() {
+            if (isMigratingMedia) {
+                showToast("Aviso", "La migración ya se encuentra en progreso.", "info");
+                return;
+            }
+
+            const pendingUploads = [];
+            allServices.forEach(order => {
+                if (Array.isArray(order.imagesBase64)) {
+                    order.imagesBase64.forEach((img, idx) => {
+                        if (typeof img === 'string' && img.startsWith('data:image')) {
+                            pendingUploads.push({
+                                type: 'order-image',
+                                order,
+                                index: idx,
+                                data: img,
+                                name: `foto_ST${getTicketDisplay(order)}_${idx + 1}.jpg`,
+                                mime: 'image/jpeg'
+                            });
+                        }
+                    });
+                }
+                if (Array.isArray(order.despieceFiles)) {
+                    order.despieceFiles.forEach((file, idx) => {
+                        const b64 = file && (file.dataBase64 || (typeof file === 'string' && file.startsWith('data:') ? file : ''));
+                        if (b64) {
+                            pendingUploads.push({
+                                type: 'order-despiece',
+                                order,
+                                index: idx,
+                                fileObj: file,
+                                data: b64,
+                                name: file.name || `despiece_ST${getTicketDisplay(order)}_${idx + 1}.pdf`,
+                                mime: file.type || 'application/pdf'
+                            });
+                        }
+                    });
+                }
+            });
+
+            allTechNotes.forEach(note => {
+                if (Array.isArray(note.images)) {
+                    note.images.forEach((img, idx) => {
+                        if (typeof img === 'string' && img.startsWith('data:image')) {
+                            pendingUploads.push({
+                                type: 'note-image',
+                                note,
+                                index: idx,
+                                data: img,
+                                name: `foto_nota_${note.id}_${idx + 1}.jpg`,
+                                mime: 'image/jpeg'
+                            });
+                        }
+                    });
+                }
+            });
+
+            if (pendingUploads.length === 0) {
+                showToast("Medios ya Migrados", "Todas las imágenes y despieces ya se encuentran en Google Drive.", "success");
+                return;
+            }
+
+            if (!confirm(`Se encontraron ${pendingUploads.length} archivos en Base64 listos para migrar a Google Drive.\n\n• Se subirán de forma individual a la carpeta IMAGENES.\n• El peso de la base se reducirá de 34 MB a menos de 50 KB.\n\n¿Desea iniciar la migración ahora?`)) {
+                return;
+            }
+
+            isMigratingMedia = true;
+            const progressContainer = document.getElementById('migration-progress-container');
+            const progressLabel = document.getElementById('migration-progress-label');
+            const progressPercent = document.getElementById('migration-progress-percent');
+            const progressBar = document.getElementById('migration-progress-bar');
+            const startBtn = document.getElementById('btn-start-migration');
+
+            if (progressContainer) progressContainer.classList.remove('hidden');
+            if (startBtn) startBtn.disabled = true;
+
+            let completed = 0;
+            const total = pendingUploads.length;
+
+            for (const item of pendingUploads) {
+                try {
+                    const uploadRes = await apiUploadFile(item.data, item.name, item.mime);
+                    if (uploadRes && uploadRes.url) {
+                        const fileMetadata = {
+                            id: uploadRes.id || '',
+                            url: uploadRes.url,
+                            name: item.name,
+                            type: item.mime
+                        };
+
+                        if (item.type === 'order-image') {
+                            item.order.imagesBase64[item.index] = fileMetadata;
+                        } else if (item.type === 'order-despiece') {
+                            item.order.despieceFiles[item.index] = fileMetadata;
+                        } else if (item.type === 'note-image') {
+                            item.note.images[item.index] = fileMetadata;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Fallo al migrar archivo:", item.name, e);
+                }
+
+                completed++;
+                const pct = Math.round((completed / total) * 100);
+                if (progressLabel) progressLabel.innerText = `Migrando archivo ${completed} de ${total} (${item.name})...`;
+                if (progressPercent) progressPercent.innerText = `${pct}%`;
+                if (progressBar) progressBar.style.width = `${pct}%`;
+            }
+
+            await ADL_DB.saveOrdersList(allServices);
+            await ADL_DB.saveNotesList(allTechNotes);
+            sortAndRefreshUI();
+
+            isMigratingMedia = false;
+            if (startBtn) startBtn.disabled = false;
+            if (progressLabel) progressLabel.innerText = `✓ Migración completada (${completed} de ${total} archivos).`;
+            if (progressPercent) progressPercent.innerText = `100%`;
+            setTimeout(() => {
+                if (progressContainer) progressContainer.classList.add('hidden');
+            }, 4000);
+            showToast("Migración Finalizada", `Se migraron ${completed} archivos a Google Drive exitosamente.`, "success");
+        }
+
         /* SYNC & API HELPER FUNCTIONS */
         function updateSyncBadge(status) {
             const badge = document.getElementById('sync-status-badge');
             if (!badge) return;
-
-            if (status === 'synced') {
-                badge.className = "text-xs text-emerald-400 font-extrabold flex items-center space-x-1";
-                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>🟢 Sincronizado</span>`;
-            } else if (status === 'offline') {
-                badge.className = "text-xs text-amber-400 font-extrabold flex items-center space-x-1";
-                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span><span>🟡 Sin conexión</span>`;
-            } else if (status === 'syncing') {
-                badge.className = "text-xs text-sky-400 font-extrabold flex items-center space-x-1";
-                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span><span>🔵 Sincronizando</span>`;
-            }
+            const ordCount = Array.isArray(allServices) ? allServices.length : 0;
+            badge.className = "text-xs text-sky-400 font-extrabold flex items-center space-x-1.5 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20";
+            badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-sky-400"></span><span>MODO HÍBRIDO (${ordCount} órdenes)</span>`;
         }
 
-        let currentServerVersion = 1;
-
         async function apiUploadFile(base64Data, fileName, mimeType) {
-            if (!API_URL || API_URL.includes("PEGAR_URL")) return null;
+            const url = getCloudApiUrl();
+            if (!url) return null;
             try {
                 const payload = JSON.stringify({
                     action: 'upload',
@@ -1720,8 +2081,8 @@
                     fileName: fileName || ('foto_' + Date.now() + '.jpg'),
                     mimeType: mimeType || 'image/jpeg'
                 });
-                const url = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=upload';
-                const res = await fetch(url, {
+                const reqUrl = url + (url.includes('?') ? '&' : '?') + 'action=upload';
+                const res = await fetch(reqUrl, {
                     method: 'POST',
                     mode: 'cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -1743,34 +2104,16 @@
             }
         }
 
-        async function apiLoad() {
-            if (!API_URL || API_URL.includes("PEGAR_URL")) return null;
-            try {
-                const url = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=load';
-                const res = await fetch(url, {
-                    method: 'GET',
-                    redirect: 'follow'
-                });
-                if (!res.ok) return null;
-                const data = await res.json();
-                if (data && data.success) {
-                    currentServerVersion = data.version || 1;
-                }
-                return data;
-            } catch (e) {
-                return null;
-            }
-        }
-
         function prepareOrdersForSave(orders) {
             if (!Array.isArray(orders)) return [];
             return orders.map(order => {
                 const cleaned = { ...order };
                 if (Array.isArray(cleaned.imagesBase64)) {
                     cleaned.imagesBase64 = cleaned.imagesBase64.map(img => {
-                        if (typeof img === 'string') {
-                            return img.startsWith('data:') ? '' : img;
-                        } else if (img && typeof img === 'object') {
+                        if (typeof img === 'string' && img.startsWith('data:')) {
+                            return null;
+                        }
+                        if (img && typeof img === 'object') {
                             return {
                                 id: img.id || '',
                                 url: img.url || '',
@@ -1797,132 +2140,12 @@
             });
         }
 
-        async function apiSave() {
-            if (!API_URL || API_URL.includes("PEGAR_URL")) return false;
-            try {
-                const payload = JSON.stringify({
-                    action: 'save',
-                    version: currentServerVersion,
-                    updatedAt: new Date().toISOString(),
-                    orders: prepareOrdersForSave(allServices),
-                    notes: prepareOrdersForSave(allTechNotes)
-                });
-                const url = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=save';
-                const res = await fetch(url, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: payload,
-                    redirect: 'follow'
-                });
-                if (!res.ok) return false;
-                const result = await res.json();
 
-                if (result && result.success) {
-                    if (result.version) {
-                        currentServerVersion = result.version;
-                    }
-                    return true;
-                }
-                return false;
-            } catch (e) {
-                return false;
-            }
-        }
-
-        function mergeClientArrays(currentList, incomingList) {
-            const map = {};
-            if (Array.isArray(currentList)) {
-                currentList.forEach(item => {
-                    if (item && item.id) map[item.id] = item;
-                });
-            }
-            if (Array.isArray(incomingList)) {
-                incomingList.forEach(item => {
-                    if (item && item.id) {
-                        const existing = map[item.id];
-                        if (!existing) {
-                            map[item.id] = item;
-                        } else {
-                            const curTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime() || 0;
-                            const incTime = new Date(item.updatedAt || item.createdAt || 0).getTime() || 0;
-                            if (incTime >= curTime || incTime === 0) {
-                                map[item.id] = Object.assign({}, existing, item);
-                            }
-                        }
-                    }
-                });
-            }
-            return Object.values(map);
-        }
-
-        async function syncWithServer() {
-            if (syncInProgress || document.hidden) return;
-            if (!API_URL || API_URL.includes("PEGAR_URL")) return;
-
-            syncInProgress = true;
-            try {
-                if (hasPendingSync) {
-                    updateSyncBadge('syncing');
-                    const saved = await apiSave();
-                    if (saved) {
-                        hasPendingSync = false;
-                        updateSyncBadge('synced');
-                    } else {
-                        updateSyncBadge('offline');
-                    }
-                } else {
-                    const serverData = await apiLoad();
-                    if (serverData && (serverData.orders || serverData.services || serverData.notes || serverData.techNotes)) {
-                        let rawOrders = serverData.orders || serverData.services || [];
-                        let rawNotes = serverData.notes || serverData.techNotes || [];
-
-                        let changed = false;
-                        if (Array.isArray(rawOrders)) {
-                            const incomingServices = rawOrders.map(sanitizeOrder).filter(Boolean);
-                            const mergedServices = mergeClientArrays(allServices, incomingServices);
-                            if (JSON.stringify(mergedServices) !== JSON.stringify(allServices)) {
-                                allServices = mergedServices;
-                                await ADL_DB.saveOrdersList(allServices);
-                                ADL_DB.saveOrdersToLocalStorage(allServices);
-                                changed = true;
-                            }
-                        }
-
-                        if (Array.isArray(rawNotes)) {
-                            const mergedNotes = mergeClientArrays(allTechNotes, rawNotes);
-                            if (JSON.stringify(mergedNotes) !== JSON.stringify(allTechNotes)) {
-                                allTechNotes = mergedNotes;
-                                await ADL_DB.saveNotesList(allTechNotes);
-                                ADL_DB.saveNotesToLocalStorage(allTechNotes);
-                                changed = true;
-                            }
-                        }
-
-                        if (changed) {
-                            rebuildClientsMap();
-                            sortAndRefreshUI();
-                        }
-                        updateSyncBadge('synced');
-                    } else if (serverData) {
-                        updateSyncBadge('synced');
-                    } else {
-                        updateSyncBadge('offline');
-                    }
-                }
-            } catch (e) {
-                updateSyncBadge('offline');
-            } finally {
-                syncInProgress = false;
-            }
-        }
-
-        setInterval(syncWithServer, 5000);
 
         async function loadDatabaseData() {
-            updateSyncBadge('syncing');
+            updateSyncBadge('local');
 
-            // 1. Cargar primero datos locales de IndexedDB y LocalStorage
+            // 1. Cargar datos locales exclusivamente de IndexedDB y LocalStorage
             try {
                 let dbOrders = await ADL_DB.getAllOrders();
                 let dbNotes = await ADL_DB.getAllNotes();
@@ -1930,134 +2153,61 @@
                 if (dbOrders && dbOrders.length > 0) {
                     allServices = dbOrders.map(sanitizeOrder).filter(Boolean);
                 } else {
-                    allServices = ADL_DB.getOrdersFromLocalStorage().map(sanitizeOrder).filter(Boolean);
+                    const localOrders = ADL_DB.getOrdersFromLocalStorage();
+                    if (localOrders && localOrders.length > 0) {
+                        allServices = localOrders.map(sanitizeOrder).filter(Boolean);
+                    } else {
+                        allServices = [...SEED_SERVICES].map(sanitizeOrder).filter(Boolean);
+                    }
                 }
 
                 if (dbNotes && dbNotes.length > 0) {
-                    allTechNotes = dbNotes;
+                    allTechNotes = dbNotes.map(sanitizeNote).filter(Boolean);
                 } else {
-                    allTechNotes = ADL_DB.getNotesFromLocalStorage();
-                }
-
-                if (!allServices || allServices.length === 0) {
-                    allServices = [...SEED_SERVICES].map(sanitizeOrder).filter(Boolean);
-                }
-                if (!allTechNotes || allTechNotes.length === 0) {
-                    allTechNotes = [...SEED_NOTES];
+                    const localNotes = ADL_DB.getNotesFromLocalStorage();
+                    if (localNotes && localNotes.length > 0) {
+                        allTechNotes = localNotes.map(sanitizeNote).filter(Boolean);
+                    } else {
+                        allTechNotes = [...SEED_NOTES].map(sanitizeNote).filter(Boolean);
+                    }
                 }
             } catch (e) {
+                console.error("Error cargando base local:", e);
                 allServices = [...SEED_SERVICES].map(sanitizeOrder).filter(Boolean);
-                allTechNotes = [...SEED_NOTES];
+                allTechNotes = [...SEED_NOTES].map(sanitizeNote).filter(Boolean);
             }
 
             rebuildClientsMap();
+            renderTechNotesGrid();
             sortAndRefreshUI();
-
-            // 2. Consultar a Google Drive y FUSIONAR sin borrar lo local
-            const serverData = await apiLoad();
-            if (serverData) {
-                let rawOrders = serverData.orders || serverData.services || [];
-                let rawNotes = serverData.notes || serverData.techNotes || [];
-
-                const incomingOrders = rawOrders.map(sanitizeOrder).filter(Boolean);
-                allServices = mergeClientArrays(allServices, incomingOrders);
-                allTechNotes = mergeClientArrays(allTechNotes, rawNotes);
-
-                await ADL_DB.saveOrdersList(allServices);
-                ADL_DB.saveOrdersToLocalStorage(allServices);
-                await ADL_DB.saveNotesList(allTechNotes);
-                ADL_DB.saveNotesToLocalStorage(allTechNotes);
-
-                if (allServices.length > incomingOrders.length) {
-                    apiSave();
-                }
-
-                updateSyncBadge('synced');
-                setTimeout(autoMigrateBase64ImagesToDrive, 3000);
-            } else {
-                updateSyncBadge('offline');
-            }
-
-            rebuildClientsMap();
-            if (hasDuplicateClientCodes()) {
-                await renumberAllClientCodes();
-            } else {
-                populateDashboardYearSelect();
-                sortAndRefreshUI();
-            }
+            updateSyncBadge('local');
         }
 
         let isMigratingImages = false;
         async function autoMigrateBase64ImagesToDrive() {
-            if (isMigratingImages || !API_URL || API_URL.includes("PEGAR_URL")) return;
-            isMigratingImages = true;
-            try {
-                let modified = false;
-                for (let order of allServices) {
-                    if (Array.isArray(order.imagesBase64)) {
-                        for (let i = 0; i < order.imagesBase64.length; i++) {
-                            const img = order.imagesBase64[i];
-                            if (typeof img === 'string' && img.startsWith('data:image')) {
-                                const fileName = `foto_historica_ST${order.ticketNum || order.id}_${i+1}.jpg`;
-                                const uploaded = await apiUploadFile(img, fileName, 'image/jpeg');
-                                if (uploaded && uploaded.url) {
-                                    order.imagesBase64[i] = {
-                                        id: uploaded.id || '',
-                                        url: uploaded.url,
-                                        name: fileName
-                                    };
-                                    modified = true;
-                                }
-                            }
-                        }
-                    }
-                }
-                if (modified) {
-                    await saveDatabaseData();
-                }
-            } catch (e) {
-            } finally {
-                isMigratingImages = false;
-            }
+            // Desactivado en Etapa 1 para proteger imágenes Base64 locales
+            return;
         }
 
         async function saveDatabaseData() {
             try {
                 await ADL_DB.saveOrdersList(allServices);
-                ADL_DB.saveOrdersToLocalStorage(allServices);
-
-                updateSyncBadge('syncing');
-                const saved = await apiSave();
-                if (saved) {
-                    hasPendingSync = false;
-                    updateSyncBadge('synced');
-                } else {
-                    hasPendingSync = true;
-                    updateSyncBadge('offline');
-                }
+                updateSyncBadge('local');
+                return true;
             } catch (e) {
-                hasPendingSync = true;
-                updateSyncBadge('offline');
+                console.error("Error guardando órdenes locales:", e);
+                return false;
             }
         }
 
         async function saveNotesData() {
             try {
                 await ADL_DB.saveNotesList(allTechNotes);
-                ADL_DB.saveNotesToLocalStorage(allTechNotes);
-
-                updateSyncBadge('syncing');
-                const saved = await apiSave();
-                if (saved) {
-                    hasPendingSync = false;
-                    updateSyncBadge('synced');
-                } else {
-                    hasPendingSync = true;
-                    updateSyncBadge('offline');
-                }
+                updateSyncBadge('local');
+                return true;
             } catch (e) {
-                hasPendingSync = true;
-                updateSyncBadge('offline');
+                console.error("Error guardando notas locales:", e);
+                return false;
             }
         }
 
@@ -2132,7 +2282,6 @@
 
             await saveDatabaseData();
             rebuildClientsMap();
-            populateDashboardYearSelect();
             sortAndRefreshUI();
 
             const total = sortedClients.length;
@@ -2322,6 +2471,10 @@
             if (cntEl) cntEl.innerText = periodOrders.length;
 
             renderCartesianChart();
+        }
+
+        function populateDashboardYearSelect() {
+            // Safe fallback: el dashboard utiliza selector de periodos dinámicos (30 días, mes, año)
         }
 
         function getOrdersForPeriod(period) {
@@ -4139,32 +4292,38 @@
         }
 
         function showInlineDespieceModal(file) {
+            if (!file) return;
             const titleEl = document.getElementById('despiece-modal-title');
             const iconEl = document.getElementById('despiece-modal-icon');
             const contentEl = document.getElementById('despiece-modal-content');
             const modalEl = document.getElementById('despiece-inline-modal');
 
-            if (titleEl) titleEl.innerText = file.name || 'Despiece de Herramienta';
-            if (iconEl) iconEl.className = `${getDespieceIconClass(file.name)} text-lg`;
+            const fileName = file.name || 'Despiece de Herramienta';
+            const dataString = file.dataBase64 || file.data || file.url || (typeof file === 'string' ? file : '');
+
+            if (titleEl) titleEl.innerText = fileName;
+            if (iconEl) iconEl.className = `${getDespieceIconClass(fileName)} text-lg`;
 
             if (contentEl) {
-                const isImage = file.dataBase64.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                const isImage = (dataString && dataString.startsWith('data:image/')) || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
                 
-                if (isImage) {
-                    contentEl.innerHTML = `<img src="${file.dataBase64}" alt="Despiece" class="max-w-full max-h-full object-contain rounded-xl shadow-lg">`;
-                } else {
+                if (isImage && dataString) {
+                    contentEl.innerHTML = `<img src="${dataString}" alt="Despiece" class="max-w-full max-h-full object-contain rounded-xl shadow-lg">`;
+                } else if (dataString) {
                     contentEl.innerHTML = `
-                        <object data="${file.dataBase64}" type="application/pdf" class="w-full h-full rounded-xl">
-                            <iframe src="${file.dataBase64}" class="w-full h-full rounded-xl border-0">
+                        <object data="${dataString}" type="application/pdf" class="w-full h-full rounded-xl">
+                            <iframe src="${dataString}" class="w-full h-full rounded-xl border-0">
                                 <div class="p-6 text-center text-white text-sm">
-                                    <p class="mb-4 font-bold">Documento PDF / Despiece de la Herramienta</p>
+                                    <p class="mb-4 font-bold">Documento PDF / Despiece: ${fileName}</p>
                                     <button onclick="downloadDespieceCurrent()" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold rounded-xl text-xs shadow-lg">
-                                        <i class="fas fa-download mr-1.5"></i> Descargar / Ver ${file.name}
+                                        <i class="fas fa-download mr-1.5"></i> Descargar / Ver ${fileName}
                                     </button>
                                 </div>
                             </iframe>
                         </object>
                     `;
+                } else {
+                    contentEl.innerHTML = `<div class="p-6 text-center text-slate-400">No se pudo previsualizar el archivo adjunto.</div>`;
                 }
             }
 
@@ -4177,9 +4336,11 @@
         }
 
         function downloadDespieceCurrent() {
-            if (!activeDespieceFile || !activeDespieceFile.dataBase64) return;
+            if (!activeDespieceFile) return;
+            const dataString = activeDespieceFile.dataBase64 || activeDespieceFile.data || activeDespieceFile.url || (typeof activeDespieceFile === 'string' ? activeDespieceFile : '');
+            if (!dataString) return;
             const a = document.createElement('a');
-            a.href = activeDespieceFile.dataBase64;
+            a.href = dataString;
             a.download = activeDespieceFile.name || 'despiece.pdf';
             document.body.appendChild(a);
             a.click();
@@ -4828,6 +4989,8 @@
             const file = e.target.files[0];
             if (!file) return;
 
+            showToast("Procesando Archivo", "Cargando e indexando base de datos...", "info");
+
             const reader = new FileReader();
             reader.onload = async function(evt) {
                 try {
@@ -4854,34 +5017,37 @@
                     }
 
                     const cleanOrders = rawOrders.map(sanitizeOrder).filter(Boolean);
+                    const cleanNotes = rawNotes.map(sanitizeNote).filter(Boolean);
 
                     if (cleanOrders.length > 0) {
                         allServices = cleanOrders;
-                        await saveDatabaseData();
+                        await ADL_DB.saveOrdersList(allServices);
 
-                        if (rawNotes.length > 0) {
-                            allTechNotes = rawNotes;
-                            await saveNotesData();
+                        if (cleanNotes.length > 0) {
+                            allTechNotes = cleanNotes;
+                            await ADL_DB.saveNotesList(allTechNotes);
                         }
 
                         rebuildClientsMap();
+                        renderTechNotesGrid();
                         sortAndRefreshUI();
+                        updateSyncBadge('local');
                         switchTab('services');
-                        showToast("Base de Datos Restaurada", `Se importaron ${cleanOrders.length} órdenes correctamente.`, "success");
+
+                        showToast("Base de Datos Restaurada", `Se importaron ${cleanOrders.length} órdenes y ${cleanNotes.length} notas técnicas correctamente en Modo Offline.`, "success");
                     } else {
                         showToast("Error de Importación", "No se encontraron órdenes en el archivo JSON. Verifique la estructura.", "error");
                     }
                 } catch (err) {
                     console.error("importDatabaseJSON error:", err);
-                    showToast("Error de Archivo", "No se pudo leer el archivo JSON. Formato no válido.", "error");
+                    showToast("Error de Archivo", "No se pudo leer el archivo JSON: " + (err.message || err), "error");
                 }
             };
             reader.onerror = function() {
                 console.error("importDatabaseJSON FileReader error:", reader.error);
-                showToast("Error de Archivo", "iOS no pudo leer el archivo seleccionado. Guárdelo primero en Archivos y vuelva a intentarlo.", "error");
+                showToast("Error de Archivo", "No se pudo leer el archivo seleccionado.", "error");
                 if (e && e.target) e.target.value = '';
             };
-            // No limpiar antes de que termine FileReader: WebKit/iOS puede invalidar el archivo.
             reader.onloadend = function() {
                 if (e && e.target) e.target.value = '';
             };
@@ -4978,8 +5144,15 @@
                     
                     if (importedRows.length > 0) {
                         let count = 0;
+                        let maxTicket = 1000;
+                        allServices.forEach(s => {
+                            const num = Number(s.ticketNum);
+                            if (!isNaN(num) && num > maxTicket) maxTicket = num;
+                        });
+
                         importedRows.forEach((row, idx) => {
-                            const newTicketNum = 1000 + allServices.length + idx + 1;
+                            maxTicket++;
+                            const newTicketNum = maxTicket;
                             const newOrder = {
                                 id: 'imp-' + Date.now() + '-' + idx,
                                 ticketNum: newTicketNum,
@@ -5190,6 +5363,12 @@
         window.selectExistingClientForOrder = selectExistingClientForOrder;
         window.selectNewClientMode = selectNewClientMode;
         window.clearSelectedClientInForm = clearSelectedClientInForm;
+        window.testCloudConnection = testCloudConnection;
+        window.downloadDatabaseFromDrive = downloadDatabaseFromDrive;
+        window.uploadDatabaseToDrive = uploadDatabaseToDrive;
+        window.publishLocalToCloud = uploadDatabaseToDrive;
+        window.startMediaMigrationToDrive = startMediaMigrationToDrive;
+        window.updateCloudSettingsUI = updateCloudSettingsUI;
 
         /* AUTOMATIC APP LOAD */
         document.addEventListener('DOMContentLoaded', async function() {
