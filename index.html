@@ -1949,6 +1949,11 @@
            SISTEMA DE MEDIOS DUAL & PROXY DRIVE (CACHE & SYNC)
         ==================================================== */
         const ADL_MEDIA_CACHE = new Map();
+        const pendingFetches = new Map();
+
+        function getPlaceholderSvg(text = 'Cargando Foto HD...') {
+            return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200' viewBox='0 0 300 200'><rect width='300' height='200' fill='%230f172a'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2338bdf8' font-family='sans-serif' font-size='12' font-weight='bold'>${text}</text></svg>`;
+        }
 
         function extractDriveId(item) {
             if (!item) return '';
@@ -1967,27 +1972,35 @@
         async function fetchMediaViaProxy(fileId) {
             if (!fileId) return null;
             if (ADL_MEDIA_CACHE.has(fileId)) return ADL_MEDIA_CACHE.get(fileId);
+            if (pendingFetches.has(fileId)) return pendingFetches.get(fileId);
 
-            try {
-                const url = getCloudApiUrl();
-                if (!url) return null;
-                const reqUrl = `${url}${url.includes('?') ? '&' : '?'}action=getFile&id=${encodeURIComponent(fileId)}`;
-                const res = await fetch(reqUrl, { method: 'GET', mode: 'cors' });
-                if (!res.ok) return null;
-                const json = await res.json();
-                if (json && json.success && json.base64) {
-                    ADL_MEDIA_CACHE.set(fileId, json.base64);
-                    // Actualizacion reactiva de imagenes en DOM
-                    document.querySelectorAll(`img[data-drive-id="${fileId}"]`).forEach(img => {
-                        img.src = json.base64;
-                        img.removeAttribute('data-drive-id');
-                    });
-                    return json.base64;
+            const fetchPromise = (async () => {
+                try {
+                    const url = getCloudApiUrl();
+                    if (!url) return null;
+                    const reqUrl = `${url}${url.includes('?') ? '&' : '?'}action=getFile&id=${encodeURIComponent(fileId)}`;
+                    const res = await fetch(reqUrl, { method: 'GET', mode: 'cors' });
+                    if (!res.ok) return null;
+                    const json = await res.json();
+                    if (json && json.success && json.base64) {
+                        ADL_MEDIA_CACHE.set(fileId, json.base64);
+                        // Actualizacion reactiva de imagenes en DOM
+                        document.querySelectorAll(`img[data-drive-id="${fileId}"]`).forEach(img => {
+                            img.src = json.base64;
+                            img.removeAttribute('data-drive-id');
+                        });
+                        return json.base64;
+                    }
+                } catch (e) {
+                    console.warn("Error obteniendo medio via proxy:", fileId, e);
+                } finally {
+                    pendingFetches.delete(fileId);
                 }
-            } catch (e) {
-                console.warn("Error obteniendo medio via proxy:", fileId, e);
-            }
-            return null;
+                return null;
+            })();
+
+            pendingFetches.set(fileId, fetchPromise);
+            return fetchPromise;
         }
 
         async function apiUploadFile(base64Data, fileName, mimeType, folderType = 'image') {
@@ -2035,38 +2048,7 @@
             badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-sky-400"></span><span>MODO HÍBRIDO (${ordCount} órdenes)</span>`;
         }
 
-        async function apiUploadFile(base64Data, fileName, mimeType) {
-            const url = getCloudApiUrl();
-            if (!url) return null;
-            try {
-                const payload = JSON.stringify({
-                    action: 'upload',
-                    base64Data: base64Data,
-                    fileName: fileName || ('foto_' + Date.now() + '.jpg'),
-                    mimeType: mimeType || 'image/jpeg'
-                });
-                const reqUrl = url + (url.includes('?') ? '&' : '?') + 'action=upload';
-                const res = await fetch(reqUrl, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: payload,
-                    redirect: 'follow'
-                });
-                if (!res.ok) return null;
-                const result = await res.json();
-                if (result && result.success && result.url) {
-                    return {
-                        id: result.id || '',
-                        url: result.url,
-                        name: fileName
-                    };
-                }
-                return null;
-            } catch (e) {
-                return null;
-            }
-        }
+
 
         function prepareOrdersForSave(orders) {
             if (!Array.isArray(orders)) return [];
@@ -2958,13 +2940,14 @@
                     return ADL_MEDIA_CACHE.get(driveId);
                 }
                 fetchMediaViaProxy(driveId);
-                return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150"><rect width="200" height="150" fill="%231e293b"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-family="sans-serif" font-size="11">Cargando Foto HD...</text></svg>`;
+                // Miniatura liviana rápida de Google Drive
+                return `https://lh3.googleusercontent.com/d/${driveId}=w400`;
             }
 
             if (typeof imgItem === 'object' && imgItem.url) {
                 return imgItem.url;
             }
-            return '';
+            return (typeof imgItem === 'string') ? imgItem : '';
         }
 
         function getImageUploadBadge(imgItem) {
@@ -3112,14 +3095,16 @@
             const finalNoteImages = [];
             for (let i = 0; i < currentNoteImages.length; i++) {
                 const img = currentNoteImages[i];
+                const ext = getFileExtension(img.name, 'jpg');
+                const targetFileName = `foto_nota_${i + 1}_${Date.now()}.${ext}`;
                 if (img.pendingUpload && img.previewUrl) {
-                    const uploaded = await apiUploadFile(img.previewUrl, img.name, img.type || 'image/jpeg', 'image');
+                    const uploaded = await apiUploadFile(img.previewUrl, targetFileName, img.type || 'image/jpeg', 'image');
                     if (uploaded && uploaded.id) {
                         ADL_MEDIA_CACHE.set(uploaded.id, img.previewUrl);
-                        finalNoteImages.push({ id: uploaded.id, name: img.name, url: uploaded.url });
+                        finalNoteImages.push({ id: uploaded.id, name: targetFileName, url: uploaded.url });
                     }
                 } else {
-                    finalNoteImages.push({ id: img.id || extractDriveId(img), name: img.name || 'foto.jpg', url: img.url || '' });
+                    finalNoteImages.push({ id: img.id || extractDriveId(img), name: img.name || targetFileName, url: img.url || '' });
                 }
             }
 
@@ -3127,13 +3112,15 @@
             const finalNoteDespieces = [];
             for (let i = 0; i < currentNoteDespieces.length; i++) {
                 const doc = currentNoteDespieces[i];
+                const ext = getFileExtension(doc.name, 'pdf');
+                const targetFileName = `despiece_nota_${i + 1}_${Date.now()}.${ext}`;
                 if (doc.pendingUpload && doc.previewUrl) {
-                    const uploaded = await apiUploadFile(doc.previewUrl, doc.name, doc.type || 'application/pdf', 'despiece');
+                    const uploaded = await apiUploadFile(doc.previewUrl, targetFileName, doc.type || 'application/pdf', 'despiece');
                     if (uploaded && uploaded.id) {
-                        finalNoteDespieces.push({ id: uploaded.id, name: doc.name, type: doc.type, url: uploaded.url });
+                        finalNoteDespieces.push({ id: uploaded.id, name: targetFileName, type: doc.type, url: uploaded.url });
                     }
                 } else {
-                    finalNoteDespieces.push({ id: doc.id || extractDriveId(doc), name: doc.name || 'despiece.pdf', type: doc.type || 'application/pdf', url: doc.url || '' });
+                    finalNoteDespieces.push({ id: doc.id || extractDriveId(doc), name: doc.name || targetFileName, type: doc.type || 'application/pdf', url: doc.url || '' });
                 }
             }
 
@@ -3210,24 +3197,26 @@
         function openDespieceFileUniversal(file) {
             if (!file) return;
 
-            let fileUrl = typeof file === 'string' ? file : (file.url || '');
             const fileName = typeof file === 'string' ? 'Despiece' : (file.name || 'Despiece');
+            const driveId = extractDriveId(file);
 
-            if (fileUrl) {
-                if (fileUrl.includes('drive.google.com') && fileUrl.includes('export=view')) {
-                    const previewUrl = fileUrl.replace('export=view', 'view');
-                    window.open(previewUrl, '_blank');
-                    return;
-                }
+            if (driveId) {
+                const viewerUrl = `https://drive.google.com/file/d/${driveId}/view`;
+                window.open(viewerUrl, '_blank');
+                return;
+            }
+
+            let fileUrl = typeof file === 'string' ? file : (file.url || '');
+            if (fileUrl && fileUrl.startsWith('http')) {
                 window.open(fileUrl, '_blank');
                 return;
             }
 
-            const b64Data = file.dataBase64 || (typeof file === 'string' && file.startsWith('data:') ? file : '');
+            const b64Data = file.previewUrl || file.dataBase64 || (typeof file === 'string' && file.startsWith('data:') ? file : '');
             if (b64Data) {
                 const isPdf = fileName.toLowerCase().endsWith('.pdf') || b64Data.startsWith('data:application/pdf');
                 try {
-                    const mime = isPdf ? 'application/pdf' : (file.type || getExtensionType(fileName));
+                    const mime = isPdf ? 'application/pdf' : (file.type || 'application/octet-stream');
                     const blob = base64ToBlob(b64Data, mime);
                     if (blob) {
                         const blobUrl = URL.createObjectURL(blob);
@@ -3235,9 +3224,6 @@
                         return;
                     }
                 } catch (e) {}
-
-                showInlineDespieceModal(file);
-                return;
             }
 
             showInlineDespieceModal(file);
@@ -3855,7 +3841,7 @@
                             const badgeHtml = getImageUploadBadge(images[0]);
                             return `
                             <div class="relative cursor-pointer group" onclick="openGalleryModal('${safeId}', 0)">
-                                <img src="${firstImgSrc}" ${extractDriveId(images[0]) ? `data-drive-id="${extractDriveId(images[0])}"` : ''} alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity" onerror="this.onerror=null; this.parentElement.style.display='none';">
+                                <img src="${firstImgSrc}" ${extractDriveId(images[0]) ? `data-drive-id="${extractDriveId(images[0])}"` : ''} alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity" onerror="this.onerror=null; this.src='${getPlaceholderSvg('Foto en Drive HD')}';">
                                 <span class="absolute bottom-2.5 right-2.5 bg-slate-900/85 text-white text-xs font-black px-3 py-1.5 rounded-xl backdrop-blur-sm flex items-center shadow-lg border border-slate-700">
                                     <i class="fas fa-search-plus mr-1.5 text-sky-400 text-sm"></i> Lupa HD (${images.length} foto/s)
                                 </span>
@@ -4181,10 +4167,21 @@
         }
 
         function getExtensionType(filename) {
-            const lower = filename.toLowerCase();
+            const lower = (filename || '').toLowerCase();
             if (lower.endsWith('.pdf')) return 'application/pdf';
             if (lower.endsWith('.xlsx') || lower.endsWith('.xls') || lower.endsWith('.csv')) return 'application/vnd.ms-excel';
             return 'image/jpeg';
+        }
+
+        function getFileExtension(filename, defaultExt = 'jpg') {
+            if (!filename || typeof filename !== 'string') return defaultExt;
+            const clean = filename.split('?')[0].split('#')[0];
+            const parts = clean.split('.');
+            if (parts.length > 1) {
+                const ext = parts.pop().toLowerCase().trim();
+                if (ext && ext.length <= 6 && /^[a-z0-9]+$/.test(ext)) return ext;
+            }
+            return defaultExt;
         }
 
         function renderDespiecePreviewList() {
@@ -4357,7 +4354,7 @@
                 if (directSrc) {
                     img.src = directSrc;
                 } else if (driveId) {
-                    img.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%230f172a"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2338bdf8" font-family="sans-serif" font-size="14" font-weight="bold">Descargando de Drive HD...</text></svg>`;
+                    img.src = `https://lh3.googleusercontent.com/d/${driveId}=w600`;
                     const loaded = await fetchMediaViaProxy(driveId);
                     if (loaded && activeGalleryImages[activeGalleryIndex] === curGImg) {
                         img.src = loaded;
@@ -4375,25 +4372,125 @@
             updateGalleryModalView();
         }
 
-        function resetZoom() {
-            currentZoomLevel = 100;
-            const img = document.getElementById('image-modal-img');
-            const lbl = document.getElementById('gallery-zoom-level');
-            if (img) img.style.transform = `scale(1)`;
-            if (lbl) lbl.innerText = `100%`;
+        function setZoom(val) {
+            currentZoomLevel = parseInt(val, 10);
+            applyZoomTransform();
         }
 
-        function zoomImage(delta) {
-            currentZoomLevel = Math.max(50, Math.min(300, currentZoomLevel + delta));
+        function adjustZoom(delta) {
+            currentZoomLevel = Math.min(400, Math.max(50, currentZoomLevel + delta));
+            const range = document.getElementById('zoom-range');
+            if (range) range.value = currentZoomLevel;
+            applyZoomTransform();
+        }
+
+        function resetZoom() {
+            currentZoomLevel = 100;
+            const range = document.getElementById('zoom-range');
+            if (range) range.value = 100;
             const img = document.getElementById('image-modal-img');
-            const lbl = document.getElementById('gallery-zoom-level');
-            if (img) img.style.transform = `scale(${currentZoomLevel / 100})`;
-            if (lbl) lbl.innerText = `${currentZoomLevel}%`;
+            if (img) img.style.transformOrigin = 'center center';
+            applyZoomTransform();
+        }
+
+        function applyZoomTransform() {
+            const img = document.getElementById('image-modal-img');
+            const badge = document.getElementById('zoom-percent-badge');
+            if (img) {
+                img.style.transform = `scale(${currentZoomLevel / 100})`;
+            }
+            if (badge) {
+                badge.innerText = `${currentZoomLevel}%`;
+            }
         }
 
         function closeImageModal() {
             const modal = document.getElementById('image-modal');
             if (modal) modal.classList.add('hidden');
+        }
+
+        /* GESTOS TOUCH Y MOUSE PARA LUPA DINÁMICA */
+        function setupZoomEvents() {
+            const viewport = document.getElementById('zoom-viewport');
+            const img = document.getElementById('image-modal-img');
+            if (!viewport || !img) return;
+
+            viewport.addEventListener('wheel', (e) => {
+                const modal = document.getElementById('image-modal');
+                if (!modal || modal.classList.contains('hidden')) return;
+
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 20 : -20;
+                adjustZoom(delta);
+            }, { passive: false });
+
+            const moveLoupeToPointer = (e) => {
+                if (currentZoomLevel <= 100) return;
+                const rect = viewport.getBoundingClientRect();
+                if (rect.width === 0 || rect.height === 0) return;
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                img.style.transformOrigin = `${Math.max(0, Math.min(100, x))}% ${Math.max(0, Math.min(100, y))}%`;
+            };
+            viewport.addEventListener('mouseenter', moveLoupeToPointer);
+            viewport.addEventListener('mousemove', moveLoupeToPointer);
+            viewport.addEventListener('mouseleave', () => {
+                img.style.transformOrigin = 'center center';
+            });
+
+            let initialPinchDistance = 0;
+            let initialZoomLevel = 100;
+            let touchStartX = 0;
+            let lastTapTime = 0;
+
+            viewport.addEventListener('touchstart', (e) => {
+                const modal = document.getElementById('image-modal');
+                if (!modal || modal.classList.contains('hidden')) return;
+
+                if (e.touches.length === 1) {
+                    touchStartX = e.touches[0].clientX;
+                    const currentTime = new Date().getTime();
+                    const tapLength = currentTime - lastTapTime;
+                    if (tapLength < 300 && tapLength > 0) {
+                        e.preventDefault();
+                        if (currentZoomLevel > 100) {
+                            resetZoom();
+                        } else {
+                            currentZoomLevel = 200;
+                            const range = document.getElementById('zoom-range');
+                            if (range) range.value = 200;
+                            applyZoomTransform();
+                        }
+                    }
+                    lastTapTime = currentTime;
+                } else if (e.touches.length === 2) {
+                    e.preventDefault();
+                    initialPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    initialZoomLevel = currentZoomLevel;
+                }
+            }, { passive: false });
+
+            viewport.addEventListener('touchmove', (e) => {
+                const modal = document.getElementById('image-modal');
+                if (!modal || modal.classList.contains('hidden')) return;
+
+                if (e.touches.length === 2 && initialPinchDistance > 0) {
+                    e.preventDefault();
+                    const currentDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    const scaleFactor = currentDistance / initialPinchDistance;
+                    const newZoom = Math.min(400, Math.max(50, Math.round(initialZoomLevel * scaleFactor)));
+                    currentZoomLevel = newZoom;
+                    const range = document.getElementById('zoom-range');
+                    if (range) range.value = currentZoomLevel;
+                    applyZoomTransform();
+                }
+            }, { passive: false });
         }
 
         document.addEventListener('keydown', (e) => {
@@ -4417,66 +4514,84 @@
                 const serviceId = document.getElementById('service-id')?.value || '';
                 const dni = (document.getElementById('client-dni')?.value || '').trim();
 
-                let maxTicket = 1000;
-                allServices.forEach(s => {
-                    const num = Number(s.ticketNum);
-                    if (!isNaN(num) && num > maxTicket) maxTicket = num;
-                });
-                const newTicketNum = maxTicket + 1;
+                let savedTicket = null;
+                if (serviceId) {
+                    const existingOrder = allServices.find(s => s.id === serviceId);
+                    if (existingOrder) {
+                        savedTicket = existingOrder.ticketNum || getTicketDisplay(existingOrder);
+                    }
+                }
+                if (!savedTicket) {
+                    let maxTicket = 1000;
+                    allServices.forEach(s => {
+                        const num = Number(s.ticketNum);
+                        if (!isNaN(num) && num > maxTicket) maxTicket = num;
+                    });
+                    savedTicket = maxTicket + 1;
+                }
+
+                // Obtener número limpio, ej: ST-1004 o 1004 -> 1004
+                const ticketDigits = String(savedTicket).replace(/[^0-9]/g, '') || String(savedTicket);
                 const nowIso = new Date().toISOString();
 
                 const existingClient = allClients.find(c => c.dni === dni);
                 const clientCode = existingClient ? existingClient.code : getNextClientCode();
 
-                // Subir fotos pendientes a la carpeta IMAGENES
+                // Subir fotos a la carpeta IMAGENES con nombre estandarizado: foto_ST[TICKET]_[ORDEN].jpg
                 const finalImages = [];
                 for (let i = 0; i < currentImagesBase64.length; i++) {
                     const img = currentImagesBase64[i];
+                    const ext = getFileExtension(img.name, 'jpg');
+                    const targetFileName = `foto_ST${ticketDigits}_${i + 1}.${ext}`;
+
                     if (img.pendingUpload && img.previewUrl) {
-                        showToast("Subiendo Foto", `Subiendo ${img.name || 'foto'} a Google Drive...`, "info");
-                        const uploaded = await apiUploadFile(img.previewUrl, img.name, img.type || 'image/jpeg', 'image');
+                        showToast("Subiendo Foto", `Subiendo ${targetFileName} a Google Drive...`, "info");
+                        const uploaded = await apiUploadFile(img.previewUrl, targetFileName, img.type || 'image/jpeg', 'image');
                         if (uploaded && uploaded.id) {
                             ADL_MEDIA_CACHE.set(uploaded.id, img.previewUrl);
                             finalImages.push({
                                 id: uploaded.id,
-                                name: img.name,
+                                name: targetFileName,
                                 type: img.type || 'image/jpeg',
                                 url: uploaded.url
                             });
                         } else {
-                            finalImages.push({ id: '', name: img.name, url: '' });
+                            finalImages.push({ id: '', name: targetFileName, type: img.type || 'image/jpeg', url: '' });
                         }
                     } else {
                         finalImages.push({
                             id: img.id || extractDriveId(img),
-                            name: img.name || 'foto.jpg',
+                            name: targetFileName,
                             type: img.type || 'image/jpeg',
                             url: img.url || ''
                         });
                     }
                 }
 
-                // Subir despieces pendientes a la carpeta DESPIECES
+                // Subir despieces a la carpeta DESPIECES con nombre estandarizado: despiece_ST[TICKET]_[ORDEN].[EXT]
                 const finalDespieces = [];
                 for (let i = 0; i < currentDespieceFiles.length; i++) {
                     const desp = currentDespieceFiles[i];
+                    const ext = getFileExtension(desp.name, 'pdf');
+                    const targetFileName = `despiece_ST${ticketDigits}_${i + 1}.${ext}`;
+
                     if (desp.pendingUpload && desp.previewUrl) {
-                        showToast("Subiendo Despiece", `Subiendo ${desp.name || 'despiece'} a Google Drive...`, "info");
-                        const uploaded = await apiUploadFile(desp.previewUrl, desp.name, desp.type || 'application/pdf', 'despiece');
+                        showToast("Subiendo Despiece", `Subiendo ${targetFileName} a Google Drive...`, "info");
+                        const uploaded = await apiUploadFile(desp.previewUrl, targetFileName, desp.type || 'application/pdf', 'despiece');
                         if (uploaded && uploaded.id) {
                             finalDespieces.push({
                                 id: uploaded.id,
-                                name: desp.name,
+                                name: targetFileName,
                                 type: desp.type || 'application/pdf',
                                 url: uploaded.url
                             });
                         } else {
-                            finalDespieces.push({ id: '', name: desp.name, type: desp.type || 'application/pdf', url: '' });
+                            finalDespieces.push({ id: '', name: targetFileName, type: desp.type || 'application/pdf', url: '' });
                         }
                     } else {
                         finalDespieces.push({
                             id: desp.id || extractDriveId(desp),
-                            name: desp.name || 'despiece.pdf',
+                            name: targetFileName,
                             type: desp.type || 'application/pdf',
                             url: desp.url || ''
                         });
@@ -4501,11 +4616,9 @@
                     despieceFiles: finalDespieces
                 };
 
-                let savedTicket = newTicketNum;
                 if (serviceId) {
                     const index = allServices.findIndex(s => s.id === serviceId);
                     if (index !== -1) {
-                        savedTicket = allServices[index].ticketNum || savedTicket;
                         data.createdAt = allServices[index].createdAt || nowIso;
                         allServices[index] = { ...allServices[index], ...data, ticketNum: savedTicket };
                         lastSavedOrderId = serviceId;
@@ -4513,7 +4626,7 @@
                 } else {
                     const newId = 'loc-' + Date.now();
                     data.id = newId;
-                    data.ticketNum = newTicketNum;
+                    data.ticketNum = savedTicket;
                     data.createdAt = nowIso;
                     allServices.unshift(data);
                     lastSavedOrderId = newId;
@@ -4660,7 +4773,7 @@
             showToast('Orden Eliminada', 'Eliminada correctamente del sistema', 'info');
         }
 
-        function openReceipt(id) {
+        async function openReceipt(id) {
             const item = allServices.find(s => s.id === id);
             if (!item) return;
 
@@ -4676,6 +4789,15 @@
 
             const rm = document.getElementById('receipt-modal');
             if (rm) rm.classList.remove('hidden');
+
+            if (item.imagesBase64 && item.imagesBase64.length > 0) {
+                for (const img of item.imagesBase64) {
+                    const driveId = extractDriveId(img);
+                    if (driveId && !ADL_MEDIA_CACHE.has(driveId)) {
+                        fetchMediaViaProxy(driveId);
+                    }
+                }
+            }
         }
 
         function openPaymentReceipt() {
@@ -4711,9 +4833,23 @@
             }
         }
 
-        function onPrintIncludeImagesChanged(checked) {
+        async function onPrintIncludeImagesChanged(checked) {
             printIncludeImages = checked;
             const format = document.getElementById('print-format-selector')?.value || 'a4';
+            if (checked && activePrintReceiptId) {
+                const item = allServices.find(s => s.id === activePrintReceiptId);
+                if (item && item.imagesBase64 && item.imagesBase64.length > 0) {
+                    const countEl = document.getElementById('print-images-count');
+                    if (countEl) countEl.textContent = `(descargando ${item.imagesBase64.length} foto/s HD...)`;
+                    for (const img of item.imagesBase64) {
+                        const driveId = extractDriveId(img);
+                        if (driveId && !ADL_MEDIA_CACHE.has(driveId)) {
+                            await fetchMediaViaProxy(driveId);
+                        }
+                    }
+                    if (countEl) countEl.textContent = `(${item.imagesBase64.length} foto/s)`;
+                }
+            }
             renderPrintableReceipt(format);
         }
 
@@ -4789,8 +4925,8 @@
                 const paid = parseFloat(item.amountPaid) || 0;
                 const balance = Math.max(0, total - paid);
                 const dateCreated = item.createdAt ? new Date(item.createdAt).toLocaleString('es-AR') : '-';
-                const images = item.imagesBase64 || [];
-                const showImagesPage = includeImages && images.length > 0;
+                const rawImages = item.imagesBase64 || [];
+                const showImagesPage = includeImages && rawImages.length > 0;
 
                 container.innerHTML = `
                     <div class="print-receipt-page space-y-4">
@@ -4853,25 +4989,42 @@
                             <h2 class="text-base font-extrabold tracking-wider uppercase text-slate-900">FOTOGRAFÍAS ADJUNTAS</h2>
                             <p class="text-[9px] font-bold text-slate-600">Orden ST-${getTicketDisplay(item)} — ${item.clientName || ''}</p>
                         </div>
-                        ${images.map((src, idx) => `
+                        ${rawImages.map((imgObj, idx) => {
+                            const src = getSafeImageUrl(imgObj);
+                            const driveId = extractDriveId(imgObj);
+                            return `
                             <div class="print-image-block text-center space-y-1">
-                                <img src="${src}" alt="Foto ${idx + 1}" class="print-image">
-                                <p class="text-[8px] text-slate-500 font-semibold">Foto ${idx + 1} de ${images.length}</p>
+                                <img src="${src}" ${driveId ? `data-drive-id="${driveId}"` : ''} alt="Foto ${idx + 1}" class="print-image" onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/${driveId}=w800';">
+                                <p class="text-[8px] text-slate-500 font-semibold">Foto ${idx + 1} de ${rawImages.length}</p>
                             </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                     ` : ''}
                 `;
             }
         }
 
-        function triggerPrintProcess() {
+        async function triggerPrintProcess() {
             const area = document.getElementById('printable-area');
             const rm = document.getElementById('receipt-modal');
             const withImages = printIncludeImages && activePrintType === 'order';
 
             if (rm) rm.classList.remove('hidden');
-            if (withImages) area?.classList.add('print-with-images');
+            if (withImages) {
+                area?.classList.add('print-with-images');
+                const item = allServices.find(s => s.id === activePrintReceiptId);
+                if (item && item.imagesBase64 && item.imagesBase64.length > 0) {
+                    for (const img of item.imagesBase64) {
+                        const driveId = extractDriveId(img);
+                        if (driveId && !ADL_MEDIA_CACHE.has(driveId)) {
+                            await fetchMediaViaProxy(driveId);
+                        }
+                    }
+                    const format = document.getElementById('print-format-selector')?.value || 'a4';
+                    renderPrintableReceipt(format);
+                }
+            }
 
             requestAnimationFrame(() => {
                 window.print();
@@ -5288,12 +5441,16 @@
         window.downloadDatabaseFromDrive = downloadDatabaseFromDrive;
         window.uploadDatabaseToDrive = uploadDatabaseToDrive;
         window.publishLocalToCloud = uploadDatabaseToDrive;
-        // Media migration sanitized
-        window.updateCloudSettingsUI = updateCloudSettingsUI;
+        window.adjustZoom = adjustZoom;
+        window.setZoom = setZoom;
+        window.resetZoom = resetZoom;
+        window.closeImageModal = closeImageModal;
+        window.navigateGallery = navigateGallery;
 
         /* AUTOMATIC APP LOAD */
         document.addEventListener('DOMContentLoaded', async function() {
             await initApp();
+            setupZoomEvents();
             switchTab('services');
         });
     </script>
