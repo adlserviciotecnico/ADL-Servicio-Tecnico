@@ -943,27 +943,34 @@
                             </button>
                         </div>
 
-                        <!-- Asistente de Migración de Imágenes y Despieces -->
+                        <!-- Estructura de Almacenamiento Dual en Google Drive -->
                         <div class="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <h4 class="font-extrabold text-slate-800 dark:text-slate-200 text-xs">Migración de Medios a Google Drive</h4>
-                                    <p class="text-[11px] text-slate-500">Sube automáticamente las fotos y despieces Base64 a Drive, aligerando la base para transferencias instantáneas.</p>
+                                    <h4 class="font-extrabold text-slate-800 dark:text-slate-200 text-xs flex items-center">
+                                        <i class="fas fa-folder-tree text-sky-500 mr-1.5"></i> Almacenamiento Dual en Google Drive
+                                    </h4>
+                                    <p class="text-[11px] text-slate-500">Base de datos de texto estructurado y archivos multimedia organizados en 3 carpetas:</p>
                                 </div>
-                                <button type="button" onclick="startMediaMigrationToDrive()" id="btn-start-migration" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all whitespace-nowrap shadow">
-                                    <i class="fas fa-images mr-1"></i> Iniciar Migración
-                                </button>
+                                <span class="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[11px] font-black rounded-xl">
+                                    <i class="fas fa-check-circle mr-1"></i> Drive Activo
+                                </span>
                             </div>
-                            <div id="migration-progress-container" class="hidden space-y-1.5">
-                                <div class="flex justify-between text-[10px] font-extrabold text-slate-600 dark:text-slate-400">
-                                    <span id="migration-progress-label">Migrando archivos a Google Drive...</span>
-                                    <span id="migration-progress-percent">0%</span>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                                <div class="p-2.5 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center space-x-2">
+                                    <i class="fas fa-camera text-sky-500 text-sm"></i>
+                                    <div><strong class="block text-slate-800 dark:text-slate-200">IMAGENES/</strong><span class="text-slate-400">Fotos de herramientas</span></div>
                                 </div>
-                                <div class="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                                    <div id="migration-progress-bar" class="bg-indigo-600 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                                <div class="p-2.5 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center space-x-2">
+                                    <i class="fas fa-file-pdf text-rose-500 text-sm"></i>
+                                    <div><strong class="block text-slate-800 dark:text-slate-200">DESPIECES/</strong><span class="text-slate-400">PDFs y planos</span></div>
+                                </div>
+                                <div class="p-2.5 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center space-x-2">
+                                    <i class="fas fa-database text-amber-500 text-sm"></i>
+                                    <div><strong class="block text-slate-800 dark:text-slate-200">BACKUPS/</strong><span class="text-slate-400">Respaldos .json</span></div>
                                 </div>
                             </div>
-                        </div>
+                        </div></div>
                     </div>
                 </div>
             </section>
@@ -1815,7 +1822,7 @@
         /* ====================================================
            MODO CLOUD Y ARQUITECTURA DESACOPLADA (SEMI-SYNC CONTROLADA)
         ==================================================== */
-        const API_URL = "https://script.google.com/macros/s/AKfycbzek-vqxhm31Pnwl4Amdvs0kbIJg5fDk38bBfNuzi9OV5yaIKtceLHJm2vDfIg_GWCQUw/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzuhB6O5XzF1vYX_Z8ZbkTZu2flWPNjC7dsIonTZRWA5txolff7M3D2xYLgJ9uAbSpLUw/exec";
         const DEFAULT_ADMIN_PIN = "2350";
 
         function getCloudApiUrl() {
@@ -1938,128 +1945,85 @@
             }
         }
 
-        let isMigratingMedia = false;
-        async function startMediaMigrationToDrive() {
-            if (isMigratingMedia) {
-                showToast("Aviso", "La migración ya se encuentra en progreso.", "info");
-                return;
-            }
+        /* ====================================================
+           SISTEMA DE MEDIOS DUAL & PROXY DRIVE (CACHE & SYNC)
+        ==================================================== */
+        const ADL_MEDIA_CACHE = new Map();
 
-            const pendingUploads = [];
-            allServices.forEach(order => {
-                if (Array.isArray(order.imagesBase64)) {
-                    order.imagesBase64.forEach((img, idx) => {
-                        if (typeof img === 'string' && img.startsWith('data:image')) {
-                            pendingUploads.push({
-                                type: 'order-image',
-                                order,
-                                index: idx,
-                                data: img,
-                                name: `foto_ST${getTicketDisplay(order)}_${idx + 1}.jpg`,
-                                mime: 'image/jpeg'
-                            });
-                        }
+        function extractDriveId(item) {
+            if (!item) return '';
+            if (typeof item === 'string') {
+                if (item.startsWith('data:')) return '';
+                const match = item.match(/id=([a-zA-Z0-9_-]+)/) || item.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                return match ? match[1] : (item.length > 20 && !item.includes('/') && !item.includes(':') ? item : '');
+            }
+            if (typeof item === 'object') {
+                if (item.id) return item.id;
+                if (item.url) return extractDriveId(item.url);
+            }
+            return '';
+        }
+
+        async function fetchMediaViaProxy(fileId) {
+            if (!fileId) return null;
+            if (ADL_MEDIA_CACHE.has(fileId)) return ADL_MEDIA_CACHE.get(fileId);
+
+            try {
+                const url = getCloudApiUrl();
+                if (!url) return null;
+                const reqUrl = `${url}${url.includes('?') ? '&' : '?'}action=getFile&id=${encodeURIComponent(fileId)}`;
+                const res = await fetch(reqUrl, { method: 'GET', mode: 'cors' });
+                if (!res.ok) return null;
+                const json = await res.json();
+                if (json && json.success && json.base64) {
+                    ADL_MEDIA_CACHE.set(fileId, json.base64);
+                    // Actualizacion reactiva de imagenes en DOM
+                    document.querySelectorAll(`img[data-drive-id="${fileId}"]`).forEach(img => {
+                        img.src = json.base64;
+                        img.removeAttribute('data-drive-id');
                     });
+                    return json.base64;
                 }
-                if (Array.isArray(order.despieceFiles)) {
-                    order.despieceFiles.forEach((file, idx) => {
-                        const b64 = file && (file.dataBase64 || (typeof file === 'string' && file.startsWith('data:') ? file : ''));
-                        if (b64) {
-                            pendingUploads.push({
-                                type: 'order-despiece',
-                                order,
-                                index: idx,
-                                fileObj: file,
-                                data: b64,
-                                name: file.name || `despiece_ST${getTicketDisplay(order)}_${idx + 1}.pdf`,
-                                mime: file.type || 'application/pdf'
-                            });
-                        }
-                    });
-                }
-            });
-
-            allTechNotes.forEach(note => {
-                if (Array.isArray(note.images)) {
-                    note.images.forEach((img, idx) => {
-                        if (typeof img === 'string' && img.startsWith('data:image')) {
-                            pendingUploads.push({
-                                type: 'note-image',
-                                note,
-                                index: idx,
-                                data: img,
-                                name: `foto_nota_${note.id}_${idx + 1}.jpg`,
-                                mime: 'image/jpeg'
-                            });
-                        }
-                    });
-                }
-            });
-
-            if (pendingUploads.length === 0) {
-                showToast("Medios ya Migrados", "Todas las imágenes y despieces ya se encuentran en Google Drive.", "success");
-                return;
+            } catch (e) {
+                console.warn("Error obteniendo medio via proxy:", fileId, e);
             }
+            return null;
+        }
 
-            if (!confirm(`Se encontraron ${pendingUploads.length} archivos en Base64 listos para migrar a Google Drive.\n\n• Se subirán de forma individual a la carpeta IMAGENES.\n• El peso de la base se reducirá de 34 MB a menos de 50 KB.\n\n¿Desea iniciar la migración ahora?`)) {
-                return;
-            }
-
-            isMigratingMedia = true;
-            const progressContainer = document.getElementById('migration-progress-container');
-            const progressLabel = document.getElementById('migration-progress-label');
-            const progressPercent = document.getElementById('migration-progress-percent');
-            const progressBar = document.getElementById('migration-progress-bar');
-            const startBtn = document.getElementById('btn-start-migration');
-
-            if (progressContainer) progressContainer.classList.remove('hidden');
-            if (startBtn) startBtn.disabled = true;
-
-            let completed = 0;
-            const total = pendingUploads.length;
-
-            for (const item of pendingUploads) {
-                try {
-                    const uploadRes = await apiUploadFile(item.data, item.name, item.mime);
-                    if (uploadRes && uploadRes.url) {
-                        const fileMetadata = {
-                            id: uploadRes.id || '',
-                            url: uploadRes.url,
-                            name: item.name,
-                            type: item.mime
-                        };
-
-                        if (item.type === 'order-image') {
-                            item.order.imagesBase64[item.index] = fileMetadata;
-                        } else if (item.type === 'order-despiece') {
-                            item.order.despieceFiles[item.index] = fileMetadata;
-                        } else if (item.type === 'note-image') {
-                            item.note.images[item.index] = fileMetadata;
-                        }
-                    }
-                } catch (e) {
-                    console.warn("Fallo al migrar archivo:", item.name, e);
+        async function apiUploadFile(base64Data, fileName, mimeType, folderType = 'image') {
+            const url = getCloudApiUrl();
+            if (!url) return null;
+            try {
+                const payload = JSON.stringify({
+                    action: 'upload',
+                    base64Data: base64Data,
+                    fileName: fileName || ('archivo_' + Date.now()),
+                    mimeType: mimeType || 'image/jpeg',
+                    folderType: folderType
+                });
+                const reqUrl = url + (url.includes('?') ? '&' : '?') + 'action=upload';
+                const res = await fetch(reqUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: payload,
+                    redirect: 'follow'
+                });
+                if (!res.ok) return null;
+                const result = await res.json();
+                if (result && result.success && result.id) {
+                    return {
+                        id: result.id,
+                        url: result.url || `https://drive.google.com/file/d/${result.id}/view`,
+                        name: fileName,
+                        type: mimeType
+                    };
                 }
-
-                completed++;
-                const pct = Math.round((completed / total) * 100);
-                if (progressLabel) progressLabel.innerText = `Migrando archivo ${completed} de ${total} (${item.name})...`;
-                if (progressPercent) progressPercent.innerText = `${pct}%`;
-                if (progressBar) progressBar.style.width = `${pct}%`;
+                return null;
+            } catch (e) {
+                console.warn("Error en apiUploadFile:", e);
+                return null;
             }
-
-            await ADL_DB.saveOrdersList(allServices);
-            await ADL_DB.saveNotesList(allTechNotes);
-            sortAndRefreshUI();
-
-            isMigratingMedia = false;
-            if (startBtn) startBtn.disabled = false;
-            if (progressLabel) progressLabel.innerText = `✓ Migración completada (${completed} de ${total} archivos).`;
-            if (progressPercent) progressPercent.innerText = `100%`;
-            setTimeout(() => {
-                if (progressContainer) progressContainer.classList.add('hidden');
-            }, 4000);
-            showToast("Migración Finalizada", `Se migraron ${completed} archivos a Google Drive exitosamente.`, "success");
         }
 
         /* SYNC & API HELPER FUNCTIONS */
@@ -2973,22 +2937,46 @@
 
         function getSafeImageUrl(imgItem) {
             if (!imgItem) return '';
-            if (typeof imgItem === 'string') {
-                if (imgItem === '[object Object]') return '';
+            
+            // 1. Vista previa local inmediata en memoria (durante edicion de orden)
+            if (typeof imgItem === 'string' && imgItem.startsWith('data:image')) {
                 return imgItem;
             }
             if (typeof imgItem === 'object') {
-                return imgItem.dataBase64 || imgItem.url || '';
+                if (imgItem.previewUrl && imgItem.previewUrl.startsWith('data:image')) {
+                    return imgItem.previewUrl;
+                }
+                if (imgItem.dataBase64 && imgItem.dataBase64.startsWith('data:image')) {
+                    return imgItem.dataBase64;
+                }
+            }
+
+            // 2. Archivo en Google Drive
+            const driveId = extractDriveId(imgItem);
+            if (driveId) {
+                if (ADL_MEDIA_CACHE.has(driveId)) {
+                    return ADL_MEDIA_CACHE.get(driveId);
+                }
+                fetchMediaViaProxy(driveId);
+                return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150"><rect width="200" height="150" fill="%231e293b"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-family="sans-serif" font-size="11">Cargando Foto HD...</text></svg>`;
+            }
+
+            if (typeof imgItem === 'object' && imgItem.url) {
+                return imgItem.url;
             }
             return '';
         }
 
         function getImageUploadBadge(imgItem) {
-            if (!imgItem || typeof imgItem === 'string') return '';
-            if (imgItem.pendingUpload || !imgItem.url) {
-                return `<span class="px-2 py-0.5 bg-amber-500/90 text-white text-[10px] font-black rounded-lg shadow flex items-center"><i class="fas fa-spinner fa-spin mr-1"></i> Subiendo</span>`;
+            if (!imgItem) return '';
+            if (imgItem.pendingUpload) {
+                return `<span class="px-2 py-0.5 bg-amber-500/90 text-white text-[10px] font-black rounded-lg shadow flex items-center"><i class="fas fa-clock mr-1"></i> Pendiente</span>`;
             }
-            return `<span class="px-2 py-0.5 bg-emerald-600/90 text-white text-[10px] font-black rounded-lg shadow flex items-center"><i class="fab fa-google-drive mr-1"></i> Drive HD</span>`;
+            const driveId = extractDriveId(imgItem);
+            if (driveId) {
+                return `<span class="px-2 py-0.5 bg-emerald-600/90 text-white text-[10px] font-black rounded-lg shadow flex items-center"><i class="fab fa-google-drive mr-1"></i> Drive HD</span>`;
+            }
+            return '';
         }
 
         function getNoteColorClass(color) {
@@ -3033,40 +3021,27 @@
 
             files.forEach(file => {
                 const reader = new FileReader();
-                reader.onload = async function(evt) {
+                reader.onload = function(evt) {
                     const b64 = evt.target.result;
-                    const tempIdx = currentNoteImages.length;
-                    
-                    currentNoteImages.push({ id: '', url: b64, name: file.name, pendingUpload: true, dataBase64: b64 });
-                    renderNoteImagesPreviewGrid();
-
-                    const uploaded = await apiUploadFile(b64, file.name, file.type || 'image/jpeg');
-                    if (uploaded && uploaded.url) {
-                        currentNoteImages[tempIdx] = {
-                            id: uploaded.id || '',
-                            url: uploaded.url,
-                            name: file.name
-                        };
-                    } else {
-                        currentNoteImages[tempIdx] = {
-                            id: '',
-                            url: b64,
-                            name: file.name,
-                            pendingUpload: true,
-                            dataBase64: b64
-                        };
-                    }
+                    currentNoteImages.push({
+                        id: '',
+                        name: file.name,
+                        type: file.type || 'image/jpeg',
+                        previewUrl: b64,
+                        pendingUpload: true
+                    });
                     renderNoteImagesPreviewGrid();
                 };
                 reader.readAsDataURL(file);
             });
+            e.target.value = '';
         }
 
         function renderNoteImagesPreviewGrid() {
             const grid = document.getElementById('note-images-preview-grid');
             if (!grid) return;
             grid.innerHTML = currentNoteImages.map((item, idx) => {
-                const imgSrc = typeof item === 'string' ? item : (item.url || item.dataBase64 || '');
+                const imgSrc = getSafeImageUrl(item);
                 return `
                 <div class="relative group">
                     <img src="${imgSrc}" class="w-full h-16 object-cover rounded-xl border border-slate-300 dark:border-slate-700">
@@ -3088,42 +3063,21 @@
 
             files.forEach(file => {
                 const reader = new FileReader();
-                reader.onload = async function(evt) {
+                reader.onload = function(evt) {
                     const b64 = evt.target.result;
                     const mime = file.type || getExtensionType(file.name);
-                    const tempIdx = currentNoteDespieces.length;
-                    
                     currentNoteDespieces.push({
+                        id: '',
                         name: file.name,
                         type: mime,
-                        pendingUpload: true,
-                        dataBase64: b64,
-                        url: b64
+                        previewUrl: b64,
+                        pendingUpload: true
                     });
-                    renderNoteDespiecePreviewList();
-
-                    const uploaded = await apiUploadFile(b64, file.name, mime);
-                    if (uploaded && uploaded.url) {
-                        currentNoteDespieces[tempIdx] = {
-                            id: uploaded.id || '',
-                            url: uploaded.url,
-                            name: file.name,
-                            type: mime
-                        };
-                    } else {
-                        currentNoteDespieces[tempIdx] = {
-                            id: '',
-                            url: b64,
-                            name: file.name,
-                            type: mime,
-                            pendingUpload: true,
-                            dataBase64: b64
-                        };
-                    }
                     renderNoteDespiecePreviewList();
                 };
                 reader.readAsDataURL(file);
             });
+            e.target.value = '';
         }
 
         function renderNoteDespiecePreviewList() {
@@ -3142,41 +3096,72 @@
             renderNoteDespiecePreviewList();
         }
 
-        async function saveTechNote() {
-            const nid = document.getElementById('tech-note-id')?.value || '';
+        async function saveTechNote(e) {
+            e.preventDefault();
+            const noteId = document.getElementById('tech-note-id')?.value || '';
             const title = (document.getElementById('tech-note-title')?.value || '').trim();
             const content = (document.getElementById('tech-note-content')?.value || '').trim();
-            const color = document.querySelector('input[name="note-color"]:checked')?.value || 'yellow';
+            const color = document.querySelector('input[name="note-color"]:checked')?.value || 'amber';
 
             if (!title) {
-                showToast("Aviso", "Ingrese un título para la nota técnica", "info");
+                showToast("Dato requerido", "Por favor ingresa un titulo para la nota.", "warning");
                 return;
+            }
+
+            // Subir imagenes de notas pendientes a IMAGENES
+            const finalNoteImages = [];
+            for (let i = 0; i < currentNoteImages.length; i++) {
+                const img = currentNoteImages[i];
+                if (img.pendingUpload && img.previewUrl) {
+                    const uploaded = await apiUploadFile(img.previewUrl, img.name, img.type || 'image/jpeg', 'image');
+                    if (uploaded && uploaded.id) {
+                        ADL_MEDIA_CACHE.set(uploaded.id, img.previewUrl);
+                        finalNoteImages.push({ id: uploaded.id, name: img.name, url: uploaded.url });
+                    }
+                } else {
+                    finalNoteImages.push({ id: img.id || extractDriveId(img), name: img.name || 'foto.jpg', url: img.url || '' });
+                }
+            }
+
+            // Subir despieces de notas pendientes a DESPIECES
+            const finalNoteDespieces = [];
+            for (let i = 0; i < currentNoteDespieces.length; i++) {
+                const doc = currentNoteDespieces[i];
+                if (doc.pendingUpload && doc.previewUrl) {
+                    const uploaded = await apiUploadFile(doc.previewUrl, doc.name, doc.type || 'application/pdf', 'despiece');
+                    if (uploaded && uploaded.id) {
+                        finalNoteDespieces.push({ id: uploaded.id, name: doc.name, type: doc.type, url: uploaded.url });
+                    }
+                } else {
+                    finalNoteDespieces.push({ id: doc.id || extractDriveId(doc), name: doc.name || 'despiece.pdf', type: doc.type || 'application/pdf', url: doc.url || '' });
+                }
             }
 
             const nowIso = new Date().toISOString();
 
-            if (nid) {
-                const idx = allTechNotes.findIndex(n => n.id === nid);
+            if (noteId) {
+                const idx = allTechNotes.findIndex(n => n.id === noteId);
                 if (idx !== -1) {
                     allTechNotes[idx] = {
                         ...allTechNotes[idx],
-                        title: title,
-                        content: content,
-                        color: color,
-                        images: [...currentNoteImages],
-                        despieces: [...currentNoteDespieces],
+                        title,
+                        content,
+                        color,
+                        images: finalNoteImages,
+                        despieces: finalNoteDespieces,
                         updatedAt: nowIso
                     };
                 }
             } else {
                 const newNote = {
                     id: 'note-' + Date.now(),
-                    title: title,
-                    content: content,
-                    color: color,
-                    images: [...currentNoteImages],
-                    despieces: [...currentNoteDespieces],
-                    createdAt: nowIso
+                    title,
+                    content,
+                    color,
+                    images: finalNoteImages,
+                    despieces: finalNoteDespieces,
+                    createdAt: nowIso,
+                    updatedAt: nowIso
                 };
                 allTechNotes.unshift(newNote);
             }
@@ -3184,7 +3169,7 @@
             await saveNotesData();
             renderTechNotesGrid();
             closeTechNoteModal();
-            showToast("Nota Técnica Guardada", "Guardada correctamente en la Pizarra.", "success");
+            showToast("Nota Tecnica Guardada", "Guardada correctamente en la Pizarra.", "success");
         }
 
         function editTechNote(id) {
@@ -3870,7 +3855,7 @@
                             const badgeHtml = getImageUploadBadge(images[0]);
                             return `
                             <div class="relative cursor-pointer group" onclick="openGalleryModal('${safeId}', 0)">
-                                <img src="${firstImgSrc}" alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity" onerror="this.onerror=null; this.parentElement.style.display='none';">
+                                <img src="${firstImgSrc}" ${extractDriveId(images[0]) ? `data-drive-id="${extractDriveId(images[0])}"` : ''} alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity" onerror="this.onerror=null; this.parentElement.style.display='none';">
                                 <span class="absolute bottom-2.5 right-2.5 bg-slate-900/85 text-white text-xs font-black px-3 py-1.5 rounded-xl backdrop-blur-sm flex items-center shadow-lg border border-slate-700">
                                     <i class="fas fa-search-plus mr-1.5 text-sky-400 text-sm"></i> Lupa HD (${images.length} foto/s)
                                 </span>
@@ -4134,32 +4119,18 @@
                 const reader = new FileReader();
                 reader.onload = function(evt) {
                     const b64 = evt.target.result;
-                    const tempIdx = currentImagesBase64.length;
-                    
-                    currentImagesBase64.push({ id: '', url: b64, name: file.name, pendingUpload: true, dataBase64: b64 });
+                    currentImagesBase64.push({
+                        id: '',
+                        name: file.name,
+                        type: file.type || 'image/jpeg',
+                        previewUrl: b64,
+                        pendingUpload: true
+                    });
                     renderImagesPreviewGrid();
-
-                    apiUploadFile(b64, file.name, file.type || 'image/jpeg').then(uploaded => {
-                        if (uploaded && uploaded.url) {
-                            currentImagesBase64[tempIdx] = {
-                                id: uploaded.id || '',
-                                url: uploaded.url,
-                                name: file.name
-                            };
-                        } else {
-                            currentImagesBase64[tempIdx] = {
-                                id: '',
-                                url: b64,
-                                name: file.name,
-                                pendingUpload: true,
-                                dataBase64: b64
-                            };
-                        }
-                        renderImagesPreviewGrid();
-                    }).catch(() => {});
                 };
                 reader.readAsDataURL(file);
             });
+            e.target.value = '';
         }
 
         function renderImagesPreviewGrid() {
@@ -4169,9 +4140,10 @@
             grid.innerHTML = currentImagesBase64.map((item, idx) => {
                 const imgSrc = getSafeImageUrl(item);
                 const badgeHtml = getImageUploadBadge(item);
+                const driveId = extractDriveId(item);
                 return `
                 <div class="relative group">
-                    <img src="${imgSrc}" alt="Foto ${idx+1}" class="w-full h-24 object-cover rounded-xl border border-slate-300 dark:border-slate-700">
+                    <img src="${imgSrc}" ${driveId ? `data-drive-id="${driveId}"` : ''} alt="Foto ${idx+1}" class="w-full h-24 object-cover rounded-xl border border-slate-300 dark:border-slate-700">
                     ${badgeHtml ? `<div class="absolute top-1 left-1">${badgeHtml}</div>` : ''}
                     <button type="button" onclick="removeImageFromForm(${idx})" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 text-xs hover:bg-rose-700 shadow">
                         <i class="fas fa-times"></i>
@@ -4185,49 +4157,27 @@
             renderImagesPreviewGrid();
         }
 
-        /* MANEJO DE ARCHIVOS DE DESPIECE */
         function handleDespieceSelected(e) {
             const files = Array.from(e.target.files);
             if (!files.length) return;
 
             files.forEach(file => {
                 const reader = new FileReader();
-                reader.onload = async function(evt) {
+                reader.onload = function(evt) {
                     const b64 = evt.target.result;
                     const mime = file.type || getExtensionType(file.name);
-                    const tempIdx = currentDespieceFiles.length;
-
                     currentDespieceFiles.push({
+                        id: '',
                         name: file.name,
                         type: mime,
-                        pendingUpload: true,
-                        dataBase64: b64,
-                        url: b64
+                        previewUrl: b64,
+                        pendingUpload: true
                     });
-                    renderDespiecePreviewList();
-
-                    const uploaded = await apiUploadFile(b64, file.name, mime);
-                    if (uploaded && uploaded.url) {
-                        currentDespieceFiles[tempIdx] = {
-                            id: uploaded.id || '',
-                            url: uploaded.url,
-                            name: file.name,
-                            type: mime
-                        };
-                    } else {
-                        currentDespieceFiles[tempIdx] = {
-                            id: '',
-                            url: b64,
-                            name: file.name,
-                            type: mime,
-                            pendingUpload: true,
-                            dataBase64: b64
-                        };
-                    }
                     renderDespiecePreviewList();
                 };
                 reader.readAsDataURL(file);
             });
+            e.target.value = '';
         }
 
         function getExtensionType(filename) {
@@ -4241,17 +4191,20 @@
             const list = document.getElementById('despiece-preview-list');
             if (!list) return;
 
-            list.innerHTML = currentDespieceFiles.map((file, idx) => `
+            list.innerHTML = currentDespieceFiles.map((file, idx) => {
+                const isPending = file.pendingUpload;
+                return `
                 <div class="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
                     <div class="flex items-center space-x-2 truncate mr-2">
                         <i class="${getDespieceIconClass(file.name)} text-base"></i>
                         <span class="font-extrabold text-slate-800 dark:text-slate-200 truncate">${file.name}</span>
+                        ${isPending ? '<span class="px-1.5 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-bold rounded">Pendiente</span>' : '<span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded">Drive</span>'}
                     </div>
                     <button type="button" onclick="removeDespieceFromForm(${idx})" class="text-slate-400 hover:text-rose-600 p-1">
-                        <i class="fas fa-trash-alt text-base"></i>
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
-            `).join('');
+            `;}).join('');
         }
 
         function removeDespieceFromForm(idx) {
@@ -4299,31 +4252,40 @@
             const modalEl = document.getElementById('despiece-inline-modal');
 
             const fileName = file.name || 'Despiece de Herramienta';
-            const dataString = file.dataBase64 || file.data || file.url || (typeof file === 'string' ? file : '');
+            const driveId = extractDriveId(file);
 
             if (titleEl) titleEl.innerText = fileName;
             if (iconEl) iconEl.className = `${getDespieceIconClass(fileName)} text-lg`;
 
-            if (contentEl) {
-                const isImage = (dataString && dataString.startsWith('data:image/')) || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
-                
-                if (isImage && dataString) {
-                    contentEl.innerHTML = `<img src="${dataString}" alt="Despiece" class="max-w-full max-h-full object-contain rounded-xl shadow-lg">`;
-                } else if (dataString) {
+            if (driveId) {
+                const driveUrl = `https://drive.google.com/file/d/${driveId}/preview`;
+                if (contentEl) {
                     contentEl.innerHTML = `
-                        <object data="${dataString}" type="application/pdf" class="w-full h-full rounded-xl">
-                            <iframe src="${dataString}" class="w-full h-full rounded-xl border-0">
-                                <div class="p-6 text-center text-white text-sm">
-                                    <p class="mb-4 font-bold">Documento PDF / Despiece: ${fileName}</p>
-                                    <button onclick="downloadDespieceCurrent()" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold rounded-xl text-xs shadow-lg">
-                                        <i class="fas fa-download mr-1.5"></i> Descargar / Ver ${fileName}
-                                    </button>
-                                </div>
-                            </iframe>
-                        </object>
+                        <iframe src="${driveUrl}" class="w-full h-full rounded-xl border-0" allow="autoplay"></iframe>
                     `;
-                } else {
-                    contentEl.innerHTML = `<div class="p-6 text-center text-slate-400">No se pudo previsualizar el archivo adjunto.</div>`;
+                }
+            } else {
+                const dataString = file.previewUrl || file.dataBase64 || file.data || file.url || (typeof file === 'string' ? file : '');
+                if (contentEl) {
+                    const isImage = (dataString && dataString.startsWith('data:image/')) || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+                    if (isImage && dataString) {
+                        contentEl.innerHTML = `<img src="${dataString}" alt="Despiece" class="max-w-full max-h-full object-contain rounded-xl shadow-lg">`;
+                    } else if (dataString) {
+                        contentEl.innerHTML = `
+                            <object data="${dataString}" type="application/pdf" class="w-full h-full rounded-xl">
+                                <iframe src="${dataString}" class="w-full h-full rounded-xl border-0">
+                                    <div class="p-6 text-center text-white text-sm">
+                                        <p class="mb-4 font-bold">Documento PDF / Despiece: ${fileName}</p>
+                                        <button onclick="downloadDespieceCurrent()" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold rounded-xl text-xs shadow-lg">
+                                            <i class="fas fa-download mr-1.5"></i> Descargar / Ver ${fileName}
+                                        </button>
+                                    </div>
+                                </iframe>
+                            </object>
+                        `;
+                    } else {
+                        contentEl.innerHTML = `<div class="p-6 text-center text-slate-400">No se pudo previsualizar el archivo adjunto.</div>`;
+                    }
                 }
             }
 
@@ -4337,7 +4299,12 @@
 
         function downloadDespieceCurrent() {
             if (!activeDespieceFile) return;
-            const dataString = activeDespieceFile.dataBase64 || activeDespieceFile.data || activeDespieceFile.url || (typeof activeDespieceFile === 'string' ? activeDespieceFile : '');
+            const driveId = extractDriveId(activeDespieceFile);
+            if (driveId) {
+                window.open(`https://drive.google.com/uc?export=download&id=${driveId}`, '_blank');
+                return;
+            }
+            const dataString = activeDespieceFile.previewUrl || activeDespieceFile.dataBase64 || activeDespieceFile.data || activeDespieceFile.url || (typeof activeDespieceFile === 'string' ? activeDespieceFile : '');
             if (!dataString) return;
             const a = document.createElement('a');
             a.href = dataString;
@@ -4361,7 +4328,7 @@
             if (modal) modal.classList.remove('hidden');
         }
 
-        function updateGalleryModalView() {
+        async function updateGalleryModalView() {
             const img = document.getElementById('image-modal-img');
             const counter = document.getElementById('gallery-counter');
             const btnPrev = document.getElementById('btn-gallery-prev');
@@ -4369,7 +4336,8 @@
 
             if (img && activeGalleryImages.length > 0) {
                 const curGImg = activeGalleryImages[activeGalleryIndex];
-                img.src = typeof curGImg === 'string' ? curGImg : (curGImg ? (curGImg.url || curGImg.dataBase64 || '') : '');
+                const driveId = extractDriveId(curGImg);
+
                 if (counter) counter.innerText = `Imagen ${activeGalleryIndex + 1} de ${activeGalleryImages.length}`;
 
                 if (activeGalleryImages.length <= 1) {
@@ -4378,6 +4346,24 @@
                 } else {
                     if (btnPrev) btnPrev.classList.remove('hidden');
                     if (btnNext) btnNext.classList.remove('hidden');
+                }
+
+                let directSrc = '';
+                if (typeof curGImg === 'string' && curGImg.startsWith('data:image')) directSrc = curGImg;
+                else if (curGImg && curGImg.previewUrl) directSrc = curGImg.previewUrl;
+                else if (curGImg && curGImg.dataBase64) directSrc = curGImg.dataBase64;
+                else if (driveId && ADL_MEDIA_CACHE.has(driveId)) directSrc = ADL_MEDIA_CACHE.get(driveId);
+
+                if (directSrc) {
+                    img.src = directSrc;
+                } else if (driveId) {
+                    img.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%230f172a"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2338bdf8" font-family="sans-serif" font-size="14" font-weight="bold">Descargando de Drive HD...</text></svg>`;
+                    const loaded = await fetchMediaViaProxy(driveId);
+                    if (loaded && activeGalleryImages[activeGalleryIndex] === curGImg) {
+                        img.src = loaded;
+                    }
+                } else {
+                    img.src = curGImg?.url || '';
                 }
             }
         }
@@ -4389,36 +4375,20 @@
             updateGalleryModalView();
         }
 
-        function setZoom(val) {
-            currentZoomLevel = parseInt(val, 10);
-            applyZoomTransform();
-        }
-
-        function adjustZoom(delta) {
-            currentZoomLevel = Math.min(400, Math.max(50, currentZoomLevel + delta));
-            const range = document.getElementById('zoom-range');
-            if (range) range.value = currentZoomLevel;
-            applyZoomTransform();
-        }
-
         function resetZoom() {
             currentZoomLevel = 100;
-            const range = document.getElementById('zoom-range');
-            if (range) range.value = 100;
             const img = document.getElementById('image-modal-img');
-            if (img) img.style.transformOrigin = 'center center';
-            applyZoomTransform();
+            const lbl = document.getElementById('gallery-zoom-level');
+            if (img) img.style.transform = `scale(1)`;
+            if (lbl) lbl.innerText = `100%`;
         }
 
-        function applyZoomTransform() {
+        function zoomImage(delta) {
+            currentZoomLevel = Math.max(50, Math.min(300, currentZoomLevel + delta));
             const img = document.getElementById('image-modal-img');
-            const badge = document.getElementById('zoom-percent-badge');
-            if (img) {
-                img.style.transform = `scale(${currentZoomLevel / 100})`;
-            }
-            if (badge) {
-                badge.innerText = `${currentZoomLevel}%`;
-            }
+            const lbl = document.getElementById('gallery-zoom-level');
+            if (img) img.style.transform = `scale(${currentZoomLevel / 100})`;
+            if (lbl) lbl.innerText = `${currentZoomLevel}%`;
         }
 
         function closeImageModal() {
@@ -4426,193 +4396,144 @@
             if (modal) modal.classList.add('hidden');
         }
 
-        /* GESTOS TOUCH OPTIMIZADOS PARA IOS (SWIPE, PINCH ZOOM, DOUBLE TAP Y PAN) */
-        function setupZoomEvents() {
-            const viewport = document.getElementById('zoom-viewport');
-            const img = document.getElementById('image-modal-img');
-            if (!viewport || !img) return;
-
-            // Ruedita del Mouse (Desktop)
-            viewport.addEventListener('wheel', (e) => {
-                const modal = document.getElementById('image-modal');
-                if (!modal || modal.classList.contains('hidden')) return;
-
-                e.preventDefault();
-                const delta = e.deltaY < 0 ? 20 : -20;
-                adjustZoom(delta);
-            }, { passive: false });
-
-            // Movimiento Lupa de Cursor (Desktop)
-            // Movimiento Lupa de Cursor (Desktop): calcula sobre el viewport estable.
-            const moveLoupeToPointer = (e) => {
-                if (currentZoomLevel <= 100) return;
-                const rect = viewport.getBoundingClientRect();
-                if (rect.width === 0 || rect.height === 0) return;
-                const x = ((e.clientX - rect.left) / rect.width) * 100;
-                const y = ((e.clientY - rect.top) / rect.height) * 100;
-                img.style.transformOrigin = `${Math.max(0, Math.min(100, x))}% ${Math.max(0, Math.min(100, y))}%`;
-            };
-            viewport.addEventListener('mouseenter', moveLoupeToPointer);
-            viewport.addEventListener('mousemove', moveLoupeToPointer);
-            viewport.addEventListener('mouseleave', () => {
-                img.style.transformOrigin = 'center center';
-            });
-
-            let initialPinchDistance = 0;
-            let initialZoomLevel = 100;
-            let touchStartX = 0;
-            let lastTapTime = 0;
-
-            viewport.addEventListener('touchstart', (e) => {
-                const modal = document.getElementById('image-modal');
-                if (!modal || modal.classList.contains('hidden')) return;
-
-                if (e.touches.length === 1) {
-                    touchStartX = e.touches[0].clientX;
-                    const currentTime = new Date().getTime();
-                    const tapLength = currentTime - lastTapTime;
-                    if (tapLength < 300 && tapLength > 0) {
-                        e.preventDefault();
-                        if (currentZoomLevel > 100) {
-                            resetZoom();
-                        } else {
-                            currentZoomLevel = 200;
-                            const range = document.getElementById('zoom-range');
-                            if (range) range.value = 200;
-                            applyZoomTransform();
-                        }
-                    }
-                    lastTapTime = currentTime;
-                } else if (e.touches.length === 2) {
-                    e.preventDefault();
-                    initialPinchDistance = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    initialZoomLevel = currentZoomLevel;
-                }
-            }, { passive: false });
-
-            viewport.addEventListener('touchmove', (e) => {
-                const modal = document.getElementById('image-modal');
-                if (!modal || modal.classList.contains('hidden')) return;
-
-                if (e.touches.length === 2 && initialPinchDistance > 0) {
-                    e.preventDefault();
-                    const currentDistance = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    const scaleFactor = currentDistance / initialPinchDistance;
-                    const newZoom = Math.min(400, Math.max(50, Math.round(initialZoomLevel * scaleFactor)));
-                    
-                    currentZoomLevel = newZoom;
-                    const range = document.getElementById('zoom-range');
-                    if (range) range.value = currentZoomLevel;
-                    applyZoomTransform();
-
-                } else if (e.touches.length === 1 && currentZoomLevel > 100) {
-                    e.preventDefault();
-                    const rect = img.getBoundingClientRect();
-                    if (rect.width > 0 && rect.height > 0) {
-                        const touchX = e.touches[0].clientX;
-                        const touchY = e.touches[0].clientY;
-                        const x = ((touchX - rect.left) / rect.width) * 100;
-                        const y = ((touchY - rect.top) / rect.height) * 100;
-                        img.style.transformOrigin = `${Math.max(0, Math.min(100, x))}% ${Math.max(0, Math.min(100, y))}%`;
-                    }
-                }
-            }, { passive: false });
-
-            viewport.addEventListener('touchend', (e) => {
-                const modal = document.getElementById('image-modal');
-                if (!modal || modal.classList.contains('hidden')) return;
-
-                if (e.changedTouches.length === 1 && currentZoomLevel === 100) {
-                    const touchEndX = e.changedTouches[0].clientX;
-                    const deltaX = touchEndX - touchStartX;
-
-                    if (Math.abs(deltaX) > 45) {
-                        if (deltaX < 0) {
-                            navigateGallery(1);
-                        } else {
-                            navigateGallery(-1);
-                        }
-                    }
-                }
-                initialPinchDistance = 0;
-            });
-        }
-
-        function setupKeyboardGallery() {
-            document.addEventListener('keydown', (e) => {
-                const imgModal = document.getElementById('image-modal');
-                if (imgModal && !imgModal.classList.contains('hidden')) {
-                    if (e.key === 'ArrowLeft') navigateGallery(-1);
-                    if (e.key === 'ArrowRight') navigateGallery(1);
-                    if (e.key === 'Escape') closeImageModal();
-                }
-            });
-        }
+        document.addEventListener('keydown', (e) => {
+            const imgModal = document.getElementById('image-modal');
+            if (imgModal && !imgModal.classList.contains('hidden')) {
+                if (e.key === 'ArrowLeft') navigateGallery(-1);
+                if (e.key === 'ArrowRight') navigateGallery(1);
+                if (e.key === 'Escape') closeImageModal();
+            }
+        });
 
         async function saveServiceOrder(e) {
             e.preventDefault();
-            const serviceId = document.getElementById('service-id')?.value || '';
-            const dni = (document.getElementById('client-dni')?.value || '').trim();
-
-            let maxTicket = 1000;
-            allServices.forEach(s => {
-                const num = Number(s.ticketNum);
-                if (!isNaN(num) && num > maxTicket) maxTicket = num;
-            });
-            const newTicketNum = maxTicket + 1;
-            const nowIso = new Date().toISOString();
-
-            const existingClient = allClients.find(c => c.dni === dni);
-            const clientCode = existingClient ? existingClient.code : getNextClientCode();
-
-            const data = {
-                clientDni: dni,
-                clientCode: clientCode,
-                clientName: (document.getElementById('client-name')?.value || '').trim(),
-                clientPhone: (document.getElementById('client-phone')?.value || '').trim(),
-                toolType: (document.getElementById('tool-type')?.value || '').trim(),
-                toolBrand: (document.getElementById('tool-brand')?.value || '').trim(),
-                toolModel: (document.getElementById('tool-model')?.value || '').trim(),
-                toolAccessories: (document.getElementById('tool-accessories')?.value || '').trim(),
-                failureDescription: (document.getElementById('failure-description')?.value || '').trim(),
-                estimatedCost: parseFormattedCurrency(document.getElementById('estimated-cost')?.value),
-                amountPaid: parseFormattedCurrency(document.getElementById('amount-paid')?.value),
-                status: document.getElementById('order-status')?.value || 'Ingresado',
-                updatedAt: nowIso,
-                imagesBase64: [...currentImagesBase64],
-                despieceFiles: [...currentDespieceFiles]
-            };
-
-            let savedTicket = newTicketNum;
-            if (serviceId) {
-                const index = allServices.findIndex(s => s.id === serviceId);
-                if (index !== -1) {
-                    savedTicket = allServices[index].ticketNum || savedTicket;
-                    data.createdAt = allServices[index].createdAt || nowIso;
-                    allServices[index] = { ...allServices[index], ...data, ticketNum: savedTicket };
-                    lastSavedOrderId = serviceId;
-                }
-            } else {
-                const newId = 'loc-' + Date.now();
-                data.id = newId;
-                data.ticketNum = newTicketNum;
-                data.createdAt = nowIso;
-                allServices.unshift(data);
-                lastSavedOrderId = newId;
+            const btnSave = document.getElementById('btn-save-service');
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.innerHTML = `<i class="fas fa-spinner fa-spin mr-2 text-lg"></i> Guardando y Subiendo Medios...`;
             }
 
-            await saveDatabaseData();
-            rebuildClientsMap();
-            sortAndRefreshUI();
+            try {
+                const serviceId = document.getElementById('service-id')?.value || '';
+                const dni = (document.getElementById('client-dni')?.value || '').trim();
 
-            showSaveSuccessModal(`Orden ST-${savedTicket} procesada correctamente.`, savedTicket);
-            cancelServiceForm();
+                let maxTicket = 1000;
+                allServices.forEach(s => {
+                    const num = Number(s.ticketNum);
+                    if (!isNaN(num) && num > maxTicket) maxTicket = num;
+                });
+                const newTicketNum = maxTicket + 1;
+                const nowIso = new Date().toISOString();
+
+                const existingClient = allClients.find(c => c.dni === dni);
+                const clientCode = existingClient ? existingClient.code : getNextClientCode();
+
+                // Subir fotos pendientes a la carpeta IMAGENES
+                const finalImages = [];
+                for (let i = 0; i < currentImagesBase64.length; i++) {
+                    const img = currentImagesBase64[i];
+                    if (img.pendingUpload && img.previewUrl) {
+                        showToast("Subiendo Foto", `Subiendo ${img.name || 'foto'} a Google Drive...`, "info");
+                        const uploaded = await apiUploadFile(img.previewUrl, img.name, img.type || 'image/jpeg', 'image');
+                        if (uploaded && uploaded.id) {
+                            ADL_MEDIA_CACHE.set(uploaded.id, img.previewUrl);
+                            finalImages.push({
+                                id: uploaded.id,
+                                name: img.name,
+                                type: img.type || 'image/jpeg',
+                                url: uploaded.url
+                            });
+                        } else {
+                            finalImages.push({ id: '', name: img.name, url: '' });
+                        }
+                    } else {
+                        finalImages.push({
+                            id: img.id || extractDriveId(img),
+                            name: img.name || 'foto.jpg',
+                            type: img.type || 'image/jpeg',
+                            url: img.url || ''
+                        });
+                    }
+                }
+
+                // Subir despieces pendientes a la carpeta DESPIECES
+                const finalDespieces = [];
+                for (let i = 0; i < currentDespieceFiles.length; i++) {
+                    const desp = currentDespieceFiles[i];
+                    if (desp.pendingUpload && desp.previewUrl) {
+                        showToast("Subiendo Despiece", `Subiendo ${desp.name || 'despiece'} a Google Drive...`, "info");
+                        const uploaded = await apiUploadFile(desp.previewUrl, desp.name, desp.type || 'application/pdf', 'despiece');
+                        if (uploaded && uploaded.id) {
+                            finalDespieces.push({
+                                id: uploaded.id,
+                                name: desp.name,
+                                type: desp.type || 'application/pdf',
+                                url: uploaded.url
+                            });
+                        } else {
+                            finalDespieces.push({ id: '', name: desp.name, type: desp.type || 'application/pdf', url: '' });
+                        }
+                    } else {
+                        finalDespieces.push({
+                            id: desp.id || extractDriveId(desp),
+                            name: desp.name || 'despiece.pdf',
+                            type: desp.type || 'application/pdf',
+                            url: desp.url || ''
+                        });
+                    }
+                }
+
+                const data = {
+                    clientDni: dni,
+                    clientCode: clientCode,
+                    clientName: (document.getElementById('client-name')?.value || '').trim(),
+                    clientPhone: (document.getElementById('client-phone')?.value || '').trim(),
+                    toolType: (document.getElementById('tool-type')?.value || '').trim(),
+                    toolBrand: (document.getElementById('tool-brand')?.value || '').trim(),
+                    toolModel: (document.getElementById('tool-model')?.value || '').trim(),
+                    toolAccessories: (document.getElementById('tool-accessories')?.value || '').trim(),
+                    failureDescription: (document.getElementById('failure-description')?.value || '').trim(),
+                    estimatedCost: parseFormattedCurrency(document.getElementById('estimated-cost')?.value),
+                    amountPaid: parseFormattedCurrency(document.getElementById('amount-paid')?.value),
+                    status: document.getElementById('order-status')?.value || 'Ingresado',
+                    updatedAt: nowIso,
+                    imagesBase64: finalImages,
+                    despieceFiles: finalDespieces
+                };
+
+                let savedTicket = newTicketNum;
+                if (serviceId) {
+                    const index = allServices.findIndex(s => s.id === serviceId);
+                    if (index !== -1) {
+                        savedTicket = allServices[index].ticketNum || savedTicket;
+                        data.createdAt = allServices[index].createdAt || nowIso;
+                        allServices[index] = { ...allServices[index], ...data, ticketNum: savedTicket };
+                        lastSavedOrderId = serviceId;
+                    }
+                } else {
+                    const newId = 'loc-' + Date.now();
+                    data.id = newId;
+                    data.ticketNum = newTicketNum;
+                    data.createdAt = nowIso;
+                    allServices.unshift(data);
+                    lastSavedOrderId = newId;
+                }
+
+                await saveDatabaseData();
+                rebuildClientsMap();
+                sortAndRefreshUI();
+
+                showSaveSuccessModal(`Orden ST-${savedTicket} procesada correctamente.`, savedTicket);
+                cancelServiceForm();
+            } catch (err) {
+                console.error("Error al guardar orden:", err);
+                showToast("Error", "No se pudo guardar la orden: " + err.message, "error");
+            } finally {
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = `<i class="fas fa-save mr-2 text-lg"></i> Guardar Orden`;
+                }
+            }
         }
 
         function showSaveSuccessModal(message, ticketNum) {
@@ -5367,7 +5288,7 @@
         window.downloadDatabaseFromDrive = downloadDatabaseFromDrive;
         window.uploadDatabaseToDrive = uploadDatabaseToDrive;
         window.publishLocalToCloud = uploadDatabaseToDrive;
-        window.startMediaMigrationToDrive = startMediaMigrationToDrive;
+        // Media migration sanitized
         window.updateCloudSettingsUI = updateCloudSettingsUI;
 
         /* AUTOMATIC APP LOAD */
