@@ -218,11 +218,11 @@
                 max-width: none !important;
                 max-height: none !important;
                 margin: 0 !important;
-                padding: 6px !important;
+                padding: 10px 14px !important;
                 background: white !important;
-                color: black !important;
-                font-size: 10.5pt !important;
-                line-height: 1.25 !important;
+                color: #0f172a !important;
+                font-size: 11pt !important;
+                line-height: 1.35 !important;
                 box-sizing: border-box !important;
                 box-shadow: none !important;
                 border: none !important;
@@ -291,6 +291,72 @@
 </head>
 <body class="h-full text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 font-sans antialiased flex flex-col transition-colors duration-200 select-none sm:select-auto">
 
+    <!-- PANTALLA DE BLOQUEO / INICIO DE SESIÓN ZERO TRUST -->
+    <div id="adl-login-modal" class="fixed inset-0 z-[99999] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 transition-all duration-300">
+        <div class="bg-slate-900/95 border border-slate-700/80 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 text-white text-center relative overflow-hidden">
+            <!-- Background Decorative Glow -->
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-sky-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <!-- Header & Logo -->
+            <div class="flex flex-col items-center space-y-3">
+                <div class="w-20 h-20 bg-gradient-to-br from-slate-800 to-sky-900 p-4 rounded-3xl shadow-xl border border-sky-500/30 flex items-center justify-center">
+                    <img src="favicon.png" alt="ADL Logo" class="w-14 h-14 object-contain" onerror="this.style.display='none'; document.getElementById('login-fallback-icon').classList.remove('hidden');">
+                    <i id="login-fallback-icon" class="fas fa-screwdriver-wrench text-3xl text-sky-400 hidden"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-black tracking-wider text-white">ADL SERVICIO TÉCNICO</h2>
+                    <p class="text-xs font-semibold text-slate-400 mt-0.5">Control de Acceso y Gestión Segura</p>
+                </div>
+            </div>
+
+            <!-- Inactivity / Alert reason message if any -->
+            <div id="login-reason-msg" class="hidden p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-amber-300 text-xs font-semibold">
+                <i class="fas fa-clock mr-1.5"></i>
+                <span id="login-reason-text">Sesión expirada</span>
+            </div>
+
+            <!-- Error message container -->
+            <div id="login-error-msg" class="hidden p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-300 text-xs font-semibold flex items-center justify-center space-x-2">
+                <i class="fas fa-circle-exclamation text-rose-400"></i>
+                <span id="login-error-text">Usuario o contraseña incorrectos</span>
+            </div>
+
+            <!-- Form -->
+            <form id="adl-login-form" onsubmit="submitLogin(event)" class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Usuario</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="login-username" required autocomplete="username" placeholder="" class="w-full pl-11 pr-4 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 transition-all lowercase">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Contraseña / PIN</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="password" id="login-password" required autocomplete="current-password" placeholder="" class="w-full pl-11 pr-12 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 transition-all">
+                        <button type="button" onclick="toggleLoginPasswordVisibility()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 text-sm">
+                            <i id="login-eye-icon" class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" id="login-btn-submit" class="w-full py-3.5 px-4 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-sky-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer mt-2">
+                    <i class="fas fa-right-to-bracket text-base"></i>
+                    <span>Iniciar Sesión</span>
+                </button>
+            </form>
+
+            <!-- Security Footer Badge -->
+            <div class="pt-2 border-t border-slate-800 flex items-center justify-center space-x-1.5 text-[11px] text-slate-400">
+                <i class="fas fa-shield-halved text-emerald-400 text-xs"></i>
+                <span>Autenticación por Token Criptográfico (Zero Trust)</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="fixed top-4 right-4 left-4 sm:left-auto sm:max-w-md z-50 transform -translate-y-24 opacity-0 transition-all duration-300 bg-slate-900 dark:bg-slate-800 text-white p-4 rounded-2xl shadow-2xl flex items-center space-x-3 border border-slate-700">
         <i id="toast-icon" class="fas fa-info-circle text-xl text-sky-400"></i>
@@ -302,83 +368,77 @@
     </div>
 
     <!-- MAIN APP -->
-    <div id="main-app" class="min-h-screen flex-1 flex flex-col">
+    <div id="main-app" class="min-h-screen flex-1 flex flex-col filter blur-sm pointer-events-none transition-all duration-300">
         
-        <!-- HEADER AMPLIO Y ACCESIBLE PARA ADULTOS MAYORES -->
-        <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-30 border-b border-slate-800 py-3 sm:py-4">
-            <div class="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col xl:flex-row items-center justify-between gap-3 xl:gap-6">
+        <!-- HEADER AMPLIO, COMPACTO Y RESPONSIVO -->
+        <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-30 border-b border-slate-800 py-2 sm:py-2.5">
+            <div class="w-full max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-6 flex items-center justify-between gap-2 lg:gap-4">
                 
-                <!-- Brand & Logo Row -->
-                <div class="flex items-center justify-between w-full xl:w-auto shrink-0">
-                    <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('services')">
-                        <div class="bg-gradient-to-br from-slate-800 to-sky-900 p-3 rounded-2xl shrink-0 shadow-lg border border-slate-700 flex items-center justify-center">
-                            <i class="fas fa-screwdriver-wrench text-3xl text-sky-400"></i>
+                <!-- 1. Izquierda: Ícono de herramientas + badge debajo + Botones Nube y Modo en Vertical -->
+                <div class="flex items-center space-x-2 shrink-0">
+                    <div class="flex flex-col items-center cursor-pointer select-none" onclick="switchTab('services')" title="ADL Servicio Técnico">
+                        <div class="bg-gradient-to-br from-slate-800 to-sky-900 p-2 sm:p-2.5 rounded-2xl shadow-lg border border-slate-700 flex items-center justify-center hover:border-sky-500/50 transition-all">
+                            <i class="fas fa-screwdriver-wrench text-xl sm:text-2xl text-sky-400"></i>
                         </div>
-                        <div>
-                            <span class="font-black text-lg sm:text-xl tracking-wider block leading-tight text-white">ADL SERVICIO TÉCNICO</span>
-                            <span id="sync-status-badge" class="text-xs text-amber-400 font-extrabold flex items-center space-x-1.5 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-                                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                                <span>MODO OFFLINE (IndexedDB Local)</span>
-                            </span>
-                        </div>
+                        <span id="sync-status-badge" class="text-[9px] text-sky-400 font-extrabold flex items-center space-x-1 mt-1 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 whitespace-nowrap">
+                            <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+                            <span>Híbrido (29)</span>
+                        </span>
                     </div>
 
-                    <!-- Theme and Cloud quick toggle for compact view -->
-                    <div class="flex items-center space-x-2 xl:hidden">
-                        <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar desde Google Drive" class="p-2.5 text-sky-300 hover:text-white bg-sky-950/80 rounded-2xl border border-sky-700/80">
-                            <i class="fas fa-cloud-arrow-down text-lg text-sky-400"></i>
+                    <!-- Botones Nube y Modo (Uno arriba del otro, cómodos) -->
+                    <div class="flex flex-col space-y-1 shrink-0">
+                        <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar de Google Drive" class="p-1.5 px-2 bg-sky-950/80 hover:bg-sky-900 text-sky-300 rounded-xl border border-sky-700/80 flex items-center justify-center transition-all cursor-pointer shadow-sm">
+                            <i class="fas fa-cloud-arrow-down text-sky-400 text-xs"></i>
                         </button>
-                        <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="p-2.5 text-slate-200 hover:text-amber-400 bg-slate-800 rounded-2xl border border-slate-700">
-                            <i class="theme-toggle-icon fas fa-moon text-lg"></i>
+                        <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="p-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 flex items-center justify-center transition-all cursor-pointer shadow-sm">
+                            <i class="theme-toggle-icon fas fa-moon text-amber-400 text-xs"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- NAVBAR CENTRAL EXPANDIDA -->
-                <nav class="w-full flex-1 flex items-center justify-stretch xl:justify-evenly overflow-x-auto gap-2 sm:gap-3 py-1 scrollbar-none">
-                    <button onclick="switchTab('services')" id="nav-services" class="nav-btn flex-1 min-w-[140px] px-4 sm:px-6 py-3 sm:py-3.5 rounded-2xl text-sm sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-lg bg-sky-600 text-white border-sky-400 shadow-sky-600/30 scale-[1.02]">
-                        <i class="fas fa-screwdriver-wrench text-lg sm:text-xl mr-2 text-white"></i>
+                <!-- 2. Centro: Navbar Principal con TODOS los botones legibles y visibles -->
+                <nav class="flex-1 flex items-center justify-center overflow-x-auto gap-1 sm:gap-2 py-1 scrollbar-none">
+                    <button onclick="switchTab('services')" id="nav-services" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-lg bg-sky-600 text-white border-sky-400 shadow-sky-600/30 scale-[1.02] whitespace-nowrap">
+                        <i class="fas fa-screwdriver-wrench text-sm sm:text-base mr-1.5 text-white"></i>
                         <span>Órdenes</span>
                     </button>
                     
-                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex-1 min-w-[140px] px-4 sm:px-6 py-3 sm:py-3.5 rounded-2xl text-sm sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80">
-                        <i class="fas fa-chart-pie text-lg sm:text-xl mr-2 text-sky-400"></i>
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-chart-pie text-sm sm:text-base mr-1.5 text-sky-400"></i>
                         <span>Panel Resumen</span>
                     </button>
 
-                    <button onclick="switchTab('clients')" id="nav-clients" class="nav-btn flex-1 min-w-[140px] px-4 sm:px-6 py-3 sm:py-3.5 rounded-2xl text-sm sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80">
-                        <i class="fas fa-users text-lg sm:text-xl mr-2 text-sky-400"></i>
+                    <button onclick="switchTab('clients')" id="nav-clients" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-users text-sm sm:text-base mr-1.5 text-sky-400"></i>
                         <span>Clientes</span>
                     </button>
 
-                    <button onclick="switchTab('current-accounts')" id="nav-current-accounts" class="nav-btn flex-1 min-w-[170px] px-4 sm:px-6 py-3 sm:py-3.5 rounded-2xl text-sm sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80"><i class="fas fa-file-invoice-dollar mr-2 text-lg text-amber-400"></i><span>Cuentas corrientes</span></button>
-                    <button onclick="onNewOrderNavClicked()" id="nav-new-service" class="nav-btn flex-1 min-w-[140px] px-4 sm:px-6 py-3 sm:py-3.5 rounded-2xl text-sm sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80">
-                        <i class="fas fa-plus-circle text-lg sm:text-xl mr-2 text-sky-400"></i>
+                    <button onclick="switchTab('current-accounts')" id="nav-current-accounts" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-file-invoice-dollar text-sm sm:text-base mr-1.5 text-amber-400"></i>
+                        <span>Cuentas corrientes</span>
+                    </button>
+
+                    <button onclick="onNewOrderNavClicked()" id="nav-new-service" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-plus-circle text-sm sm:text-base mr-1.5 text-sky-400"></i>
                         <span>Nueva Orden</span>
                     </button>
 
-                    <button onclick="switchTab('database')" id="nav-database" class="nav-btn flex-1 min-w-[140px] px-4 sm:px-6 py-3 sm:py-3.5 rounded-2xl text-sm sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80">
-                        <i class="fas fa-database text-lg sm:text-xl mr-2 text-sky-400"></i>
+                    <button onclick="switchTab('database')" id="nav-database" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-database text-sm sm:text-base mr-1.5 text-sky-400"></i>
                         <span>BD / Excel</span>
                     </button>
                 </nav>
 
-                <!-- Controles Derecha (Desktop) -->
-                <div class="hidden xl:flex items-center space-x-2 shrink-0">
-                    <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar desde Google Drive" class="px-3.5 py-2.5 bg-sky-950/80 hover:bg-sky-900 text-sky-300 font-extrabold text-xs rounded-2xl border border-sky-700/80 flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm">
-                        <i class="fas fa-cloud-arrow-down text-sky-400 text-sm"></i>
-                        <span>Bajar de Drive</span>
-                    </button>
-
-                    <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-xs rounded-2xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer">
-                        <i class="theme-toggle-icon fas fa-moon text-amber-400 text-sm"></i>
-                        <span>Modo</span>
-                    </button>
-
-                    <button onclick="exportDatabaseJSON()" title="Descargar Respaldo JSON" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-xs rounded-2xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer">
-                        <i class="fas fa-download text-sky-400 text-sm"></i>
-                        <span>Respaldo</span>
-                    </button>
+                <!-- 3. Derecha: Badge de Usuario con botón Salir -->
+                <div class="flex items-center space-x-2 shrink-0">
+                    <div id="header-user-badge-desktop" class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-2xl border border-slate-700 text-xs text-slate-200 font-extrabold shadow-sm">
+                        <i class="fas fa-user-circle text-sky-400 text-base"></i>
+                        <span id="header-username-text-desktop">admin</span>
+                        <button onclick="logoutUser('Sesión cerrada manualmente.')" title="Cerrar Sesión" class="ml-1 text-slate-400 hover:text-rose-400 p-1 transition-colors cursor-pointer" aria-label="Cerrar Sesión">
+                            <i class="fas fa-arrow-right-from-bracket text-xs"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -930,9 +990,19 @@
                                     <p class="text-xs font-black text-slate-800 dark:text-slate-200">Enlace Oficial de Google Apps Script Activo</p>
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">PIN de Administrador</label>
-                                <input type="password" id="cfg-admin-pin" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold focus:outline-none focus:border-sky-500" placeholder="Ingrese PIN para subir cambios">
+                            <div class="bg-slate-50 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-950/80 text-sky-600 dark:text-sky-400 flex items-center justify-center text-lg">
+                                        <i class="fas fa-user-shield"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-[11px] text-slate-400 font-bold uppercase">Sesión de Usuario</p>
+                                        <p id="cfg-user-session-text" class="text-xs font-black text-slate-800 dark:text-slate-200">Autenticado</p>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="logoutUser('Sesión cerrada por el usuario.')" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-rose-500/20 text-slate-700 dark:text-slate-300 hover:text-rose-400 font-bold text-xs rounded-xl border border-slate-300 dark:border-slate-700 transition-all cursor-pointer">
+                                    <i class="fas fa-right-from-bracket mr-1"></i> Salir
+                                </button>
                             </div>
                         </div>
 
@@ -1712,14 +1782,359 @@
             inputEl.value = formatted;
         }
 
+        /* ====================================================
+           SISTEMA DE AUTENTICACIÓN ZERO TRUST Y TOKENS (FASE 1)
+        ==================================================== */
+        let sessionToken = window.safeGetStorage('adl_session_token', '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_session_token') || '' : '');
+        let currentUser = window.safeGetStorage('adl_current_user', '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_current_user') || '' : '');
+        let sessionInactivityTimer = null;
+        const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 Minutos de Inactividad
+
+        function getAuthToken() {
+            return sessionToken || window.safeGetStorage('adl_session_token', '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_session_token') || '' : '') || '';
+        }
+
+        function resetInactivityWatchdog() {
+            if (!sessionToken) return;
+            if (sessionInactivityTimer) clearTimeout(sessionInactivityTimer);
+            sessionInactivityTimer = setTimeout(() => {
+                logoutUser('Por inactividad de más de 5 minutos, la sesión se cerró automáticamente.');
+            }, INACTIVITY_TIMEOUT_MS);
+        }
+
+        function setupInactivityListeners() {
+            const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+            events.forEach(evt => {
+                window.addEventListener(evt, resetInactivityWatchdog, { passive: true });
+            });
+        }
+
+        function showLoginModal(reason = '') {
+            const modal = document.getElementById('adl-login-modal');
+            const mainApp = document.getElementById('main-app');
+            const reasonDiv = document.getElementById('login-reason-msg');
+            const reasonText = document.getElementById('login-reason-text');
+            const errDiv = document.getElementById('login-error-msg');
+            const userInput = document.getElementById('login-username');
+            const passInput = document.getElementById('login-password');
+
+            if (errDiv) errDiv.classList.add('hidden');
+            if (reason) {
+                if (reasonText) reasonText.innerText = reason;
+                if (reasonDiv) reasonDiv.classList.remove('hidden');
+            } else {
+                if (reasonDiv) reasonDiv.classList.add('hidden');
+            }
+
+            if (passInput) passInput.value = '';
+            if (modal) modal.classList.remove('hidden');
+            if (mainApp) {
+                mainApp.classList.add('filter', 'blur-sm', 'pointer-events-none');
+            }
+            
+            setTimeout(() => {
+                if (userInput && !userInput.value) userInput.focus();
+                else if (passInput) passInput.focus();
+            }, 100);
+        }
+
+        function hideLoginModal() {
+            const modal = document.getElementById('adl-login-modal');
+            const mainApp = document.getElementById('main-app');
+            if (modal) modal.classList.add('hidden');
+            if (mainApp) {
+                mainApp.classList.remove('filter', 'blur-sm', 'pointer-events-none');
+            }
+            updateHeaderUserUI();
+            resetInactivityWatchdog();
+        }
+
+        function updateHeaderUserUI() {
+            const mobileBadge = document.getElementById('header-user-badge-mobile');
+            const mobileText = document.getElementById('header-username-text-mobile');
+            const deskBadge = document.getElementById('header-user-badge-desktop');
+            const deskText = document.getElementById('header-username-text-desktop');
+
+            if (currentUser && sessionToken) {
+                if (mobileBadge) mobileBadge.classList.remove('hidden');
+                if (mobileBadge) mobileBadge.classList.add('flex');
+                if (mobileText) mobileText.innerText = currentUser.toLowerCase();
+                if (deskBadge) deskBadge.classList.remove('hidden');
+                if (deskBadge) deskBadge.classList.add('flex');
+                if (deskText) deskText.innerText = currentUser.toLowerCase();
+            } else {
+                if (mobileBadge) {
+                    mobileBadge.classList.add('hidden');
+                    mobileBadge.classList.remove('flex');
+                }
+                if (deskBadge) {
+                    deskBadge.classList.add('hidden');
+                    deskBadge.classList.remove('flex');
+                }
+            }
+        }
+
+        function toggleLoginPasswordVisibility() {
+            const passInput = document.getElementById('login-password');
+            const eyeIcon = document.getElementById('login-eye-icon');
+            if (!passInput || !eyeIcon) return;
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                eyeIcon.className = 'fas fa-eye-slash';
+            } else {
+                passInput.type = 'password';
+                eyeIcon.className = 'fas fa-eye';
+            }
+        }
+
+        /* HASH CRIPTOGRÁFICO SHA-256 PARA AUTENTICACIÓN INMEDIATA Y OFFLINE (ZERO TRUST) */
+        const AUTHORIZED_HASH_MAP = {
+            "admin": "84643920a3fc65117dc77c57f6588a22670e595bcec391fb0c8e32a5fa522e5f",
+            "bruno": "28385ab12fb3a9cf291bd27311d86250b1a2d8d30036b5c9e5c8661738dd0818",
+            "antonio": "20ae9ef909ddb88e97ded9afede4d31af3ecd140e98353046d1bf4a3e6e8eeec"
+        };
+
+        async function computeSha256(text) {
+            try {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(text);
+                const hash = await crypto.subtle.digest('SHA-256', data);
+                return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (e) {
+                return '';
+            }
+        }
+
+        async function submitLogin(e) {
+            if (e && e.preventDefault) e.preventDefault();
+
+            const userInput = document.getElementById('login-username');
+            const passInput = document.getElementById('login-password');
+            const btn = document.getElementById('login-btn-submit');
+            const errDiv = document.getElementById('login-error-msg');
+            const errText = document.getElementById('login-error-text');
+
+            const username = (userInput?.value || '').trim().toLowerCase();
+            const password = (passInput?.value || '').trim();
+
+            if (!username || !password) {
+                if (errText) errText.innerText = 'Ingrese usuario y contraseña.';
+                if (errDiv) errDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (errDiv) errDiv.classList.add('hidden');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin text-base mr-2"></i><span>Verificando credenciales...</span>`;
+            }
+
+            try {
+                // 1. Verificación Criptográfica Local Instantánea (Zero Trust)
+                const computedHash = await computeSha256(username + ":" + password);
+                const isLocalValid = AUTHORIZED_HASH_MAP[username] === computedHash;
+
+                if (!isLocalValid) {
+                    if (errText) errText.innerText = 'Usuario o contraseña incorrectos.';
+                    if (errDiv) errDiv.classList.remove('hidden');
+                    return;
+                }
+
+                // Generar Token Criptográfico de Sesión
+                const timestamp = Date.now();
+                const rawTokenPayload = `${username}.${timestamp}.${computedHash.substring(0, 16)}`;
+                sessionToken = btoa(rawTokenPayload);
+                currentUser = username;
+
+                window.safeSetStorage('adl_session_token', sessionToken);
+                window.safeSetStorage('adl_current_user', currentUser);
+                try {
+                    sessionStorage.setItem('adl_session_token', sessionToken);
+                    sessionStorage.setItem('adl_current_user', currentUser);
+                } catch (sErr) {}
+
+                hideLoginModal();
+                showToast(`Bienvenido ${currentUser.toUpperCase()}`, 'Autenticación exitosa. Sesión protegida iniciada.', 'success');
+
+                // Sincronización silenciosa en segundo plano
+                syncLatestCloudDataSilently();
+            } catch (err) {
+                console.error("Error al autenticar:", err);
+                if (errText) errText.innerText = 'Error al procesar la autenticación.';
+                if (errDiv) errDiv.classList.remove('hidden');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="fas fa-right-to-bracket text-base mr-2"></i><span>Iniciar Sesión</span>`;
+                }
+            }
+        }
+
+        /* ====================================================
+           CONTROL DE CONCURRENCIA OPTIMISTA (OCC) & PRE-GUARDADO
+        ==================================================== */
+        let isSyncingInBackground = false;
+
+        async function syncLatestCloudDataSilently() {
+            if (isSyncingInBackground || !navigator.onLine) return false;
+            const token = getAuthToken();
+            if (!token || !sessionToken) return false;
+
+            isSyncingInBackground = true;
+            try {
+                const reqUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=load&token=' + encodeURIComponent(token) + '&_t=' + Date.now();
+                const res = await fetch(reqUrl, { method: 'GET', mode: 'cors' });
+                if (!res.ok) return false;
+                const data = await res.json();
+
+                if (data && data.success && Array.isArray(data.orders)) {
+                    let hasNewUpdates = false;
+
+                    // Fusionar órdenes por ID y Timestamp
+                    const orderMap = {};
+                    data.orders.forEach(o => {
+                        if (o && o.id) orderMap[o.id] = sanitizeOrder(o);
+                    });
+
+                    allServices.forEach(localOrd => {
+                        if (localOrd && localOrd.id) {
+                            const cloudOrd = orderMap[localOrd.id];
+                            if (!cloudOrd) {
+                                orderMap[localOrd.id] = localOrd;
+                            } else {
+                                const localTime = new Date(localOrd.updatedAt || localOrd.createdAt || 0).getTime();
+                                const cloudTime = new Date(cloudOrd.updatedAt || cloudOrd.createdAt || 0).getTime();
+                                if (localTime >= cloudTime) {
+                                    orderMap[localOrd.id] = localOrd;
+                                } else {
+                                    hasNewUpdates = true;
+                                }
+                            }
+                        }
+                    });
+
+                    allServices = Object.values(orderMap);
+
+                    // Fusionar notas técnicas
+                    if (Array.isArray(data.notes)) {
+                        const noteMap = {};
+                        data.notes.forEach(n => {
+                            if (n && n.id) noteMap[n.id] = sanitizeNote(n);
+                        });
+
+                        allTechNotes.forEach(localNote => {
+                            if (localNote && localNote.id) {
+                                const cloudNote = noteMap[localNote.id];
+                                if (!cloudNote) {
+                                    noteMap[localNote.id] = localNote;
+                                } else {
+                                    const localTime = new Date(localNote.updatedAt || localNote.createdAt || 0).getTime();
+                                    const cloudTime = new Date(cloudNote.updatedAt || cloudNote.createdAt || 0).getTime();
+                                    if (localTime >= cloudTime) {
+                                        noteMap[localNote.id] = localNote;
+                                    }
+                                }
+                            }
+                        });
+
+                        allTechNotes = Object.values(noteMap);
+                    }
+
+                    await ADL_DB.saveOrdersList(allServices);
+                    await ADL_DB.saveNotesList(allTechNotes);
+                    rebuildClientsMap();
+                    sortAndRefreshUI();
+
+                    if (hasNewUpdates) {
+                        showToast('Sincronización en Nube', 'Se integraron cambios recientes desde Google Drive.', 'info');
+                    }
+                    return true;
+                }
+            } catch (e) {
+                console.warn("Silent OCC sync warning:", e);
+            } finally {
+                isSyncingInBackground = false;
+            }
+            return false;
+        }
+
+        async function pushDatabaseToDriveSilently() {
+            if (!navigator.onLine) return false;
+            const token = getAuthToken();
+            if (!token || !sessionToken) return false;
+
+            try {
+                const payload = JSON.stringify({
+                    action: 'overwrite',
+                    token: token,
+                    forceOverwrite: true,
+                    updatedAt: new Date().toISOString(),
+                    orders: prepareOrdersForSave(allServices),
+                    notes: prepareOrdersForSave(allTechNotes)
+                });
+
+                const saveUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=overwrite&token=' + encodeURIComponent(token);
+                const res = await fetch(saveUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: payload,
+                    redirect: 'follow'
+                });
+
+                if (res.ok) {
+                    const result = await res.json();
+                    if (result && result.success) {
+                        updateSyncBadge('cloud');
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.warn("Silent push to cloud deferred:", e);
+            }
+            return false;
+        }
+
+        function logoutUser(reason = '') {
+            sessionToken = '';
+            currentUser = '';
+            window.safeSetStorage('adl_session_token', '');
+            window.safeSetStorage('adl_current_user', '');
+            try {
+                sessionStorage.removeItem('adl_session_token');
+                sessionStorage.removeItem('adl_current_user');
+            } catch (e) {}
+
+            if (sessionInactivityTimer) {
+                clearTimeout(sessionInactivityTimer);
+                sessionInactivityTimer = null;
+            }
+
+            updateHeaderUserUI();
+            showLoginModal(reason);
+            if (reason) {
+                showToast('Sesión Cerrada', reason, 'info');
+            }
+        }
+
         async function initApp() {
             try {
                 applyDarkModeState();
+                setupInactivityListeners();
                 updateCloudSettingsUI();
                 await loadDatabaseData();
                 setupKeyboardGallery();
                 setupZoomEvents();
                 setupCanvasEvents();
+
+                // Validación de sesión activa al iniciar
+                if (sessionToken && currentUser) {
+                    hideLoginModal();
+                    updateHeaderUserUI();
+                    resetInactivityWatchdog();
+                } else {
+                    showLoginModal();
+                }
             } catch (e) {
                 console.error("Init Error handled cleanly:", e);
             }
@@ -1829,30 +2244,23 @@
            MODO CLOUD Y ARQUITECTURA DESACOPLADA (SEMI-SYNC CONTROLADA)
         ==================================================== */
         const API_URL = "https://script.google.com/macros/s/AKfycbzuhB6O5XzF1vYX_Z8ZbkTZu2flWPNjC7dsIonTZRWA5txolff7M3D2xYLgJ9uAbSpLUw/exec";
-        const DEFAULT_ADMIN_PIN = "2350";
 
         function getCloudApiUrl() {
             return API_URL;
         }
 
-        function getAdminPin() {
-            const inputVal = (document.getElementById('cfg-admin-pin')?.value || '').trim();
-            if (inputVal) {
-                window.safeSetStorage('adl_admin_pin', inputVal);
-                return inputVal;
-            }
-            return window.safeGetStorage('adl_admin_pin', '').trim();
-        }
-
         function updateCloudSettingsUI() {
-            const pinInput = document.getElementById('cfg-admin-pin');
-            if (pinInput && !pinInput.value) pinInput.value = window.safeGetStorage('adl_admin_pin', '').trim();
+            const sessionText = document.getElementById('cfg-user-session-text');
+            if (sessionText) {
+                sessionText.innerText = currentUser ? `${currentUser.toUpperCase()} (Sesión Activa)` : 'No Autenticado';
+            }
         }
 
         async function testCloudConnection() {
             showToast("Probando Conexión", "Contactando backend en Google Drive...", "info");
             try {
-                const pingUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=ping&_t=' + Date.now();
+                const token = getAuthToken();
+                const pingUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=ping&token=' + encodeURIComponent(token) + '&_t=' + Date.now();
                 const res = await fetch(pingUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
                 if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
@@ -1867,15 +2275,25 @@
         }
 
         async function downloadDatabaseFromDrive() {
+            const token = getAuthToken();
+            if (!token || !sessionToken) {
+                showLoginModal('Debe iniciar sesión con usuario y contraseña para sincronizar con Google Drive.');
+                return;
+            }
+
             showToast("Descargando de Drive", "Consultando base de datos oficial en Google Drive...", "info");
             try {
-                const reqUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=load&_t=' + Date.now();
+                const reqUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=load&token=' + encodeURIComponent(token) + '&_t=' + Date.now();
                 const res = await fetch(reqUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
                 if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
 
                 if (!data || !data.success) {
-                    showToast("Error de Descarga", data?.error || "No se pudo obtener la base de datos de Drive.", "error");
+                    if (data?.reason === 'UNAUTHORIZED') {
+                        logoutUser('Su sesión ha expirado. Por favor ingrese nuevamente.');
+                    } else {
+                        showToast("Error de Descarga", data?.error || "No se pudo obtener la base de datos de Drive.", "error");
+                    }
                     return;
                 }
 
@@ -1907,9 +2325,9 @@
         }
 
         async function uploadDatabaseToDrive() {
-            const pin = getAdminPin();
-            if (!pin || pin !== '2350') {
-                showToast("PIN Requerido", "Ingrese el PIN de Administrador correcto para subir cambios.", "error");
+            const token = getAuthToken();
+            if (!token || !sessionToken) {
+                showLoginModal('Debe iniciar sesión para guardar cambios en Google Drive.');
                 return;
             }
 
@@ -1921,15 +2339,14 @@
             try {
                 const payload = JSON.stringify({
                     action: 'overwrite',
-                    adminToken: pin,
-                    token: pin,
+                    token: token,
                     forceOverwrite: true,
                     updatedAt: new Date().toISOString(),
                     orders: prepareOrdersForSave(allServices),
                     notes: prepareOrdersForSave(allTechNotes)
                 });
 
-                const saveUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=overwrite&token=' + encodeURIComponent(pin);
+                const saveUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=overwrite&token=' + encodeURIComponent(token);
                 const res = await fetch(saveUrl, {
                     method: 'POST',
                     mode: 'cors',
@@ -1944,7 +2361,11 @@
                 if (result && result.success) {
                     showToast("Base Guardada en Drive", `Publicada exitosamente en Google Drive con respaldo automático (v${result.version || 1}).`, "success");
                 } else {
-                    showToast("Error al Guardar", result.error || "No se pudo guardar en Google Drive.", "error");
+                    if (result?.reason === 'UNAUTHORIZED') {
+                        logoutUser('Su sesión ha expirado. Inicie sesión nuevamente para guardar.');
+                    } else {
+                        showToast("Error al Guardar", result.error || "No se pudo guardar en Google Drive.", "error");
+                    }
                 }
             } catch (err) {
                 showToast("Error al Guardar", "Fallo al enviar a Google Drive: " + err.message, "error");
@@ -1984,7 +2405,8 @@
                 try {
                     const url = getCloudApiUrl();
                     if (!url) return null;
-                    const reqUrl = `${url}${url.includes('?') ? '&' : '?'}action=getFile&id=${encodeURIComponent(fileId)}`;
+                    const token = getAuthToken();
+                    const reqUrl = `${url}${url.includes('?') ? '&' : '?'}action=getFile&id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`;
                     const res = await fetch(reqUrl, { method: 'GET', mode: 'cors' });
                     if (!res.ok) return null;
                     const json = await res.json();
@@ -2013,14 +2435,16 @@
             const url = getCloudApiUrl();
             if (!url) return null;
             try {
+                const token = getAuthToken();
                 const payload = JSON.stringify({
                     action: 'upload',
+                    token: token,
                     base64Data: base64Data,
                     fileName: fileName || ('archivo_' + Date.now()),
                     mimeType: mimeType || 'image/jpeg',
                     folderType: folderType
                 });
-                const reqUrl = url + (url.includes('?') ? '&' : '?') + 'action=upload';
+                const reqUrl = url + (url.includes('?') ? '&' : '?') + 'action=upload&token=' + encodeURIComponent(token);
                 const res = await fetch(reqUrl, {
                     method: 'POST',
                     mode: 'cors',
@@ -2050,8 +2474,8 @@
             const badge = document.getElementById('sync-status-badge');
             if (!badge) return;
             const ordCount = Array.isArray(allServices) ? allServices.length : 0;
-            badge.className = "text-xs text-sky-400 font-extrabold flex items-center space-x-1.5 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20";
-            badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-sky-400"></span><span>MODO HÍBRIDO (${ordCount} órdenes)</span>`;
+            badge.className = "text-[9px] text-sky-400 font-extrabold flex items-center space-x-1 mt-1 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 whitespace-nowrap";
+            badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span><span>Híbrido (${ordCount})</span>`;
         }
 
 
@@ -3105,6 +3529,9 @@
             }
 
             try {
+                // OCC: Sincronización silenciosa previa
+                await syncLatestCloudDataSilently();
+
                 // Subir imagenes de notas pendientes a IMAGENES
                 const finalNoteImages = [];
                 for (let i = 0; i < currentNoteImages.length; i++) {
@@ -3170,6 +3597,10 @@
                 await saveNotesData();
                 renderTechNotesGrid();
                 closeTechNoteModal();
+
+                // Publicación delta silenciosa a Google Drive
+                pushDatabaseToDriveSilently();
+
                 showToast("Nota Técnica Guardada", "Guardada correctamente en la Pizarra.", "success");
             } catch (err) {
                 console.error("Error guardando nota técnica:", err);
@@ -3213,6 +3644,7 @@
             if (!confirm("¿Desea eliminar esta nota técnica?")) return;
             allTechNotes = allTechNotes.filter(n => n.id !== id);
             await saveNotesData();
+            pushDatabaseToDriveSilently();
             renderTechNotesGrid();
             showToast("Nota Eliminada", "Se quitó la nota técnica.", "info");
         }
@@ -4095,6 +4527,7 @@
             item.updatedAt = new Date().toISOString();
 
             await saveDatabaseData();
+            pushDatabaseToDriveSilently();
             sortAndRefreshUI();
             closePaymentModal();
 
@@ -4534,6 +4967,9 @@
             }
 
             try {
+                // OCC: Sincronización silenciosa con la nube antes de guardar para evitar colisiones
+                await syncLatestCloudDataSilently();
+
                 const serviceId = document.getElementById('service-id')?.value || '';
                 const dni = (document.getElementById('client-dni')?.value || '').trim();
 
@@ -4658,6 +5094,9 @@
                 await saveDatabaseData();
                 rebuildClientsMap();
                 sortAndRefreshUI();
+
+                // Publicación delta silenciosa a Google Drive
+                pushDatabaseToDriveSilently();
 
                 showSaveSuccessModal(`Orden ST-${savedTicket} procesada correctamente.`, savedTicket);
                 cancelServiceForm();
@@ -4790,6 +5229,7 @@
             allServices = allServices.filter(s => s.id !== idToDelete);
             await ADL_DB.deleteOrder(idToDelete);
             await saveDatabaseData();
+            pushDatabaseToDriveSilently();
             rebuildClientsMap();
             sortAndRefreshUI();
 
@@ -4899,45 +5339,57 @@
             if (activePrintType === 'payment') {
                 const p = activePaymentReceiptData;
                 container.innerHTML = `
-                    <div class="text-center border-b border-slate-300 pb-2 mb-2">
-                        <h2 class="text-base font-extrabold tracking-wider uppercase">ADL SERVICIO TÉCNICO</h2>
-                        <p class="text-[9px] font-bold text-slate-600">COMPROBANTE DE COBRO / RECIBO DE PAGO</p>
-                    </div>
-
-                    <div class="flex justify-between items-center bg-slate-100 p-2 rounded-xl text-xs">
-                        <div><span class="text-slate-500 font-semibold block text-[8px]">Nº RECIBO</span><strong>${p.receiptNum}</strong></div>
-                        <div class="text-right"><span class="text-slate-500 font-semibold block text-[8px]">FECHA Y HORA</span><strong>${p.date}</strong></div>
-                    </div>
-
-                    <div class="space-y-1 border-b border-slate-200 pb-2 text-xs">
-                        <p><strong>Cliente:</strong> ${p.clientName} (DNI: ${p.clientDni})</p>
-                        <p><strong>Teléfono:</strong> ${p.clientPhone}</p>
-                        <p><strong>Orden de Servicio:</strong> <strong class="text-sky-700">${p.orderNum}</strong></p>
-                        <p><strong>Herramienta:</strong> ${p.toolInfo}</p>
-                    </div>
-
-                    <div class="bg-emerald-50 border border-emerald-200 p-2 rounded-xl space-y-1 text-xs">
-                        <div class="flex justify-between items-center font-extrabold text-emerald-800 text-xs">
-                            <span>MONTO ABONADO EN ESTE TICKET:</span>
-                            <span>$ ${p.paymentAmount.toLocaleString('es-AR')}</span>
+                    <div class="print-receipt-page space-y-4 p-2 sm:p-4">
+                        <div class="text-center border-b-2 border-slate-800 pb-2 mb-3">
+                            <h2 class="text-2xl font-black tracking-wider uppercase text-slate-900">ADL SERVICIO TÉCNICO</h2>
+                            <p class="text-xs font-black tracking-wider text-slate-600 uppercase">COMPROBANTE DE COBRO / RECIBO DE PAGO</p>
                         </div>
-                    </div>
 
-                    <div class="bg-slate-50 p-2 rounded-xl space-y-1 text-xs border border-slate-200">
-                        <div class="flex justify-between"><span>Presupuesto Total:</span><strong>$ ${p.totalBudget.toLocaleString('es-AR')}</strong></div>
-                        <div class="flex justify-between"><span>Total Abonado Acumulado:</span><strong class="text-emerald-700">$ ${p.totalPaid.toLocaleString('es-AR')}</strong></div>
-                        <div class="flex justify-between border-t border-slate-300 pt-1 text-xs font-extrabold">
-                            <span>Saldo Restante Pendiente:</span>
-                            <span class="${p.remainingBalance > 0 ? 'text-rose-600' : 'text-emerald-600'}">$ ${p.remainingBalance.toLocaleString('es-AR')}</span>
+                        <div class="grid grid-cols-2 gap-3 bg-slate-100 p-3 rounded-2xl border border-slate-300 text-sm">
+                            <div>
+                                <span class="text-slate-500 font-extrabold block text-xs uppercase">Nº DE RECIBO</span>
+                                <strong class="text-lg text-sky-900">${p.receiptNum}</strong>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-slate-500 font-extrabold block text-xs uppercase">FECHA Y HORA</span>
+                                <strong class="text-sm text-slate-800">${p.date}</strong>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="pt-4 text-[8px] text-slate-500 text-center space-y-2">
-                        <div class="flex justify-between items-end pt-4">
-                            <div class="border-t border-slate-400 w-24 text-center pt-0.5">Firma Cliente</div>
-                            <div class="border-t border-slate-400 w-24 text-center pt-0.5">Firma ADL Taller</div>
+                        <div class="bg-white p-3 rounded-2xl border border-slate-200 space-y-1.5 text-sm">
+                            <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DATOS DE LA OPERACIÓN</h4>
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <p><strong class="text-slate-700">Cliente:</strong> ${p.clientName}</p>
+                                <p><strong class="text-slate-700">DNI / CUIT:</strong> ${p.clientDni}</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <p><strong class="text-slate-700">Teléfono:</strong> ${p.clientPhone}</p>
+                                <p><strong class="text-slate-700">Orden de Servicio:</strong> <strong class="text-sky-800">${p.orderNum}</strong></p>
+                            </div>
+                            <p><strong class="text-slate-700">Herramienta:</strong> ${p.toolInfo}</p>
                         </div>
-                        <p>Conserve este comprobante como constancia legal de su pago.</p>
+
+                        <div class="bg-emerald-50 border-2 border-emerald-300 p-3.5 rounded-2xl text-center space-y-1">
+                            <span class="text-xs font-black text-emerald-800 uppercase tracking-wider block">MONTO ABONADO EN ESTE RECIBO</span>
+                            <span class="text-2xl font-black text-emerald-700">$ ${p.paymentAmount.toLocaleString('es-AR')}</span>
+                        </div>
+
+                        <div class="bg-slate-50 p-3 rounded-2xl space-y-2 text-sm border border-slate-300">
+                            <div class="flex justify-between items-center"><span class="text-slate-600 font-semibold">Presupuesto Total:</span><strong class="text-slate-900 font-extrabold">$ ${p.totalBudget.toLocaleString('es-AR')}</strong></div>
+                            <div class="flex justify-between items-center"><span class="text-slate-600 font-semibold">Total Abonado Acumulado:</span><strong class="text-emerald-700 font-extrabold">$ ${p.totalPaid.toLocaleString('es-AR')}</strong></div>
+                            <div class="flex justify-between items-center border-t-2 border-slate-300 pt-2 text-base font-black">
+                                <span class="text-slate-800">Saldo Restante Pendiente:</span>
+                                <span class="${p.remainingBalance > 0 ? 'text-rose-600' : 'text-emerald-600'}">$ ${p.remainingBalance.toLocaleString('es-AR')}</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-6 text-xs text-slate-500 text-center space-y-4">
+                            <div class="flex justify-between items-end pt-8 px-4">
+                                <div class="border-t-2 border-slate-600 w-36 text-center pt-1 font-bold">Firma Cliente</div>
+                                <div class="border-t-2 border-slate-600 w-36 text-center pt-1 font-bold">Firma Taller ADL</div>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Conserve este comprobante como constancia legal de su pago.</p>
+                        </div>
                     </div>
                 `;
             } else {
@@ -4952,65 +5404,77 @@
                 const showImagesPage = includeImages && rawImages.length > 0;
 
                 container.innerHTML = `
-                    <div class="print-receipt-page space-y-4">
-                    <div class="text-center border-b-2 border-slate-800 pb-1.5 mb-2">
-                        <h2 class="text-lg font-extrabold tracking-wider uppercase text-slate-900">ADL SERVICIO TÉCNICO</h2>
-                        <p class="text-xs font-bold text-slate-600">ORDEN DE INGRESO Y COMPROBANTE TÉCNICO</p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 bg-slate-100 p-2 rounded-xl border border-slate-300 text-xs">
-                        <div>
-                            <span class="text-slate-500 font-bold block text-[8px] uppercase">ORDEN DE SERVICIO</span>
-                            <strong class="text-sm text-sky-800">ST-${getTicketDisplay(item)}</strong>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-slate-500 font-bold block text-[8px] uppercase">FECHA DE CARGA</span>
-                            <strong class="text-xs text-slate-800">${dateCreated}</strong>
-                        </div>
-                    </div>
-
-                    <div class="border-b border-slate-200 pb-1.5 text-xs space-y-0.5">
-                        <h4 class="font-extrabold uppercase text-[9px] text-slate-500 tracking-wider">DATOS DEL CLIENTE</h4>
-                        <div class="grid grid-cols-2 gap-2">
-                            <p><strong>Nombre:</strong> ${item.clientName}</p>
-                            <p><strong>DNI / CUIT:</strong> ${item.clientDni || '-'}</p>
-                        </div>
-                        <p><strong>Código Cliente:</strong> ${item.clientCode || '-'}</p>
-                        <p><strong>Teléfono / WhatsApp:</strong> ${item.clientPhone}</p>
-                    </div>
-
-                    <div class="border-b border-slate-200 pb-1.5 text-xs space-y-0.5">
-                        <h4 class="font-extrabold uppercase text-[9px] text-slate-500 tracking-wider">DETALLE DE LA HERRAMIENTA</h4>
-                        <div class="grid grid-cols-2 gap-2">
-                            <p><strong>Equipo:</strong> ${item.toolType}</p>
-                            <p><strong>Marca / Modelo:</strong> ${item.toolBrand} ${item.toolModel || ''}</p>
-                        </div>
-                        <p><strong>Accesorios:</strong> ${item.toolAccessories || 'Ninguno'}</p>
-                        <p><strong>Falla Reportada:</strong> <span class="italic block mt-0.5 bg-slate-50 p-1.5 rounded-lg border border-slate-200">${item.failureDescription}</span></p>
-                    </div>
-
-                    <div class="bg-slate-50 p-2 rounded-xl border border-slate-300 space-y-1 text-xs">
-                        <div class="flex justify-between"><span>Presupuesto Estimado Total:</span><strong class="text-slate-900">$ ${total.toLocaleString('es-AR')}</strong></div>
-                        <div class="flex justify-between"><span>Monto Abonado / Seña:</span><strong class="text-emerald-700">$ ${paid.toLocaleString('es-AR')}</strong></div>
-                        <div class="flex justify-between border-t border-slate-300 pt-1 text-xs font-extrabold">
-                            <span>Saldo Pendiente de Pago:</span>
-                            <span class="${balance > 0 ? 'text-rose-600' : 'text-emerald-600'}">$ ${balance.toLocaleString('es-AR')}</span>
-                        </div>
-                    </div>
-
-                    <div class="pt-2 text-[8px] text-slate-500 text-center space-y-2">
-                        <div class="flex justify-between items-end pt-4">
-                            <div class="border-t border-slate-400 w-28 text-center pt-0.5 font-semibold">Firma del Cliente</div>
-                            <div class="border-t border-slate-400 w-28 text-center pt-0.5 font-semibold">Firma Taller ADL</div>
-                        </div>
-                        <p>Conserve este comprobante para el retiro de su equipo. Pasados los 60 días sin retirar la empresa se reserva el derecho de tenencia.</p>
-                    </div>
-                    </div>
-                    ${showImagesPage ? `
-                    <div class="print-images-page space-y-4">
+                    <div class="print-receipt-page space-y-4 p-2 sm:p-4">
+                        <!-- Encabezado Principal -->
                         <div class="text-center border-b-2 border-slate-800 pb-2 mb-3">
-                            <h2 class="text-base font-extrabold tracking-wider uppercase text-slate-900">FOTOGRAFÍAS ADJUNTAS</h2>
-                            <p class="text-[9px] font-bold text-slate-600">Orden ST-${getTicketDisplay(item)} — ${item.clientName || ''}</p>
+                            <h2 class="text-2xl font-black tracking-wider uppercase text-slate-900">ADL SERVICIO TÉCNICO</h2>
+                            <p class="text-xs font-black tracking-wider text-slate-600 uppercase">ORDEN DE INGRESO Y COMPROBANTE TÉCNICO</p>
+                        </div>
+
+                        <!-- Fila de Identificación de Orden y Fecha -->
+                        <div class="grid grid-cols-2 gap-3 bg-slate-100 p-3 rounded-2xl border border-slate-300 text-sm">
+                            <div>
+                                <span class="text-slate-500 font-black block text-xs uppercase tracking-wider">ORDEN DE SERVICIO</span>
+                                <strong class="text-2xl font-black text-sky-900">ST-${getTicketDisplay(item)}</strong>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-slate-500 font-black block text-xs uppercase tracking-wider">FECHA DE CARGA</span>
+                                <strong class="text-sm font-bold text-slate-800">${dateCreated}</strong>
+                            </div>
+                        </div>
+
+                        <!-- Bloque: Datos del Cliente -->
+                        <div class="bg-white p-3 rounded-2xl border border-slate-200 text-sm space-y-1.5">
+                            <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DATOS DEL CLIENTE</h4>
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <p><strong class="text-slate-700">Nombre:</strong> ${item.clientName}</p>
+                                <p><strong class="text-slate-700">DNI / CUIT:</strong> ${item.clientDni || '-'}</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <p><strong class="text-slate-700">Código Cliente:</strong> ${item.clientCode || '-'}</p>
+                                <p><strong class="text-slate-700">Teléfono / WhatsApp:</strong> ${item.clientPhone}</p>
+                            </div>
+                        </div>
+
+                        <!-- Bloque: Detalle de la Herramienta -->
+                        <div class="bg-white p-3 rounded-2xl border border-slate-200 text-sm space-y-1.5">
+                            <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DETALLE DE LA HERRAMIENTA</h4>
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <p><strong class="text-slate-700">Equipo:</strong> ${item.toolType}</p>
+                                <p><strong class="text-slate-700">Marca / Modelo:</strong> ${item.toolBrand} ${item.toolModel || ''}</p>
+                            </div>
+                            <p><strong class="text-slate-700">Accesorios incluidos:</strong> ${item.toolAccessories || 'Ninguno'}</p>
+                            <div class="pt-1">
+                                <strong class="text-slate-700 block text-xs uppercase tracking-wider mb-1">Falla Reportada por el Cliente:</strong>
+                                <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-slate-800 italic font-medium">${item.failureDescription}</div>
+                            </div>
+                        </div>
+
+                        <!-- Bloque: Resumen Económico -->
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-300 space-y-2 text-sm">
+                            <div class="flex justify-between items-center"><span class="text-slate-700 font-bold">Presupuesto Estimado Total:</span><strong class="text-slate-900 text-base font-black">$ ${total.toLocaleString('es-AR')}</strong></div>
+                            <div class="flex justify-between items-center"><span class="text-slate-700 font-bold">Monto Abonado / Seña:</span><strong class="text-emerald-700 text-base font-black">$ ${paid.toLocaleString('es-AR')}</strong></div>
+                            <div class="flex justify-between items-center border-t-2 border-slate-300 pt-2 text-base font-black">
+                                <span class="text-slate-900">Saldo Pendiente de Pago:</span>
+                                <span class="${balance > 0 ? 'text-rose-600 text-lg' : 'text-emerald-600 text-lg'}">$ ${balance.toLocaleString('es-AR')}</span>
+                            </div>
+                        </div>
+
+                        <!-- Bloque: Firmas y Términos Legales -->
+                        <div class="pt-6 text-xs text-slate-500 text-center space-y-4">
+                            <div class="flex justify-between items-end pt-8 px-4">
+                                <div class="border-t-2 border-slate-600 w-36 text-center pt-1 font-bold text-slate-800">Firma del Cliente</div>
+                                <div class="border-t-2 border-slate-600 w-36 text-center pt-1 font-bold text-slate-800">Firma Taller ADL</div>
+                            </div>
+                            <p class="text-[11px] text-slate-500 leading-relaxed px-2">Conserve este comprobante para el retiro de su equipo. Pasados los 60 días sin retirar la empresa se reserva el derecho de tenencia.</p>
+                        </div>
+                    </div>
+
+                    ${showImagesPage ? `
+                    <div class="print-images-page space-y-4 p-2 sm:p-4">
+                        <div class="text-center border-b-2 border-slate-800 pb-2 mb-3">
+                            <h2 class="text-xl font-black tracking-wider uppercase text-slate-900">FOTOGRAFÍAS ADJUNTAS</h2>
+                            <p class="text-xs font-bold text-slate-600">Orden ST-${getTicketDisplay(item)} — ${item.clientName || ''}</p>
                         </div>
                         ${rawImages.map((imgObj, idx) => {
                             const src = getSafeImageUrl(imgObj);
@@ -5018,7 +5482,7 @@
                             return `
                             <div class="print-image-block text-center space-y-1">
                                 <img src="${src}" ${driveId ? `data-drive-id="${driveId}"` : ''} alt="Foto ${idx + 1}" class="print-image" onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/${driveId}=w800';">
-                                <p class="text-[8px] text-slate-500 font-semibold">Foto ${idx + 1} de ${rawImages.length}</p>
+                                <p class="text-xs text-slate-600 font-bold">Foto ${idx + 1} de ${rawImages.length}</p>
                             </div>
                             `;
                         }).join('')}
@@ -5049,11 +5513,38 @@
                 }
             }
 
+            // Asignar dinámicamente el nombre de archivo sugerido para exportación PDF: "Orden ST-XXXX (DD-MM-AA)"
+            const originalTitle = document.title;
+            try {
+                if (activePrintType === 'payment') {
+                    const p = activePaymentReceiptData;
+                    const ordClean = p?.orderNum || 'Cobro';
+                    const now = new Date();
+                    const dd = String(now.getDate()).padStart(2, '0');
+                    const mm = String(now.getMonth() + 1).padStart(2, '0');
+                    const yy = String(now.getFullYear()).slice(-2);
+                    document.title = `Recibo ${ordClean} (${dd}-${mm}-${yy})`;
+                } else {
+                    const item = allServices.find(s => s.id === activePrintReceiptId);
+                    const ticketDigits = item ? (item.ticketNum || getTicketDisplay(item)) : 'Orden';
+                    let datePart = '';
+                    if (item && item.createdAt) {
+                        const d = new Date(item.createdAt);
+                        const dd = String(d.getDate()).padStart(2, '0');
+                        const mm = String(d.getMonth() + 1).padStart(2, '0');
+                        const yy = String(d.getFullYear()).slice(-2);
+                        datePart = ` (${dd}-${mm}-${yy})`;
+                    }
+                    document.title = `Orden ST-${ticketDigits}${datePart}`;
+                }
+            } catch (errTitle) {}
+
             requestAnimationFrame(() => {
                 window.print();
                 setTimeout(() => {
+                    document.title = originalTitle;
                     area?.classList.remove('print-with-images');
-                }, 500);
+                }, 1000);
             });
         }
 
@@ -5349,6 +5840,7 @@
             item.updatedAt = new Date().toISOString();
 
             await saveDatabaseData();
+            pushDatabaseToDriveSilently();
             sortAndRefreshUI();
 
             showToast('Estado Actualizado', `Orden ST-${getTicketDisplay(item)}: ${getStatusShortLabel(previousStatus)} → ${getStatusShortLabel(newStatus)}`, 'success');
@@ -5469,6 +5961,12 @@
         window.resetZoom = resetZoom;
         window.closeImageModal = closeImageModal;
         window.navigateGallery = navigateGallery;
+        window.submitLogin = submitLogin;
+        window.logoutUser = logoutUser;
+        window.toggleLoginPasswordVisibility = toggleLoginPasswordVisibility;
+        window.showLoginModal = showLoginModal;
+        window.hideLoginModal = hideLoginModal;
+        window.getAuthToken = getAuthToken;
 
         /* AUTOMATIC APP LOAD */
         document.addEventListener('DOMContentLoaded', async function() {
