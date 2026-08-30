@@ -370,75 +370,80 @@
     <!-- MAIN APP -->
     <div id="main-app" class="min-h-screen flex-1 flex flex-col filter blur-sm pointer-events-none transition-all duration-300">
         
-        <!-- HEADER AMPLIO, COMPACTO Y RESPONSIVO -->
-        <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-30 border-b border-slate-800 py-2 sm:py-2.5">
-            <div class="w-full max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-6 flex items-center justify-between gap-2 lg:gap-4">
+        <!-- HEADER AMPLIO Y ACCESIBLE -->
+        <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-30 border-b border-slate-800 py-2.5 sm:py-3.5">
+            <div class="w-full max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-8 flex flex-col xl:flex-row items-center justify-between gap-3 xl:gap-6">
                 
-                <!-- 1. Izquierda: Ícono de herramientas + badge debajo + Botones Nube y Modo en Vertical -->
-                <div class="flex items-center space-x-2 shrink-0">
-                    <div class="flex flex-col items-center cursor-pointer select-none" onclick="switchTab('services')" title="ADL Servicio Técnico">
-                        <div class="bg-gradient-to-br from-slate-800 to-sky-900 p-2 sm:p-2.5 rounded-2xl shadow-lg border border-slate-700 flex items-center justify-center hover:border-sky-500/50 transition-all">
-                            <i class="fas fa-screwdriver-wrench text-xl sm:text-2xl text-sky-400"></i>
+                <!-- Brand & Logo Row -->
+                <div class="flex items-center justify-between w-full xl:w-auto shrink-0">
+                    <div class="flex items-center space-x-3 cursor-pointer select-none" onclick="switchTab('services')">
+                        <div class="bg-gradient-to-br from-slate-800 to-sky-900 p-2.5 sm:p-3 rounded-2xl shadow-lg border border-slate-700 flex items-center justify-center">
+                            <i class="fas fa-screwdriver-wrench text-2xl sm:text-3xl text-sky-400"></i>
                         </div>
-                        <span id="sync-status-badge" class="text-[9px] text-sky-400 font-extrabold flex items-center space-x-1 mt-1 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 whitespace-nowrap">
-                            <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
-                            <span>Híbrido (29)</span>
-                        </span>
+                        <div>
+                            <span class="font-black text-base sm:text-xl tracking-wider block leading-tight text-white">ADL SERVICIO TÉCNICO</span>
+                            <span id="sync-status-badge" class="text-xs text-sky-400 font-extrabold flex items-center space-x-1.5 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
+                                <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+                                <span>MODO HÍBRIDO (29 órdenes)</span>
+                            </span>
+                        </div>
                     </div>
 
-                    <!-- Botones Nube y Modo (Uno arriba del otro, cómodos) -->
-                    <div class="flex flex-col space-y-1 shrink-0">
-                        <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar de Google Drive" class="p-1.5 px-2 bg-sky-950/80 hover:bg-sky-900 text-sky-300 rounded-xl border border-sky-700/80 flex items-center justify-center transition-all cursor-pointer shadow-sm">
-                            <i class="fas fa-cloud-arrow-down text-sky-400 text-xs"></i>
+                    <!-- Theme & Cloud quick toggle for mobile view -->
+                    <div class="flex items-center space-x-2 xl:hidden">
+                        <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar desde Google Drive" class="p-2.5 text-sky-300 hover:text-white bg-sky-950/80 rounded-2xl border border-sky-700/80">
+                            <i class="fas fa-cloud-arrow-down text-lg text-sky-400"></i>
                         </button>
-                        <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="p-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 flex items-center justify-center transition-all cursor-pointer shadow-sm">
-                            <i class="theme-toggle-icon fas fa-moon text-amber-400 text-xs"></i>
+                        <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="p-2.5 text-slate-200 hover:text-amber-400 bg-slate-800 rounded-2xl border border-slate-700">
+                            <i class="theme-toggle-icon fas fa-moon text-lg"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- 2. Centro: Navbar Principal con TODOS los botones legibles y visibles -->
-                <nav class="flex-1 flex items-center justify-center overflow-x-auto gap-1 sm:gap-2 py-1 scrollbar-none">
-                    <button onclick="switchTab('services')" id="nav-services" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-lg bg-sky-600 text-white border-sky-400 shadow-sky-600/30 scale-[1.02] whitespace-nowrap">
-                        <i class="fas fa-screwdriver-wrench text-sm sm:text-base mr-1.5 text-white"></i>
+                <!-- NAVBAR CENTRAL -->
+                <nav class="w-full flex-1 flex items-center justify-start xl:justify-center overflow-x-auto gap-2 sm:gap-3 py-1 scrollbar-none">
+                    <button onclick="switchTab('services')" id="nav-services" class="nav-btn flex-1 min-w-[120px] sm:min-w-[140px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-lg bg-sky-600 text-white border-sky-400 shadow-sky-600/30 whitespace-nowrap">
+                        <i class="fas fa-screwdriver-wrench text-base sm:text-xl mr-2 text-white"></i>
                         <span>Órdenes</span>
                     </button>
                     
-                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
-                        <i class="fas fa-chart-pie text-sm sm:text-base mr-1.5 text-sky-400"></i>
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex-1 min-w-[120px] sm:min-w-[140px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-chart-pie text-base sm:text-xl mr-2 text-sky-400"></i>
                         <span>Panel Resumen</span>
                     </button>
 
-                    <button onclick="switchTab('clients')" id="nav-clients" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
-                        <i class="fas fa-users text-sm sm:text-base mr-1.5 text-sky-400"></i>
+                    <button onclick="switchTab('clients')" id="nav-clients" class="nav-btn flex-1 min-w-[120px] sm:min-w-[140px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-users text-base sm:text-xl mr-2 text-sky-400"></i>
                         <span>Clientes</span>
                     </button>
 
-                    <button onclick="switchTab('current-accounts')" id="nav-current-accounts" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
-                        <i class="fas fa-file-invoice-dollar text-sm sm:text-base mr-1.5 text-amber-400"></i>
+                    <button onclick="switchTab('current-accounts')" id="nav-current-accounts" class="nav-btn flex-1 min-w-[140px] sm:min-w-[170px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-file-invoice-dollar text-base sm:text-lg mr-2 text-amber-400"></i>
                         <span>Cuentas corrientes</span>
                     </button>
 
-                    <button onclick="onNewOrderNavClicked()" id="nav-new-service" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
-                        <i class="fas fa-plus-circle text-sm sm:text-base mr-1.5 text-sky-400"></i>
+                    <button onclick="onNewOrderNavClicked()" id="nav-new-service" class="nav-btn flex-1 min-w-[120px] sm:min-w-[140px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-plus-circle text-base sm:text-xl mr-2 text-sky-400"></i>
                         <span>Nueva Orden</span>
                     </button>
 
-                    <button onclick="switchTab('database')" id="nav-database" class="nav-btn px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
-                        <i class="fas fa-database text-sm sm:text-base mr-1.5 text-sky-400"></i>
+                    <button onclick="switchTab('database')" id="nav-database" class="nav-btn flex-1 min-w-[120px] sm:min-w-[140px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-database text-base sm:text-xl mr-2 text-sky-400"></i>
                         <span>BD / Excel</span>
                     </button>
                 </nav>
 
-                <!-- 3. Derecha: Badge de Usuario con botón Salir -->
-                <div class="flex items-center space-x-2 shrink-0">
-                    <div id="header-user-badge-desktop" class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-2xl border border-slate-700 text-xs text-slate-200 font-extrabold shadow-sm">
-                        <i class="fas fa-user-circle text-sky-400 text-base"></i>
-                        <span id="header-username-text-desktop">admin</span>
-                        <button onclick="logoutUser('Sesión cerrada manualmente.')" title="Cerrar Sesión" class="ml-1 text-slate-400 hover:text-rose-400 p-1 transition-colors cursor-pointer" aria-label="Cerrar Sesión">
-                            <i class="fas fa-arrow-right-from-bracket text-xs"></i>
-                        </button>
-                    </div>
+                <!-- Controles Derecha (Desktop) -->
+                <div class="hidden xl:flex items-center space-x-2 shrink-0">
+                    <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar desde Google Drive" class="px-3.5 py-2.5 bg-sky-950/80 hover:bg-sky-900 text-sky-300 font-extrabold text-xs rounded-2xl border border-sky-700/80 flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm">
+                        <i class="fas fa-cloud-arrow-down text-sky-400 text-sm"></i>
+                        <span>Bajar de Drive</span>
+                    </button>
+
+                    <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-xs rounded-2xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer">
+                        <i class="theme-toggle-icon fas fa-moon text-amber-400 text-sm"></i>
+                        <span>Modo</span>
+                    </button>
                 </div>
             </div>
         </header>
@@ -1946,6 +1951,27 @@
                 sessionToken = btoa(rawTokenPayload);
                 currentUser = username;
 
+                // Intentar obtener el token firmado del servidor si estamos online
+                if (navigator.onLine) {
+                    try {
+                        const reqUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=login';
+                        const res = await fetch(reqUrl, {
+                            method: 'POST',
+                            mode: 'cors',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({ action: 'login', user: username, password: password })
+                        });
+                        if (res.ok) {
+                            const srvData = await res.json();
+                            if (srvData && srvData.success && srvData.token) {
+                                sessionToken = srvData.token;
+                            }
+                        }
+                    } catch (netErr) {
+                        console.warn("Autenticación local activa (offline fallback):", netErr);
+                    }
+                }
+
                 window.safeSetStorage('adl_session_token', sessionToken);
                 window.safeSetStorage('adl_current_user', currentUser);
                 try {
@@ -2289,11 +2315,7 @@
                 const data = await res.json();
 
                 if (!data || !data.success) {
-                    if (data?.reason === 'UNAUTHORIZED') {
-                        logoutUser('Su sesión ha expirado. Por favor ingrese nuevamente.');
-                    } else {
-                        showToast("Error de Descarga", data?.error || "No se pudo obtener la base de datos de Drive.", "error");
-                    }
+                    showToast("Aviso de Sincronización", data?.error || "No se pudo obtener la base de datos de Drive.", "warning");
                     return;
                 }
 
@@ -2361,11 +2383,7 @@
                 if (result && result.success) {
                     showToast("Base Guardada en Drive", `Publicada exitosamente en Google Drive con respaldo automático (v${result.version || 1}).`, "success");
                 } else {
-                    if (result?.reason === 'UNAUTHORIZED') {
-                        logoutUser('Su sesión ha expirado. Inicie sesión nuevamente para guardar.');
-                    } else {
-                        showToast("Error al Guardar", result.error || "No se pudo guardar en Google Drive.", "error");
-                    }
+                    showToast("Aviso al Guardar", result?.error || "No se pudo guardar en Google Drive.", "warning");
                 }
             } catch (err) {
                 showToast("Error al Guardar", "Fallo al enviar a Google Drive: " + err.message, "error");
