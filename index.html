@@ -323,20 +323,20 @@
             </div>
 
             <!-- Form -->
-            <form id="adl-login-form" onsubmit="submitLogin(event)" class="space-y-4 text-left">
+            <form id="adl-login-form" method="POST" action="javascript:void(0);" onsubmit="submitLogin(event)" class="space-y-4 text-left">
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Usuario</label>
+                    <label for="login-username" class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Usuario</label>
                     <div class="relative">
                         <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                        <input type="text" id="login-username" required autocomplete="username" placeholder="" class="w-full pl-11 pr-4 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 transition-all lowercase">
+                        <input type="text" id="login-username" name="username" required autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Usuario" class="w-full pl-11 pr-4 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 transition-all lowercase">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Contraseña / PIN</label>
+                    <label for="login-password" class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Contraseña / PIN</label>
                     <div class="relative">
                         <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                        <input type="password" id="login-password" required autocomplete="current-password" placeholder="" class="w-full pl-11 pr-12 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 transition-all">
+                        <input type="password" id="login-password" name="password" required autocomplete="current-password" placeholder="Contraseña" class="w-full pl-11 pr-12 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 transition-all">
                         <button type="button" onclick="toggleLoginPasswordVisibility()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 text-sm">
                             <i id="login-eye-icon" class="fas fa-eye"></i>
                         </button>
@@ -371,80 +371,72 @@
     <div id="main-app" class="min-h-screen flex-1 flex flex-col filter blur-sm pointer-events-none transition-all duration-300">
         
         <!-- HEADER AMPLIO Y ACCESIBLE -->
-        <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-30 border-b border-slate-800 py-2.5 sm:py-3.5">
-            <div class="w-full max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-8 flex flex-col xl:flex-row items-center justify-between gap-3 xl:gap-6">
+        <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-30 border-b border-slate-800 py-2 sm:py-2.5">
+            <div class="w-full max-w-[1920px] mx-auto px-3 sm:px-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 md:gap-4">
                 
-                <!-- Brand & Logo Row -->
-                <div class="flex items-center justify-between w-full xl:w-auto shrink-0">
-                    <div class="flex items-center space-x-3 cursor-pointer select-none" onclick="switchTab('services')">
-                        <div class="bg-gradient-to-br from-slate-800 to-sky-900 p-2.5 sm:p-3 rounded-2xl shadow-lg border border-slate-700 flex items-center justify-center">
-                            <i class="fas fa-screwdriver-wrench text-2xl sm:text-3xl text-sky-400"></i>
+                <!-- Brand & Logo Row + Quick Controls -->
+                <div class="flex items-center justify-between w-full md:w-auto shrink-0 gap-2">
+                    <div class="flex items-center space-x-2.5 cursor-pointer select-none" onclick="switchTab('services')" title="ADL Servicio Técnico">
+                        <div class="bg-gradient-to-br from-slate-800 to-sky-900 p-2 sm:p-2.5 rounded-2xl shadow-lg border border-slate-700 flex items-center justify-center shrink-0">
+                            <i class="fas fa-screwdriver-wrench text-xl sm:text-2xl text-sky-400"></i>
                         </div>
-                        <div>
-                            <span class="font-black text-base sm:text-xl tracking-wider block leading-tight text-white">ADL SERVICIO TÉCNICO</span>
-                            <span id="sync-status-badge" class="text-xs text-sky-400 font-extrabold flex items-center space-x-1.5 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
-                                <span class="w-2 h-2 rounded-full bg-sky-400"></span>
-                                <span>MODO HÍBRIDO (29 órdenes)</span>
+                        <div class="flex flex-col items-start justify-center">
+                            <span class="font-black text-sm sm:text-base tracking-wider block leading-tight text-white">ADL SERVICIO TÉCNICO</span>
+                            <span id="sync-status-badge" class="w-fit inline-flex items-center space-x-1.5 mt-0.5 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 whitespace-nowrap text-[10px] sm:text-[11px] text-sky-400 font-extrabold">
+                                <span class="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0"></span>
+                                <span>Híbrido (0)</span>
                             </span>
                         </div>
                     </div>
 
-                    <!-- Theme & Cloud quick toggle for mobile view -->
-                    <div class="flex items-center space-x-2 xl:hidden">
-                        <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar desde Google Drive" class="p-2.5 text-sky-300 hover:text-white bg-sky-950/80 rounded-2xl border border-sky-700/80">
-                            <i class="fas fa-cloud-arrow-down text-lg text-sky-400"></i>
+                    <!-- Quick buttons (Drive & Theme) -->
+                    <div class="flex items-center space-x-1.5 shrink-0">
+                        <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar desde Google Drive" class="p-2 sm:px-3 bg-sky-950/80 hover:bg-sky-900 text-sky-300 rounded-xl border border-sky-700/80 flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm">
+                            <i class="fas fa-cloud-arrow-down text-sky-400 text-sm"></i>
+                            <span class="hidden xl:inline text-xs font-bold">Bajar</span>
                         </button>
-                        <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="p-2.5 text-slate-200 hover:text-amber-400 bg-slate-800 rounded-2xl border border-slate-700">
-                            <i class="theme-toggle-icon fas fa-moon text-lg"></i>
+                        <button onclick="uploadDatabaseToDrive()" title="Subir / Guardar base en Google Drive" class="p-2 sm:px-3 bg-sky-950/80 hover:bg-sky-900 text-sky-300 rounded-xl border border-sky-700/80 flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm">
+                            <i class="fas fa-cloud-arrow-up text-sky-400 text-sm"></i>
+                            <span class="hidden xl:inline text-xs font-bold">Subir</span>
+                        </button>
+                        <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="p-2 sm:px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm">
+                            <i class="theme-toggle-icon fas fa-moon text-amber-400 text-sm"></i>
                         </button>
                     </div>
                 </div>
 
                 <!-- NAVBAR CENTRAL -->
-                <nav class="w-full flex-1 flex items-center justify-start xl:justify-center overflow-x-auto gap-2 sm:gap-3 py-1 scrollbar-none">
-                    <button onclick="switchTab('services')" id="nav-services" class="nav-btn flex-1 min-w-[120px] sm:min-w-[140px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-lg bg-sky-600 text-white border-sky-400 shadow-sky-600/30 whitespace-nowrap">
-                        <i class="fas fa-screwdriver-wrench text-base sm:text-xl mr-2 text-white"></i>
+                <nav class="w-full md:flex-1 flex items-center justify-start md:justify-end xl:justify-center overflow-x-auto gap-1.5 sm:gap-2 py-1 scrollbar-none">
+                    <button onclick="switchTab('services')" id="nav-services" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-lg bg-sky-600 text-white border-sky-400 shadow-sky-600/30 whitespace-nowrap">
+                        <i class="fas fa-screwdriver-wrench text-sm mr-1.5 text-white"></i>
                         <span>Órdenes</span>
                     </button>
                     
-                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex-1 min-w-[120px] sm:min-w-[140px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
-                        <i class="fas fa-chart-pie text-base sm:text-xl mr-2 text-sky-400"></i>
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-chart-pie text-sm mr-1.5 text-sky-400"></i>
                         <span>Panel Resumen</span>
                     </button>
 
-                    <button onclick="switchTab('clients')" id="nav-clients" class="nav-btn flex-1 min-w-[120px] sm:min-w-[140px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
-                        <i class="fas fa-users text-base sm:text-xl mr-2 text-sky-400"></i>
+                    <button onclick="switchTab('clients')" id="nav-clients" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-users text-sm mr-1.5 text-sky-400"></i>
                         <span>Clientes</span>
                     </button>
 
-                    <button onclick="switchTab('current-accounts')" id="nav-current-accounts" class="nav-btn flex-1 min-w-[140px] sm:min-w-[170px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
-                        <i class="fas fa-file-invoice-dollar text-base sm:text-lg mr-2 text-amber-400"></i>
+                    <button onclick="switchTab('current-accounts')" id="nav-current-accounts" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-file-invoice-dollar text-sm mr-1.5 text-amber-400"></i>
                         <span>Cuentas corrientes</span>
                     </button>
 
-                    <button onclick="onNewOrderNavClicked()" id="nav-new-service" class="nav-btn flex-1 min-w-[120px] sm:min-w-[140px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
-                        <i class="fas fa-plus-circle text-base sm:text-xl mr-2 text-sky-400"></i>
+                    <button onclick="onNewOrderNavClicked()" id="nav-new-service" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-plus-circle text-sm mr-1.5 text-sky-400"></i>
                         <span>Nueva Orden</span>
                     </button>
 
-                    <button onclick="switchTab('database')" id="nav-database" class="nav-btn flex-1 min-w-[120px] sm:min-w-[140px] px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl text-xs sm:text-base font-extrabold transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
-                        <i class="fas fa-database text-base sm:text-xl mr-2 text-sky-400"></i>
+                    <button onclick="switchTab('database')" id="nav-database" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                        <i class="fas fa-database text-sm mr-1.5 text-sky-400"></i>
                         <span>BD / Excel</span>
                     </button>
                 </nav>
-
-                <!-- Controles Derecha (Desktop) -->
-                <div class="hidden xl:flex items-center space-x-2 shrink-0">
-                    <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar desde Google Drive" class="px-3.5 py-2.5 bg-sky-950/80 hover:bg-sky-900 text-sky-300 font-extrabold text-xs rounded-2xl border border-sky-700/80 flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm">
-                        <i class="fas fa-cloud-arrow-down text-sky-400 text-sm"></i>
-                        <span>Bajar de Drive</span>
-                    </button>
-
-                    <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-xs rounded-2xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer">
-                        <i class="theme-toggle-icon fas fa-moon text-amber-400 text-sm"></i>
-                        <span>Modo</span>
-                    </button>
-                </div>
             </div>
         </header>
 
@@ -1790,20 +1782,25 @@
         /* ====================================================
            SISTEMA DE AUTENTICACIÓN ZERO TRUST Y TOKENS (FASE 1)
         ==================================================== */
-        let sessionToken = window.safeGetStorage('adl_session_token', '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_session_token') || '' : '');
-        let currentUser = window.safeGetStorage('adl_current_user', '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_current_user') || '' : '');
+        let sessionToken = window.safeGetStorage('adl_session_token', '') || (typeof localStorage !== 'undefined' ? localStorage.getItem('adl_session_token') || '' : '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_session_token') || '' : '');
+        let currentUser = window.safeGetStorage('adl_current_user', '') || (typeof localStorage !== 'undefined' ? localStorage.getItem('adl_current_user') || '' : '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_current_user') || '' : '');
         let sessionInactivityTimer = null;
-        const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 Minutos de Inactividad
+        let lastUserActivityTime = Date.now();
+        const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 Minutos de Inactividad Real
 
         function getAuthToken() {
-            return sessionToken || window.safeGetStorage('adl_session_token', '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_session_token') || '' : '') || '';
+            return sessionToken || window.safeGetStorage('adl_session_token', '') || (typeof localStorage !== 'undefined' ? localStorage.getItem('adl_session_token') || '' : '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_session_token') || '' : '') || '';
         }
 
         function resetInactivityWatchdog() {
+            lastUserActivityTime = Date.now();
             if (!sessionToken) return;
             if (sessionInactivityTimer) clearTimeout(sessionInactivityTimer);
             sessionInactivityTimer = setTimeout(() => {
-                logoutUser('Por inactividad de más de 5 minutos, la sesión se cerró automáticamente.');
+                const idleTime = Date.now() - lastUserActivityTime;
+                if (idleTime >= INACTIVITY_TIMEOUT_MS) {
+                    logoutUser('Por inactividad, la sesión se cerró automáticamente.');
+                }
             }, INACTIVITY_TIMEOUT_MS);
         }
 
@@ -1811,6 +1808,32 @@
             const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
             events.forEach(evt => {
                 window.addEventListener(evt, resetInactivityWatchdog, { passive: true });
+            });
+        }
+
+        /* SINCRONIZACIÓN AUTOMÁTICA INTELIGENTE AL DESPERTAR / ENFOCAR */
+        let lastSyncCheckTime = 0;
+        const SYNC_THROTTLE_MS = 20000; // Mínimo 20 segundos entre comprobaciones automáticas
+
+        function setupVisibilityAndFocusSync() {
+            const triggerSilentSync = () => {
+                if (!sessionToken || !navigator.onLine) return;
+                const now = Date.now();
+                if (now - lastSyncCheckTime < SYNC_THROTTLE_MS) return;
+                lastSyncCheckTime = now;
+                syncLatestCloudDataSilently();
+            };
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    resetInactivityWatchdog();
+                    triggerSilentSync();
+                }
+            });
+
+            window.addEventListener('focus', () => {
+                resetInactivityWatchdog();
+                triggerSilentSync();
             });
         }
 
@@ -2145,21 +2168,32 @@
 
         async function initApp() {
             try {
+                // 1. Restauración inmediata de sesión si existe token persistente en memoria
+                const storedToken = window.safeGetStorage('adl_session_token', '') || (typeof localStorage !== 'undefined' ? localStorage.getItem('adl_session_token') || '' : '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_session_token') || '' : '');
+                const storedUser = window.safeGetStorage('adl_current_user', '') || (typeof localStorage !== 'undefined' ? localStorage.getItem('adl_current_user') || '' : '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_current_user') || '' : '');
+
+                if (storedToken && storedUser) {
+                    sessionToken = storedToken;
+                    currentUser = storedUser;
+                    hideLoginModal();
+                    updateHeaderUserUI();
+                    resetInactivityWatchdog();
+                } else {
+                    showLoginModal();
+                }
+
                 applyDarkModeState();
                 setupInactivityListeners();
+                setupVisibilityAndFocusSync();
                 updateCloudSettingsUI();
                 await loadDatabaseData();
                 setupKeyboardGallery();
                 setupZoomEvents();
                 setupCanvasEvents();
 
-                // Validación de sesión activa al iniciar
+                // Chequeo en la nube en segundo plano si la sesión está activa
                 if (sessionToken && currentUser) {
-                    hideLoginModal();
-                    updateHeaderUserUI();
-                    resetInactivityWatchdog();
-                } else {
-                    showLoginModal();
+                    syncLatestCloudDataSilently();
                 }
             } catch (e) {
                 console.error("Init Error handled cleanly:", e);
@@ -2492,8 +2526,8 @@
             const badge = document.getElementById('sync-status-badge');
             if (!badge) return;
             const ordCount = Array.isArray(allServices) ? allServices.length : 0;
-            badge.className = "text-[9px] text-sky-400 font-extrabold flex items-center space-x-1 mt-1 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 whitespace-nowrap";
-            badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span><span>Híbrido (${ordCount})</span>`;
+            badge.className = "w-fit inline-flex items-center space-x-1.5 mt-0.5 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 whitespace-nowrap text-[10px] sm:text-[11px] text-sky-400 font-extrabold";
+            badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0"></span><span>Híbrido (${ordCount})</span>`;
         }
 
 
