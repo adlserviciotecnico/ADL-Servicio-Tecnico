@@ -21,6 +21,8 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Chart.js para Monitor de Ventas Eje Cartesiano -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- heic2any: convierte imágenes HEIC/HEIF de iPhone a JPEG en el cliente -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 
     <!-- PURE CSS STYLES & CUSTOM UTILITIES WITH IOS & PRINT OPTIMIZATIONS -->
     <style>
@@ -2781,6 +2783,12 @@
             try { filterServices(); } catch(e){}
             try { renderClientsTab(); } catch(e){}
             try { renderTechNotesGrid(); } catch(e){}
+            try {
+                const ccTab = document.getElementById('tab-current-accounts');
+                if (ccTab && !ccTab.classList.contains('hidden')) {
+                    renderCurrentAccountsTab();
+                }
+            } catch(e){}
         }
 
         function switchTab(tabId) {
@@ -3480,26 +3488,78 @@
             if (modal) modal.classList.add('hidden');
         }
 
-        function handleNoteImagesSelected(e) {
+        async function handleNoteImagesSelected(e) {
             const files = Array.from(e.target.files);
             if (!files.length) return;
 
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    const b64 = evt.target.result;
+            e.target.value = '';
+
+            await Promise.all(files.map(async (file) => {
+                const isHeic = /\.(heic|heif)$/i.test(file.name) || file.type === 'image/heic' || file.type === 'image/heif';
+
+                if (isHeic && typeof heic2any !== 'undefined') {
+                    const placeholderIdx = currentNoteImages.length;
+                    const cleanName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+
                     currentNoteImages.push({
                         id: '',
-                        name: file.name,
-                        type: file.type || 'image/jpeg',
-                        previewUrl: b64,
+                        name: cleanName,
+                        type: 'image/jpeg',
+                        previewUrl: getPlaceholderSvg('Procesando HD iPhone...'),
                         pendingUpload: true
                     });
                     renderNoteImagesPreviewGrid();
-                };
-                reader.readAsDataURL(file);
-            });
-            e.target.value = '';
+
+                    try {
+                        const conversionResult = await heic2any({
+                            blob: file,
+                            toType: 'image/jpeg',
+                            quality: 1.0
+                        });
+                        const finalBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+
+                        const reader = new FileReader();
+                        reader.onload = function(evt) {
+                            currentNoteImages[placeholderIdx] = {
+                                id: '',
+                                name: cleanName,
+                                type: 'image/jpeg',
+                                previewUrl: evt.target.result,
+                                pendingUpload: true
+                            };
+                            renderNoteImagesPreviewGrid();
+                        };
+                        reader.readAsDataURL(finalBlob);
+                    } catch (convErr) {
+                        console.warn('heic2any note conversion fallback:', convErr);
+                        const reader = new FileReader();
+                        reader.onload = function(evt) {
+                            currentNoteImages[placeholderIdx] = {
+                                id: '',
+                                name: file.name,
+                                type: file.type || 'image/jpeg',
+                                previewUrl: evt.target.result,
+                                pendingUpload: true
+                            };
+                            renderNoteImagesPreviewGrid();
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        currentNoteImages.push({
+                            id: '',
+                            name: file.name,
+                            type: file.type || 'image/jpeg',
+                            previewUrl: evt.target.result,
+                            pendingUpload: true
+                        });
+                        renderNoteImagesPreviewGrid();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }));
         }
 
         function renderNoteImagesPreviewGrid() {
@@ -4605,26 +4665,80 @@
         }
 
         /* MANEJO DE FOTOGRAFÍAS HD */
-        function handleMultipleImagesSelected(e) {
+        async function handleMultipleImagesSelected(e) {
             const files = Array.from(e.target.files);
             if (!files.length) return;
 
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    const b64 = evt.target.result;
+            e.target.value = '';
+
+            await Promise.all(files.map(async (file) => {
+                const isHeic = /\.(heic|heif)$/i.test(file.name) || file.type === 'image/heic' || file.type === 'image/heif';
+
+                if (isHeic && typeof heic2any !== 'undefined') {
+                    const placeholderIdx = currentImagesBase64.length;
+                    const cleanName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+
                     currentImagesBase64.push({
                         id: '',
-                        name: file.name,
-                        type: file.type || 'image/jpeg',
-                        previewUrl: b64,
+                        name: cleanName,
+                        type: 'image/jpeg',
+                        previewUrl: getPlaceholderSvg('Procesando HD iPhone...'),
                         pendingUpload: true
                     });
                     renderImagesPreviewGrid();
-                };
-                reader.readAsDataURL(file);
-            });
-            e.target.value = '';
+
+                    try {
+                        // Conversión a JPEG con quality 1.0 para mantener resolución HD fehaciente y sin compresión destructiva
+                        const conversionResult = await heic2any({
+                            blob: file,
+                            toType: 'image/jpeg',
+                            quality: 1.0
+                        });
+                        const finalBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+
+                        const reader = new FileReader();
+                        reader.onload = function(evt) {
+                            currentImagesBase64[placeholderIdx] = {
+                                id: '',
+                                name: cleanName,
+                                type: 'image/jpeg',
+                                previewUrl: evt.target.result,
+                                pendingUpload: true
+                            };
+                            renderImagesPreviewGrid();
+                        };
+                        reader.readAsDataURL(finalBlob);
+                    } catch (convErr) {
+                        console.warn('heic2any conversion fallback:', convErr);
+                        const reader = new FileReader();
+                        reader.onload = function(evt) {
+                            currentImagesBase64[placeholderIdx] = {
+                                id: '',
+                                name: file.name,
+                                type: file.type || 'image/jpeg',
+                                previewUrl: evt.target.result,
+                                pendingUpload: true
+                            };
+                            renderImagesPreviewGrid();
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                } else {
+                    // Archivo estándar JPG/PNG directo sin procesar
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        currentImagesBase64.push({
+                            id: '',
+                            name: file.name,
+                            type: file.type || 'image/jpeg',
+                            previewUrl: evt.target.result,
+                            pendingUpload: true
+                        });
+                        renderImagesPreviewGrid();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }));
         }
 
         function renderImagesPreviewGrid() {
@@ -4894,6 +5008,8 @@
 
         function resetZoom() {
             currentZoomLevel = 100;
+            panX = 0;
+            panY = 0;
             const range = document.getElementById('zoom-range');
             if (range) range.value = 100;
             const img = document.getElementById('image-modal-img');
@@ -4905,7 +5021,7 @@
             const img = document.getElementById('image-modal-img');
             const badge = document.getElementById('zoom-percent-badge');
             if (img) {
-                img.style.transform = `scale(${currentZoomLevel / 100})`;
+                img.style.transform = `scale(${currentZoomLevel / 100}) translate(${panX}px, ${panY}px)`;
             }
             if (badge) {
                 badge.innerText = `${currentZoomLevel}%`;
@@ -4918,6 +5034,14 @@
         }
 
         /* GESTOS TOUCH Y MOUSE PARA LUPA DINÁMICA */
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let panStartX = 0;
+        let panStartY = 0;
+        let panStartPanX = 0;
+        let panStartPanY = 0;
+
         function setupZoomEvents() {
             const viewport = document.getElementById('zoom-viewport');
             const img = document.getElementById('image-modal-img');
@@ -4932,8 +5056,9 @@
                 adjustZoom(delta);
             }, { passive: false });
 
+            // Lupa dinámica con puntero de mouse (exclusivo para desktop)
             const moveLoupeToPointer = (e) => {
-                if (currentZoomLevel <= 100) return;
+                if (currentZoomLevel <= 100 || isPanning) return;
                 const rect = viewport.getBoundingClientRect();
                 if (rect.width === 0 || rect.height === 0) return;
                 const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -4943,12 +5068,16 @@
             viewport.addEventListener('mouseenter', moveLoupeToPointer);
             viewport.addEventListener('mousemove', moveLoupeToPointer);
             viewport.addEventListener('mouseleave', () => {
-                img.style.transformOrigin = 'center center';
+                if (currentZoomLevel <= 100) {
+                    img.style.transformOrigin = 'center center';
+                }
             });
 
             let initialPinchDistance = 0;
             let initialZoomLevel = 100;
             let touchStartX = 0;
+            let touchStartY = 0;
+            let touchLastX = 0;
             let lastTapTime = 0;
 
             viewport.addEventListener('touchstart', (e) => {
@@ -4957,22 +5086,43 @@
 
                 if (e.touches.length === 1) {
                     touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                    touchLastX = touchStartX;
                     const currentTime = new Date().getTime();
                     const tapLength = currentTime - lastTapTime;
+
+                    // Doble toque rápido: alterna entre zoom 200% y reset
                     if (tapLength < 300 && tapLength > 0) {
                         e.preventDefault();
+                        isPanning = false;
                         if (currentZoomLevel > 100) {
                             resetZoom();
                         } else {
                             currentZoomLevel = 200;
+                            panX = 0;
+                            panY = 0;
+                            img.style.transformOrigin = 'center center';
                             const range = document.getElementById('zoom-range');
                             if (range) range.value = 200;
                             applyZoomTransform();
                         }
+                    } else if (currentZoomLevel > 100) {
+                        // 1 dedo con zoom activo: arrastre / pan fluido en coordenadas fijas
+                        e.preventDefault();
+                        isPanning = true;
+                        img.style.transformOrigin = 'center center';
+                        panStartX = e.touches[0].clientX;
+                        panStartY = e.touches[0].clientY;
+                        panStartPanX = panX;
+                        panStartPanY = panY;
+                    } else {
+                        isPanning = false;
                     }
                     lastTapTime = currentTime;
                 } else if (e.touches.length === 2) {
                     e.preventDefault();
+                    isPanning = false;
+                    img.style.transformOrigin = 'center center';
                     initialPinchDistance = Math.hypot(
                         e.touches[0].clientX - e.touches[1].clientX,
                         e.touches[0].clientY - e.touches[1].clientY
@@ -4986,6 +5136,7 @@
                 if (!modal || modal.classList.contains('hidden')) return;
 
                 if (e.touches.length === 2 && initialPinchDistance > 0) {
+                    // Gesto de pellizco (Pinch Zoom)
                     e.preventDefault();
                     const currentDistance = Math.hypot(
                         e.touches[0].clientX - e.touches[1].clientX,
@@ -4997,8 +5148,44 @@
                     const range = document.getElementById('zoom-range');
                     if (range) range.value = currentZoomLevel;
                     applyZoomTransform();
+                } else if (e.touches.length === 1) {
+                    touchLastX = e.touches[0].clientX;
+
+                    if (isPanning && currentZoomLevel > 100) {
+                        // Desplazamiento cartesiano 1:1 con límites de borde exactos
+                        e.preventDefault();
+                        const dx = e.touches[0].clientX - panStartX;
+                        const dy = e.touches[0].clientY - panStartY;
+
+                        const scale = currentZoomLevel / 100;
+                        const vpRect = viewport.getBoundingClientRect();
+                        const baseW = img.offsetWidth || vpRect.width;
+                        const baseH = img.offsetHeight || vpRect.height;
+                        const visualW = baseW * scale;
+                        const visualH = baseH * scale;
+
+                        // Límites exactos según el exceso de imagen visible
+                        const maxPanX = Math.max(0, (visualW - vpRect.width) / (2 * scale));
+                        const maxPanY = Math.max(0, (visualH - vpRect.height) / (2 * scale));
+
+                        panX = Math.max(-maxPanX, Math.min(maxPanX, panStartPanX + (dx / scale)));
+                        panY = Math.max(-maxPanY, Math.min(maxPanY, panStartPanY + (dy / scale)));
+                        applyZoomTransform();
+                    }
                 }
             }, { passive: false });
+
+            viewport.addEventListener('touchend', (e) => {
+                if (currentZoomLevel <= 100 && !isPanning && activeGalleryImages.length > 1) {
+                    // Swipe horizontal para pasar de imagen cuando está en zoom normal
+                    const diffX = touchLastX - touchStartX;
+                    if (Math.abs(diffX) > 60) {
+                        navigateGallery(diffX < 0 ? 1 : -1);
+                    }
+                }
+                isPanning = false;
+                initialPinchDistance = 0;
+            });
         }
 
         document.addEventListener('keydown', (e) => {
