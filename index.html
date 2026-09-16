@@ -1018,6 +1018,16 @@
                             </button>
                         </div>
 
+                        <!-- Saneador de Fotos HEIC a JPG en Drive -->
+                        <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
+                            <button type="button" id="btn-clean-heic-drive" onclick="startHeicToJpgSanitizer()" class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-2xl transition-all flex items-center justify-center shadow-md cursor-pointer">
+                                <i class="fas fa-wand-magic-sparkles mr-2 text-sm text-indigo-300"></i> Saneador de Fotos: Convertir HEIC a JPG en Drive
+                            </button>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 text-center">
+                                Convierte fotos de iPhone (.heic/.heif) a JPG en Drive de a una de forma segura. Restaura miniaturas rápidas al instante sin generar errores si alguna foto no se ubica.
+                            </p>
+                        </div>
+
                         <!-- Estructura de Almacenamiento Dual en Google Drive -->
                         <div class="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
                             <div class="flex items-center justify-between">
@@ -1368,7 +1378,7 @@
                 </button>
                 
                 <div class="zoom-viewport" id="zoom-viewport">
-                    <img id="image-modal-img" src="" alt="Fotografía Herramienta HD" class="zoom-image">
+                    <img id="image-modal-img" src="" alt="Fotografía Herramienta HD" class="zoom-image" onerror="if(this.src && !this.src.startsWith('data:image/svg')) { this.src = getPlaceholderSvg('Cargando HD de Drive...'); }">
                 </div>
                 
                 <button id="btn-gallery-next" onclick="navigateGallery(1)" class="absolute right-2 sm:right-4 bg-slate-900/85 hover:bg-sky-600 text-white p-3.5 sm:p-4 rounded-full text-xl shadow-2xl border border-slate-600 transition-all z-20 cursor-pointer">
@@ -2427,6 +2437,101 @@
         }
 
         /* ====================================================
+           SANEADOR SECUENCIAL DE FOTOS HEIC -> JPG EN DRIVE
+        ==================================================== */
+        async function startHeicToJpgSanitizer() {
+            const btn = document.getElementById('btn-clean-heic-drive');
+            const originalHtml = btn ? btn.innerHTML : '';
+
+            // 1. Identificar fotos en formato HEIC/HEIF en todas las órdenes
+            const pendingTasks = [];
+            allServices.forEach(order => {
+                if (Array.isArray(order.imagesBase64)) {
+                    order.imagesBase64.forEach((img, idx) => {
+                        const isHeic = (img.name && /\.(heic|heif)$/i.test(img.name)) || (img.type && (img.type.includes('heic') || img.type.includes('heif')));
+                        const driveId = img.id || extractDriveId(img);
+                        if (isHeic && driveId) {
+                            pendingTasks.push({ order, img, idx, driveId });
+                        }
+                    });
+                }
+            });
+
+            if (pendingTasks.length === 0) {
+                showToast("Base Limpia", "No se detectaron fotos en formato HEIC/HEIF en las órdenes de Google Drive.", "success");
+                return;
+            }
+
+            if (!confirm(`Se detectaron ${pendingTasks.length} fotos de iPhone (.heic/.heif) en Google Drive.\n\n¿Deseas convertirlas a JPG de a una de forma segura?\n\n• Se procesarán una por una sin saturar la red.\n• Si alguna foto no se ubica en Drive, se mantendrá intacta sin generar errores.\n• Una vez convertidas, todas las miniaturas cargarán rápido al instante.`)) {
+                return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-75', 'cursor-wait');
+            }
+
+            let convertedCount = 0;
+            let skippedCount = 0;
+
+            for (let i = 0; i < pendingTasks.length; i++) {
+                const task = pendingTasks[i];
+                const ticketNum = task.order.ticketNum || getTicketDisplay(task.order);
+
+                if (btn) {
+                    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2 text-sm text-indigo-300"></i> Convirtiendo foto ${i + 1} de ${pendingTasks.length} (ST-${ticketNum})...`;
+                }
+
+                try {
+                    // Descarga segura desde Drive y conversión a JPEG HD nativo
+                    const jpegB64 = await fetchMediaViaProxy(task.driveId);
+                    if (jpegB64 && jpegB64.startsWith('data:image')) {
+                        const newName = `foto_ST${ticketNum}_${task.idx + 1}.jpg`;
+                        const uploaded = await apiUploadFile(jpegB64, newName, 'image/jpeg', 'image');
+
+                        if (uploaded && uploaded.id) {
+                            task.order.imagesBase64[task.idx] = {
+                                id: uploaded.id,
+                                name: newName,
+                                type: 'image/jpeg',
+                                url: uploaded.url
+                            };
+                            ADL_MEDIA_CACHE.set(uploaded.id, jpegB64);
+                            convertedCount++;
+                        } else {
+                            skippedCount++;
+                        }
+                    } else {
+                        // Si no se ubicó o no devolvió imagen válida, se conserva intacta
+                        skippedCount++;
+                    }
+                } catch (e) {
+                    console.warn(`Foto en orden ST-${ticketNum} no se pudo convertir, omitida con seguridad:`, e);
+                    skippedCount++;
+                }
+
+                // Pausa breve de 250ms entre fotos para no saturar Apps Script ni la red
+                await new Promise(r => setTimeout(r, 250));
+            }
+
+            // Guardar base actualizada local y sincronizar con Drive
+            await saveDatabaseData();
+            sortAndRefreshUI();
+            pushDatabaseToDriveSilently();
+
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-75', 'cursor-wait');
+                btn.innerHTML = originalHtml;
+            }
+
+            const summaryMsg = skippedCount > 0
+                ? `Se convirtieron ${convertedCount} fotos a JPG en Drive. ${skippedCount} no se ubicaron y se mantuvieron intactas.`
+                : `Se convirtieron ${convertedCount} fotos a JPG en Drive exitosamente. Las miniaturas ahora cargarán al instante.`;
+            showToast("Saneamiento Finalizado", summaryMsg, "success");
+        }
+
+        /* ====================================================
            SISTEMA DE MEDIOS DUAL & PROXY DRIVE (CACHE & SYNC)
         ==================================================== */
         const ADL_MEDIA_CACHE = new Map();
@@ -2450,6 +2555,54 @@
             return '';
         }
 
+        function isHeicData(dataOrMime, base64String) {
+            if (!dataOrMime && !base64String) return false;
+            const checkStr = String(dataOrMime || '').toLowerCase();
+            if (checkStr.includes('heic') || checkStr.includes('heif')) return true;
+            
+            const b64 = base64String || (typeof dataOrMime === 'string' && dataOrMime.includes(';base64,') ? dataOrMime.split(';base64,')[1] : (typeof dataOrMime === 'string' ? dataOrMime : ''));
+            if (b64 && b64.length > 25) {
+                try {
+                    const header = atob(b64.slice(0, 40));
+                    if (header.includes('ftyp') && (header.includes('hei') || header.includes('mif') || header.includes('msf') || header.includes('hevc'))) {
+                        return true;
+                    }
+                } catch(e) {}
+            }
+            return false;
+        }
+
+        async function ensureJpegDataUrl(base64OrBlob, mimeType = 'image/heic') {
+            const isHeic = isHeicData(mimeType, typeof base64OrBlob === 'string' ? base64OrBlob : '');
+            if (!isHeic || typeof heic2any === 'undefined') {
+                return base64OrBlob;
+            }
+
+            try {
+                let blob = base64OrBlob;
+                if (typeof base64OrBlob === 'string') {
+                    blob = base64ToBlob(base64OrBlob, 'image/heic');
+                }
+                if (!blob) return base64OrBlob;
+
+                const result = await heic2any({
+                    blob: blob,
+                    toType: 'image/jpeg',
+                    quality: 1.0
+                });
+                const finalBlob = Array.isArray(result) ? result[0] : result;
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = () => resolve(base64OrBlob);
+                    reader.readAsDataURL(finalBlob);
+                });
+            } catch(err) {
+                console.warn('ensureJpegDataUrl error:', err);
+                return base64OrBlob;
+            }
+        }
+
         async function fetchMediaViaProxy(fileId) {
             if (!fileId) return null;
             if (ADL_MEDIA_CACHE.has(fileId)) return ADL_MEDIA_CACHE.get(fileId);
@@ -2465,13 +2618,18 @@
                     if (!res.ok) return null;
                     const json = await res.json();
                     if (json && json.success && json.base64) {
-                        ADL_MEDIA_CACHE.set(fileId, json.base64);
+                        let finalBase64 = json.base64;
+                        // Si el archivo en Drive es HEIC/HEIF, convertir a JPEG HD con fidelidad 1.0 para renderizar en cualquier navegador
+                        if (isHeicData(json.mimeType, json.base64)) {
+                            finalBase64 = await ensureJpegDataUrl(json.base64, json.mimeType || 'image/heic');
+                        }
+                        ADL_MEDIA_CACHE.set(fileId, finalBase64);
                         // Actualizacion reactiva de imagenes en DOM
                         document.querySelectorAll(`img[data-drive-id="${fileId}"]`).forEach(img => {
-                            img.src = json.base64;
+                            img.src = finalBase64;
                             img.removeAttribute('data-drive-id');
                         });
-                        return json.base64;
+                        return finalBase64;
                     }
                 } catch (e) {
                     console.warn("Error obteniendo medio via proxy:", fileId, e);
@@ -2891,9 +3049,7 @@
                 const p = parseFloat(s.amountPaid) || 0;
                 totalBudget += b;
                 totalPaid += p;
-                if (s.status !== 'Entregado') {
-                    totalDebt += Math.max(0, b - p);
-                }
+                totalDebt += Math.max(0, b - p);
             });
 
             const paidEl = document.getElementById('dash-stat-paid');
@@ -3112,7 +3268,7 @@
             const paid = parseFloat(order.amountPaid) || 0;
             if (metricKey === 'paid') return paid;
             if (metricKey === 'budget') return cost;
-            if (metricKey === 'debt') return order.status !== 'Entregado' ? Math.max(0, cost - paid) : 0;
+            if (metricKey === 'debt') return Math.max(0, cost - paid);
             if (metricKey === 'count') return 1;
             return 0;
         }
@@ -3131,7 +3287,8 @@
                     const pendingOrders = (client.tickets || []).map(order => {
                         const cost = parseFloat(order.estimatedCost) || 0;
                         const paid = parseFloat(order.amountPaid) || 0;
-                        return { order, balance: order.status !== 'Entregado' ? Math.max(0, cost - paid) : 0 };
+                        // La deuda existe siempre que haya saldo pendiente (costo > abonado), aunque la orden ya haya sido entregada
+                        return { order, balance: Math.max(0, cost - paid) };
                     }).filter(item => item.balance > 0);
                     return {
                         client,
@@ -3154,7 +3311,21 @@
                             <div><span class="text-xs font-black text-sky-600 dark:text-sky-400">${account.client.code}</span><h3 class="font-black text-slate-900 dark:text-white text-lg">${account.client.name}</h3><p class="text-xs text-slate-500">DNI/CUIT: ${account.client.dni} · Tel: ${account.client.phone}</p></div>
                             <span class="font-black text-rose-600 dark:text-rose-400">$ ${account.balance.toLocaleString('es-AR')}</span>
                         </div>
-                        <div class="space-y-2">${account.pendingOrders.map(item => `<div class="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl"><div class="text-xs"><strong class="text-sky-600 dark:text-sky-400">ST-${getTicketDisplay(item.order)}</strong><span class="block text-slate-500">${item.order.toolType || ''} ${item.order.toolBrand || ''}</span></div><div class="text-right"><strong class="block text-rose-600 dark:text-rose-400 text-sm">$ ${item.balance.toLocaleString('es-AR')}</strong><button type="button" onclick="openPaymentModal('${String(item.order.id || '')}')" class="mt-1 px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-black">+ Cobro</button></div></div>`).join('')}</div>
+                        <div class="space-y-2">${account.pendingOrders.map(item => `
+                            <div class="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl">
+                                <div class="text-xs">
+                                    <div class="flex items-center space-x-1.5">
+                                        <strong class="text-sky-600 dark:text-sky-400">ST-${getTicketDisplay(item.order)}</strong>
+                                        ${item.order.status === 'Entregado' ? '<span class="px-1.5 py-0.5 bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-black rounded">Entregado</span>' : `<span class="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold rounded">${item.order.status || 'En Taller'}</span>`}
+                                    </div>
+                                    <span class="block text-slate-500 mt-0.5">${item.order.toolType || ''} ${item.order.toolBrand || ''}</span>
+                                </div>
+                                <div class="text-right">
+                                    <strong class="block text-rose-600 dark:text-rose-400 text-sm">$ ${item.balance.toLocaleString('es-AR')}</strong>
+                                    <button type="button" onclick="openPaymentModal('${String(item.order.id || '')}')" class="mt-1 px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-black cursor-pointer hover:bg-emerald-500 transition-colors">+ Cobro</button>
+                                </div>
+                            </div>
+                        `).join('')}</div>
                     </div>`).join('');
             } catch (e) {
                 console.error('renderCurrentAccountsTab error:', e);
@@ -3186,9 +3357,7 @@
                     const paid = parseFloat(s.amountPaid) || 0;
                     grandBudget += cost;
                     grandPaid += paid;
-                    if (s.status !== 'Entregado') {
-                        grandDebt += Math.max(0, cost - paid);
-                    }
+                    grandDebt += Math.max(0, cost - paid);
                 });
 
                 const bdg = document.getElementById('client-stat-budget');
@@ -3215,9 +3384,7 @@
                         const paid = parseFloat(t.amountPaid) || 0;
                         clientBudget += cost;
                         clientPaid += paid;
-                        if (t.status !== 'Entregado') {
-                            clientDebt += Math.max(0, cost - paid);
-                        }
+                        clientDebt += Math.max(0, cost - paid);
                     });
 
                     const waLink = getWhatsappLink(c.phone);
@@ -3430,7 +3597,12 @@
                     return ADL_MEDIA_CACHE.get(driveId);
                 }
                 fetchMediaViaProxy(driveId);
-                // Miniatura liviana rápida de Google Drive
+                const itemFileName = String((imgItem && (imgItem.name || imgItem.fileName)) || '').toLowerCase();
+                const itemType = String((imgItem && imgItem.type) || '').toLowerCase();
+                if (itemFileName.includes('.heic') || itemFileName.includes('.heif') || itemType.includes('heic') || itemType.includes('heif')) {
+                    return getPlaceholderSvg('Cargando HD...');
+                }
+                // Miniatura liviana rápida de Google Drive para imágenes convencionales
                 return `https://lh3.googleusercontent.com/d/${driveId}=w400`;
             }
 
@@ -3495,28 +3667,53 @@
             e.target.value = '';
 
             await Promise.all(files.map(async (file) => {
-                const isHeic = /\.(heic|heif)$/i.test(file.name) || file.type === 'image/heic' || file.type === 'image/heif';
+                const ext = (file.name.split('.').pop() || '').toLowerCase();
+                const isJpgOrPng = (ext === 'jpg' || ext === 'jpeg' || ext === 'png') && (file.type === 'image/jpeg' || file.type === 'image/png');
+                const isHeic = ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif';
+                const needsConversion = !isJpgOrPng || isHeic;
 
-                if (isHeic && typeof heic2any !== 'undefined') {
+                if (needsConversion && typeof heic2any !== 'undefined') {
                     const placeholderIdx = currentNoteImages.length;
-                    const cleanName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+                    const cleanName = file.name.replace(/\.[a-zA-Z0-9]+$/i, '.jpg');
 
                     currentNoteImages.push({
                         id: '',
                         name: cleanName,
                         type: 'image/jpeg',
-                        previewUrl: getPlaceholderSvg('Procesando HD iPhone...'),
+                        previewUrl: getPlaceholderSvg('Convirtiendo a JPG...'),
                         pendingUpload: true
                     });
                     renderNoteImagesPreviewGrid();
 
                     try {
-                        const conversionResult = await heic2any({
-                            blob: file,
-                            toType: 'image/jpeg',
-                            quality: 1.0
-                        });
-                        const finalBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+                        let finalBlob = null;
+                        if (isHeic) {
+                            const conversionResult = await heic2any({
+                                blob: file,
+                                toType: 'image/jpeg',
+                                quality: 1.0
+                            });
+                            finalBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+                        } else {
+                            finalBlob = await new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onload = (re) => {
+                                    const imgEl = new Image();
+                                    imgEl.onload = () => {
+                                        const canvas = document.createElement('canvas');
+                                        canvas.width = imgEl.naturalWidth;
+                                        canvas.height = imgEl.naturalHeight;
+                                        const ctx = canvas.getContext('2d');
+                                        ctx.drawImage(imgEl, 0, 0);
+                                        canvas.toBlob((b) => resolve(b || file), 'image/jpeg', 1.0);
+                                    };
+                                    imgEl.onerror = () => resolve(file);
+                                    imgEl.src = re.target.result;
+                                };
+                                reader.onerror = () => resolve(file);
+                                reader.readAsDataURL(file);
+                            });
+                        }
 
                         const reader = new FileReader();
                         reader.onload = function(evt) {
@@ -3529,15 +3726,15 @@
                             };
                             renderNoteImagesPreviewGrid();
                         };
-                        reader.readAsDataURL(finalBlob);
+                        reader.readAsDataURL(finalBlob || file);
                     } catch (convErr) {
-                        console.warn('heic2any note conversion fallback:', convErr);
+                        console.warn('Conversión de nota a JPG fallback:', convErr);
                         const reader = new FileReader();
                         reader.onload = function(evt) {
                             currentNoteImages[placeholderIdx] = {
                                 id: '',
-                                name: file.name,
-                                type: file.type || 'image/jpeg',
+                                name: cleanName,
+                                type: 'image/jpeg',
                                 previewUrl: evt.target.result,
                                 pendingUpload: true
                             };
@@ -4672,29 +4869,54 @@
             e.target.value = '';
 
             await Promise.all(files.map(async (file) => {
-                const isHeic = /\.(heic|heif)$/i.test(file.name) || file.type === 'image/heic' || file.type === 'image/heif';
+                const ext = (file.name.split('.').pop() || '').toLowerCase();
+                const isJpgOrPng = (ext === 'jpg' || ext === 'jpeg' || ext === 'png') && (file.type === 'image/jpeg' || file.type === 'image/png');
+                const isHeic = ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif';
+                const needsConversion = !isJpgOrPng || isHeic;
 
-                if (isHeic && typeof heic2any !== 'undefined') {
+                if (needsConversion && typeof heic2any !== 'undefined') {
                     const placeholderIdx = currentImagesBase64.length;
-                    const cleanName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+                    const cleanName = file.name.replace(/\.[a-zA-Z0-9]+$/i, '.jpg');
 
                     currentImagesBase64.push({
                         id: '',
                         name: cleanName,
                         type: 'image/jpeg',
-                        previewUrl: getPlaceholderSvg('Procesando HD iPhone...'),
+                        previewUrl: getPlaceholderSvg('Convirtiendo a JPG...'),
                         pendingUpload: true
                     });
                     renderImagesPreviewGrid();
 
                     try {
-                        // Conversión a JPEG con quality 1.0 para mantener resolución HD fehaciente y sin compresión destructiva
-                        const conversionResult = await heic2any({
-                            blob: file,
-                            toType: 'image/jpeg',
-                            quality: 1.0
-                        });
-                        const finalBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+                        let finalBlob = null;
+                        if (isHeic) {
+                            const conversionResult = await heic2any({
+                                blob: file,
+                                toType: 'image/jpeg',
+                                quality: 1.0
+                            });
+                            finalBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+                        } else {
+                            // Conversión estándar de cualquier otro formato no-JPG/PNG a través de canvas a JPEG nativo
+                            finalBlob = await new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onload = (re) => {
+                                    const imgEl = new Image();
+                                    imgEl.onload = () => {
+                                        const canvas = document.createElement('canvas');
+                                        canvas.width = imgEl.naturalWidth;
+                                        canvas.height = imgEl.naturalHeight;
+                                        const ctx = canvas.getContext('2d');
+                                        ctx.drawImage(imgEl, 0, 0);
+                                        canvas.toBlob((b) => resolve(b || file), 'image/jpeg', 1.0);
+                                    };
+                                    imgEl.onerror = () => resolve(file);
+                                    imgEl.src = re.target.result;
+                                };
+                                reader.onerror = () => resolve(file);
+                                reader.readAsDataURL(file);
+                            });
+                        }
 
                         const reader = new FileReader();
                         reader.onload = function(evt) {
@@ -4707,15 +4929,15 @@
                             };
                             renderImagesPreviewGrid();
                         };
-                        reader.readAsDataURL(finalBlob);
+                        reader.readAsDataURL(finalBlob || file);
                     } catch (convErr) {
-                        console.warn('heic2any conversion fallback:', convErr);
+                        console.warn('Conversión de imagen a JPG fallback:', convErr);
                         const reader = new FileReader();
                         reader.onload = function(evt) {
                             currentImagesBase64[placeholderIdx] = {
                                 id: '',
-                                name: file.name,
-                                type: file.type || 'image/jpeg',
+                                name: cleanName,
+                                type: 'image/jpeg',
                                 previewUrl: evt.target.result,
                                 pendingUpload: true
                             };
@@ -4974,9 +5196,27 @@
                 else if (driveId && ADL_MEDIA_CACHE.has(driveId)) directSrc = ADL_MEDIA_CACHE.get(driveId);
 
                 if (directSrc) {
-                    img.src = directSrc;
+                    if (isHeicData(curGImg?.type || curGImg?.name, directSrc)) {
+                        img.src = getPlaceholderSvg('Procesando HD...');
+                        ensureJpegDataUrl(directSrc, curGImg?.type || 'image/heic').then(converted => {
+                            if (activeGalleryImages[activeGalleryIndex] === curGImg) {
+                                img.src = converted;
+                            }
+                        });
+                    } else {
+                        img.src = directSrc;
+                    }
                 } else if (driveId) {
-                    img.src = `https://lh3.googleusercontent.com/d/${driveId}=w600`;
+                    const itemFileName = String((curGImg && (curGImg.name || curGImg.fileName)) || '').toLowerCase();
+                    const itemType = String((curGImg && curGImg.type) || '').toLowerCase();
+                    const isKnownHeic = itemFileName.includes('.heic') || itemFileName.includes('.heif') || itemType.includes('heic') || itemType.includes('heif');
+
+                    if (!isKnownHeic) {
+                        img.src = `https://lh3.googleusercontent.com/d/${driveId}=w600`;
+                    } else {
+                        img.src = getPlaceholderSvg('Cargando HD de Drive...');
+                    }
+
                     const loaded = await fetchMediaViaProxy(driveId);
                     if (loaded && activeGalleryImages[activeGalleryIndex] === curGImg) {
                         img.src = loaded;
@@ -5239,7 +5479,8 @@
                 const finalImages = [];
                 for (let i = 0; i < currentImagesBase64.length; i++) {
                     const img = currentImagesBase64[i];
-                    const ext = getFileExtension(img.name, 'jpg');
+                    let ext = getFileExtension(img.name, 'jpg');
+                    if (ext === 'heic' || ext === 'heif') ext = 'jpg';
                     const targetFileName = `foto_ST${ticketDigits}_${i + 1}.${ext}`;
 
                     if (img.pendingUpload && img.previewUrl) {
@@ -5257,10 +5498,36 @@
                             finalImages.push({ id: '', name: targetFileName, type: img.type || 'image/jpeg', url: '' });
                         }
                     } else {
+                        const driveId = img.id || extractDriveId(img);
+                        const isOldHeic = (img.name && /\.(heic|heif)$/i.test(img.name)) || (img.type && (img.type.includes('heic') || img.type.includes('heif')));
+
+                        // Saneamiento de a una: si la foto existente en Drive es HEIC, convertir a JPG y actualizar ID
+                        if (isOldHeic && driveId) {
+                            try {
+                                const b64 = await fetchMediaViaProxy(driveId);
+                                if (b64 && b64.startsWith('data:image')) {
+                                    const uploaded = await apiUploadFile(b64, targetFileName, 'image/jpeg', 'image');
+                                    if (uploaded && uploaded.id) {
+                                        ADL_MEDIA_CACHE.set(uploaded.id, b64);
+                                        finalImages.push({
+                                            id: uploaded.id,
+                                            name: targetFileName,
+                                            type: 'image/jpeg',
+                                            url: uploaded.url
+                                        });
+                                        continue;
+                                    }
+                                }
+                            } catch(migErr) {
+                                // Si no se puede ubicar o falla, continuar de forma segura sin generar errores
+                                console.warn("No se pudo migrar foto HEIC vieja, conservando referencia:", migErr);
+                            }
+                        }
+
                         finalImages.push({
-                            id: img.id || extractDriveId(img),
+                            id: driveId,
                             name: targetFileName,
-                            type: img.type || 'image/jpeg',
+                            type: isOldHeic ? 'image/jpeg' : (img.type || 'image/jpeg'),
                             url: img.url || ''
                         });
                     }
@@ -5930,7 +6197,7 @@
                     const paid = parseFloat(t.amountPaid) || 0;
                     totalBudget += cost;
                     totalPaid += paid;
-                    if (t.status !== 'Entregado') totalDebt += Math.max(0, cost - paid);
+                    totalDebt += Math.max(0, cost - paid);
                 });
 
                 return {
