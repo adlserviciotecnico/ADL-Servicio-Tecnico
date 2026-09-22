@@ -239,41 +239,96 @@
                 break-inside: avoid !important;
                 page-break-after: avoid !important;
                 break-after: avoid !important;
+                min-height: 275mm !important;
+                max-height: 275mm !important;
+                height: 275mm !important;
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                overflow: hidden !important;
+                padding: 1mm 0 !important;
+                margin: 0 !important;
             }
-            .print-images-page {
+            .print-receipt-header {
+                flex-shrink: 0 !important;
+            }
+            .print-receipt-body {
+                flex: 1 1 auto !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-around !important;
+                gap: 2.5mm !important;
+                min-height: 0 !important;
+            }
+            .print-receipt-footer {
+                flex-shrink: 0 !important;
+                padding-top: 3mm !important;
+            }
+            .print-failure-box {
+                white-space: pre-line !important;
+                word-break: break-word !important;
+                max-height: 75mm !important;
+                overflow: hidden !important;
+                line-height: 1.4 !important;
+            }
+            .print-photo-page {
                 page-break-before: always !important;
                 break-before: page !important;
-                padding-top: 6mm !important;
-            }
-            .print-image-block {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                margin-bottom: 4mm !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                height: 275mm !important;
+                max-height: 275mm !important;
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+                align-items: stretch !important;
+                overflow: hidden !important;
+                padding: 1mm 0 0 0 !important;
+                margin: 0 !important;
             }
-            .print-image-block:not(:last-child) {
-                page-break-after: always !important;
-                break-after: page !important;
+            .print-photo-header {
+                flex-shrink: 0 !important;
+                margin-bottom: 2mm !important;
             }
-            .print-image {
+            .print-photo-body {
+                flex: 1 1 auto !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                max-height: 256mm !important;
+                overflow: hidden !important;
+            }
+            .print-photo-img {
                 max-width: 100% !important;
-                max-height: 245mm !important;
+                max-height: 254mm !important;
                 width: auto !important;
                 height: auto !important;
                 object-fit: contain !important;
                 display: block !important;
-                margin: 0 auto !important;
+                margin: auto !important;
+                border-radius: 4px !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            #printable-area h2 { font-size: 14pt !important; margin-bottom: 3px !important; }
-            #printable-area h3, #printable-area h4 { font-size: 11.5pt !important; margin-bottom: 3px !important; }
-            #printable-area p, #printable-area div, #printable-area span { font-size: 10pt !important; }
-            #printable-area .p-6, #printable-area .p-8, #printable-area .p-3, #printable-area .p-4 { padding: 4px !important; }
-            #printable-area .mb-3, #printable-area .pb-3, #printable-area .mb-4, #printable-area .pb-4 { margin-bottom: 2px !important; padding-bottom: 2px !important; }
-            #printable-area .space-y-4 > * + *, #printable-area .space-y-3 > * + * { margin-top: 2px !important; }
+            #printable-area h2 { font-size: 18pt !important; margin-bottom: 2px !important; }
+            #printable-area h3, #printable-area h4 { font-size: 12.5pt !important; font-weight: 900 !important; margin-bottom: 2.5mm !important; }
+            #printable-area p, #printable-area div, #printable-area span { font-size: 12pt !important; }
+            #printable-area strong { font-size: 12.5pt !important; font-weight: 800 !important; }
+            #printable-area .print-ticket-number { font-size: 28pt !important; font-weight: 900 !important; line-height: 1.05 !important; color: #0c4a6e !important; }
+            #printable-area .print-failure-box { font-size: 11.5pt !important; line-height: 1.4 !important; max-height: 58mm !important; }
+            #printable-area .print-failure-box * { font-size: 11.5pt !important; }
+            #printable-area .legal-text { font-size: 9.5pt !important; line-height: 1.3 !important; }
+            #printable-area .p-6, #printable-area .p-8 { padding: 4mm 5mm !important; }
+            #printable-area .p-3, #printable-area .p-4 { padding: 3mm 4mm !important; }
+            #printable-area .mb-3, #printable-area .pb-3, #printable-area .mb-4, #printable-area .pb-4 { margin-bottom: 2mm !important; padding-bottom: 2mm !important; }
             @page {
                 size: A4 portrait;
-                margin: 5mm;
+                margin: 6mm 8mm;
             }
         }
     </style>
@@ -454,9 +509,12 @@
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-2">
-                        <div class="relative min-w-[220px] flex-1 sm:flex-none">
+                        <div class="relative min-w-[240px] flex-1 sm:flex-none">
                             <i class="fas fa-search absolute left-4 top-3.5 text-slate-400 text-sm"></i>
-                            <input type="text" id="search-input" oninput="filterServices()" placeholder="Buscar cliente, DNI, orden..." class="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-900 rounded-2xl text-sm focus:outline-none focus:border-sky-500 shadow-sm font-semibold">
+                            <input type="text" id="search-input" oninput="handleSearchInputChange(this.value)" placeholder="Buscar cliente, DNI, orden, modelo, Nº serie..." class="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-900 rounded-2xl text-sm focus:outline-none focus:border-sky-500 shadow-sm font-semibold">
+                            <button type="button" id="clear-search-btn" onclick="clearSearchInput()" title="Limpiar búsqueda" class="hidden absolute right-3 top-2.5 p-1 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors cursor-pointer">
+                                <i class="fas fa-times-circle text-base"></i>
+                            </button>
                         </div>
 
                         <div class="flex items-center space-x-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-900 rounded-2xl px-3 py-1.5 shadow-sm text-sm">
@@ -1318,32 +1376,45 @@
     </div>
 
     <!-- PRINT MODAL & AREA -->
-    <div id="receipt-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
-        <div class="bg-white dark:bg-slate-950 max-w-2xl w-full rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-900 overflow-hidden flex flex-col max-h-[95vh]">
-            <div class="p-4 border-b border-slate-100 dark:border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800/80 no-print">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                    <span class="font-extrabold text-slate-800 dark:text-white text-xs sm:text-sm">Impresión de Comprobante:</span>
-                    <select id="print-format-selector" onchange="changePrintFormat(this.value)" class="px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-extrabold text-sky-700 dark:text-sky-400">
+    <div id="receipt-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden" onclick="if(event.target === this) closeReceiptModal()">
+        <div class="bg-white dark:bg-slate-950 max-w-2xl w-full rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-900 overflow-hidden flex flex-col max-h-[95vh]" onclick="event.stopPropagation()">
+            <!-- Encabezado superior con botón X SIEMPRE VISIBLE Y ANCLADO -->
+            <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0 no-print">
+                <div class="flex items-center space-x-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-xl bg-sky-600 flex items-center justify-center text-white text-sm shrink-0">
+                        <i class="fas fa-print"></i>
+                    </div>
+                    <div class="truncate">
+                        <h3 class="font-extrabold text-sm sm:text-base text-white leading-tight truncate">Impresión de Comprobante</h3>
+                        <p class="text-[11px] text-slate-400 truncate">Vista previa y configuración para imprimir o exportar a PDF</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeReceiptModal()" class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 active:scale-95 transition-all shrink-0 cursor-pointer ml-3 shadow-sm border border-slate-700/50" title="Cerrar ventana (Esc)">
+                    <i class="fas fa-times text-base sm:text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Barra de Controles y Acciones Responsiva -->
+            <div class="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 flex flex-wrap items-center justify-between gap-2.5 shrink-0 no-print">
+                <div class="flex flex-wrap items-center gap-2">
+                    <select id="print-format-selector" onchange="changePrintFormat(this.value)" class="px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-extrabold text-sky-700 dark:text-sky-400 shadow-sm focus:outline-none focus:border-sky-500 cursor-pointer">
                         <option value="a4">Hoja A4 / Carta (1 Hoja Exacta)</option>
                         <option value="ticket">Formato Ticket (Térmico 80mm)</option>
                     </select>
-                    <label id="print-images-option" class="hidden flex items-center space-x-2 px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer">
+                    <label id="print-images-option" class="hidden flex items-center space-x-2 px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer shadow-sm hover:border-sky-500 transition-colors">
                         <input type="checkbox" id="print-include-images" onchange="onPrintIncludeImagesChanged(this.checked)" class="w-4 h-4 accent-sky-600 cursor-pointer">
-                        <span class="text-xs font-extrabold text-slate-700 dark:text-slate-200">Incluir fotos en hoja 2 <span id="print-images-count" class="text-sky-600 dark:text-sky-400"></span></span>
+                        <span class="text-xs font-extrabold text-slate-700 dark:text-slate-200">Incluir fotos adjuntas (1 por hoja) <span id="print-images-count" class="text-sky-600 dark:text-sky-400"></span></span>
                     </label>
                 </div>
 
-                <div class="flex items-center space-x-2">
-                    <button onclick="triggerPrintProcess()" class="px-5 py-2.5 bg-sky-600 text-white rounded-xl text-xs font-extrabold hover:bg-sky-700 shadow-md">
+                <div class="flex items-center space-x-2 ml-auto">
+                    <button type="button" id="btn-trigger-print" onclick="triggerPrintProcess()" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl text-xs font-extrabold shadow-md transition-all flex items-center cursor-pointer whitespace-nowrap">
                         <i class="fas fa-print mr-1.5"></i> Imprimir
-                    </button>
-                    <button onclick="closeReceiptModal()" class="text-slate-400 hover:text-slate-600 p-1">
-                        <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
             </div>
 
-            <div class="overflow-y-auto p-4 sm:p-6 bg-slate-100 dark:bg-slate-950">
+            <div class="overflow-y-auto p-4 sm:p-6 bg-slate-100 dark:bg-slate-950 flex-1">
                 <div id="printable-area" class="bg-white text-slate-900 p-6 sm:p-8 rounded-2xl shadow border border-slate-200 mx-auto max-w-xl space-y-4 text-xs leading-snug">
                     <!-- Dynamic Printable Receipt -->
                 </div>
@@ -4392,7 +4463,17 @@
 
         function filterServices() {
             try {
-                const query = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+                const searchInputEl = document.getElementById('search-input');
+                const rawQuery = searchInputEl?.value || '';
+                const query = rawQuery.toLowerCase().trim();
+                const clearSearchBtn = document.getElementById('clear-search-btn');
+                if (clearSearchBtn) {
+                    if (query !== '') {
+                        clearSearchBtn.classList.remove('hidden');
+                    } else {
+                        clearSearchBtn.classList.add('hidden');
+                    }
+                }
                 const statusFilter = document.getElementById('filter-status')?.value || 'ALL';
                 const dateInput = document.getElementById('filter-date-input')?.value || '';
                 currentOrderSort = document.getElementById('order-sort')?.value === 'oldest' ? 'oldest' : 'newest';
@@ -4409,7 +4490,8 @@
                     const phone = String(item.clientPhone || '').toLowerCase();
                     const type = String(item.toolType || '').toLowerCase();
                     const brand = String(item.toolBrand || '').toLowerCase();
-                    const model = String(item.toolModel || '').toLowerCase();
+                    const model = String(item.toolModel || item.modelo || item.model || '').toLowerCase();
+                    const serial = String(item.serialNumber || item.serial || item.toolSerial || item.numeroSerie || item.nroSerie || '').toLowerCase();
                     const ticket = String(item.ticketNum || '').toLowerCase();
 
                     const matchesSearch = !query || 
@@ -4420,7 +4502,10 @@
                         type.includes(query) ||
                         brand.includes(query) ||
                         model.includes(query) ||
+                        serial.includes(query) ||
                         ticket.includes(query) ||
+                        ('st-' + ticket).includes(query) ||
+                        ('st' + ticket).includes(query) ||
                         createdFormatted.includes(query);
                     
                     const normalizedStatus = String(item.status || '').trim().toLowerCase();
@@ -4448,6 +4533,31 @@
                 // Respaldo seguro: incluso ante un error visual, mantener entregados ocultos por defecto.
                 renderServicesCards(showDeliveredOrders ? allServices : allServices.filter(item => String(item?.status || '').trim().toLowerCase() !== 'entregado'));
             }
+        }
+
+        function handleSearchInputChange(val) {
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (clearBtn) {
+                if (val && val.trim() !== '') {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+            }
+            filterServices();
+        }
+
+        function clearSearchInput() {
+            const input = document.getElementById('search-input');
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+            if (clearBtn) {
+                clearBtn.classList.add('hidden');
+            }
+            filterServices();
         }
 
         function setQuickDateFilter(type) {
@@ -4565,6 +4675,12 @@
                                     ${servicesList.map(item => {
                                         if (!item) return '';
                                         const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+                                        const isDelivered = String(item.status || '').trim().toLowerCase() === 'entregado';
+                                        const deliveryRaw = item.deliveredAt || (isDelivered ? (item.updatedAt || item.createdAt) : null);
+                                        const deliveryDateObj = deliveryRaw ? new Date(deliveryRaw) : null;
+                                        const deliveryDateFormatted = (deliveryDateObj && !isNaN(deliveryDateObj.getTime()))
+                                            ? deliveryDateObj.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})
+                                            : '';
                                         const total = parseFloat(item.estimatedCost) || 0;
                                         const paid = parseFloat(item.amountPaid) || 0;
                                         const balance = Math.max(0, total - paid);
@@ -4577,7 +4693,14 @@
                                         return `
                                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                             <td class="p-4 font-black text-sky-600 dark:text-sky-400 text-base">ST-${ticketCode}</td>
-                                            <td class="p-4 font-bold text-slate-600 dark:text-slate-400 text-xs">${dateStr}</td>
+                                            <td class="p-4 font-bold text-slate-600 dark:text-slate-400 text-xs">
+                                                <div>${dateStr}</div>
+                                                ${(isDelivered && deliveryDateFormatted) ? `
+                                                    <div class="text-emerald-500 dark:text-emerald-400 font-extrabold text-[11px] mt-1 flex items-center">
+                                                        <i class="fas fa-check-circle mr-1 text-[10px]"></i> Entrega: ${deliveryDateFormatted}
+                                                    </div>
+                                                ` : ''}
+                                            </td>
                                             <td class="p-4">
                                                 <div class="font-extrabold text-slate-900 dark:text-white">${item.clientName || 'Sin Nombre'}</div>
                                                 <div class="text-slate-400 text-xs flex items-center space-x-1 mt-0.5">
@@ -4636,6 +4759,12 @@
                 container.innerHTML = servicesList.map(item => {
                     if (!item) return '';
                     const dateCreated = item.createdAt ? new Date(item.createdAt).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+                    const isDelivered = String(item.status || '').trim().toLowerCase() === 'entregado';
+                    const deliveryRaw = item.deliveredAt || (isDelivered ? (item.updatedAt || item.createdAt) : null);
+                    const deliveryDateObj = deliveryRaw ? new Date(deliveryRaw) : null;
+                    const deliveryDateFormatted = (deliveryDateObj && !isNaN(deliveryDateObj.getTime()))
+                        ? deliveryDateObj.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})
+                        : '';
                     const total = parseFloat(item.estimatedCost) || 0;
                     const paid = parseFloat(item.amountPaid) || 0;
                     const balance = Math.max(0, total - paid);
@@ -4739,6 +4868,12 @@
                             <span>Fecha Ingreso:</span>
                             <span class="font-extrabold text-slate-600 dark:text-slate-300">${dateCreated}</span>
                         </div>
+                        ${(isDelivered && deliveryDateFormatted) ? `
+                        <div class="text-xs flex justify-between pt-0.5 font-bold text-emerald-500 dark:text-emerald-400">
+                            <span class="flex items-center"><i class="fas fa-check-circle mr-1 text-[11px]"></i> Fecha Entrega:</span>
+                            <span class="font-black">${deliveryDateFormatted}</span>
+                        </div>
+                        ` : ''}
 
                         <div class="flex items-center justify-between text-xs pt-1">
                             <button onclick="openPaymentModal('${item.id}')" class="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-black rounded-xl transition-colors text-xs flex items-center shadow-sm">
@@ -4905,6 +5040,7 @@
                 markedAsDelivered = confirm('El presupuesto quedará saldado por completo.\n\n¿Desea marcar la orden como Entregado?');
                 if (markedAsDelivered) {
                     item.status = 'Entregado';
+                    item.deliveredAt = new Date().toISOString();
                 }
             }
 
@@ -5515,6 +5651,10 @@
                 if (e.key === 'ArrowRight') navigateGallery(1);
                 if (e.key === 'Escape') closeImageModal();
             }
+            const receiptModal = document.getElementById('receipt-modal');
+            if (receiptModal && !receiptModal.classList.contains('hidden')) {
+                if (e.key === 'Escape') closeReceiptModal();
+            }
         });
 
         async function saveServiceOrder(e) {
@@ -5669,6 +5809,11 @@
                     const index = allServices.findIndex(s => s.id === serviceId);
                     if (index !== -1) {
                         data.createdAt = allServices[index].createdAt || nowIso;
+                        if (data.status === 'Entregado') {
+                            data.deliveredAt = allServices[index].deliveredAt || nowIso;
+                        } else {
+                            data.deliveredAt = null;
+                        }
                         allServices[index] = { ...allServices[index], ...data, ticketNum: savedTicket };
                         lastSavedOrderId = serviceId;
                     }
@@ -5677,6 +5822,11 @@
                     data.id = newId;
                     data.ticketNum = savedTicket;
                     data.createdAt = nowIso;
+                    if (data.status === 'Entregado') {
+                        data.deliveredAt = nowIso;
+                    } else {
+                        data.deliveredAt = null;
+                    }
                     allServices.unshift(data);
                     lastSavedOrderId = newId;
                 }
@@ -5929,56 +6079,58 @@
             if (activePrintType === 'payment') {
                 const p = activePaymentReceiptData;
                 container.innerHTML = `
-                    <div class="print-receipt-page space-y-4 p-2 sm:p-4">
-                        <div class="text-center border-b-2 border-slate-800 pb-2 mb-3">
+                    <div class="print-receipt-page p-2 sm:p-4">
+                        <div class="print-receipt-header text-center border-b-2 border-slate-800 pb-2 mb-2">
                             <h2 class="text-2xl font-black tracking-wider uppercase text-slate-900">ADL SERVICIO TÉCNICO</h2>
                             <p class="text-xs font-black tracking-wider text-slate-600 uppercase">COMPROBANTE DE COBRO / RECIBO DE PAGO</p>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3 bg-slate-100 p-3 rounded-2xl border border-slate-300 text-sm">
-                            <div>
-                                <span class="text-slate-500 font-extrabold block text-xs uppercase">Nº DE RECIBO</span>
-                                <strong class="text-lg text-sky-900">${p.receiptNum}</strong>
+                        <div class="print-receipt-body space-y-3">
+                            <div class="grid grid-cols-2 gap-3 bg-slate-100 p-3 rounded-2xl border border-slate-300 text-sm">
+                                <div>
+                                    <span class="text-slate-500 font-extrabold block text-xs uppercase">Nº DE RECIBO</span>
+                                    <strong class="text-2xl sm:text-3xl font-black text-sky-900 print-ticket-number tracking-tight">${p.receiptNum}</strong>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-slate-500 font-extrabold block text-xs uppercase">FECHA Y HORA</span>
+                                    <strong class="text-sm text-slate-800">${p.date}</strong>
+                                </div>
                             </div>
-                            <div class="text-right">
-                                <span class="text-slate-500 font-extrabold block text-xs uppercase">FECHA Y HORA</span>
-                                <strong class="text-sm text-slate-800">${p.date}</strong>
+
+                            <div class="bg-white p-3 rounded-2xl border border-slate-200 space-y-1.5 text-sm">
+                                <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DATOS DE LA OPERACIÓN</h4>
+                                <div class="grid grid-cols-2 gap-2 pt-1">
+                                    <p><strong class="text-slate-700">Cliente:</strong> ${p.clientName}</p>
+                                    <p><strong class="text-slate-700">DNI / CUIT:</strong> ${p.clientDni}</p>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <p><strong class="text-slate-700">Teléfono:</strong> ${p.clientPhone}</p>
+                                    <p><strong class="text-slate-700">Orden de Servicio:</strong> <strong class="text-sky-800">${p.orderNum}</strong></p>
+                                </div>
+                                <p><strong class="text-slate-700">Herramienta:</strong> ${p.toolInfo}</p>
+                            </div>
+
+                            <div class="bg-emerald-50 border-2 border-emerald-300 p-3.5 rounded-2xl text-center space-y-1">
+                                <span class="text-xs font-black text-emerald-800 uppercase tracking-wider block">MONTO ABONADO EN ESTE RECIBO</span>
+                                <span class="text-2xl font-black text-emerald-700">$ ${p.paymentAmount.toLocaleString('es-AR')}</span>
+                            </div>
+
+                            <div class="bg-slate-50 p-3 rounded-2xl space-y-2 text-sm border border-slate-300">
+                                <div class="flex justify-between items-center"><span class="text-slate-600 font-semibold">Presupuesto Total:</span><strong class="text-slate-900 font-extrabold">$ ${p.totalBudget.toLocaleString('es-AR')}</strong></div>
+                                <div class="flex justify-between items-center"><span class="text-slate-600 font-semibold">Total Abonado Acumulado:</span><strong class="text-emerald-700 font-extrabold">$ ${p.totalPaid.toLocaleString('es-AR')}</strong></div>
+                                <div class="flex justify-between items-center border-t-2 border-slate-300 pt-2 text-base font-black">
+                                    <span class="text-slate-800">Saldo Restante Pendiente:</span>
+                                    <span class="${p.remainingBalance > 0 ? 'text-rose-600' : 'text-emerald-600'}">$ ${p.remainingBalance.toLocaleString('es-AR')}</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="bg-white p-3 rounded-2xl border border-slate-200 space-y-1.5 text-sm">
-                            <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DATOS DE LA OPERACIÓN</h4>
-                            <div class="grid grid-cols-2 gap-2 pt-1">
-                                <p><strong class="text-slate-700">Cliente:</strong> ${p.clientName}</p>
-                                <p><strong class="text-slate-700">DNI / CUIT:</strong> ${p.clientDni}</p>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <p><strong class="text-slate-700">Teléfono:</strong> ${p.clientPhone}</p>
-                                <p><strong class="text-slate-700">Orden de Servicio:</strong> <strong class="text-sky-800">${p.orderNum}</strong></p>
-                            </div>
-                            <p><strong class="text-slate-700">Herramienta:</strong> ${p.toolInfo}</p>
-                        </div>
-
-                        <div class="bg-emerald-50 border-2 border-emerald-300 p-3.5 rounded-2xl text-center space-y-1">
-                            <span class="text-xs font-black text-emerald-800 uppercase tracking-wider block">MONTO ABONADO EN ESTE RECIBO</span>
-                            <span class="text-2xl font-black text-emerald-700">$ ${p.paymentAmount.toLocaleString('es-AR')}</span>
-                        </div>
-
-                        <div class="bg-slate-50 p-3 rounded-2xl space-y-2 text-sm border border-slate-300">
-                            <div class="flex justify-between items-center"><span class="text-slate-600 font-semibold">Presupuesto Total:</span><strong class="text-slate-900 font-extrabold">$ ${p.totalBudget.toLocaleString('es-AR')}</strong></div>
-                            <div class="flex justify-between items-center"><span class="text-slate-600 font-semibold">Total Abonado Acumulado:</span><strong class="text-emerald-700 font-extrabold">$ ${p.totalPaid.toLocaleString('es-AR')}</strong></div>
-                            <div class="flex justify-between items-center border-t-2 border-slate-300 pt-2 text-base font-black">
-                                <span class="text-slate-800">Saldo Restante Pendiente:</span>
-                                <span class="${p.remainingBalance > 0 ? 'text-rose-600' : 'text-emerald-600'}">$ ${p.remainingBalance.toLocaleString('es-AR')}</span>
-                            </div>
-                        </div>
-
-                        <div class="pt-6 text-xs text-slate-500 text-center space-y-4">
-                            <div class="flex justify-between items-end pt-8 px-4">
+                        <div class="print-receipt-footer pt-4 text-xs text-slate-500 text-center space-y-3">
+                            <div class="flex justify-between items-end pt-6 px-4">
                                 <div class="border-t-2 border-slate-600 w-36 text-center pt-1 font-bold">Firma Cliente</div>
                                 <div class="border-t-2 border-slate-600 w-36 text-center pt-1 font-bold">Firma Taller ADL</div>
                             </div>
-                            <p class="text-[11px] text-slate-400">Conserve este comprobante como constancia legal de su pago.</p>
+                            <p class="text-[11px] text-slate-400 legal-text">Conserve este comprobante como constancia legal de su pago.</p>
                         </div>
                     </div>
                 `;
@@ -5994,90 +6146,92 @@
                 const showImagesPage = includeImages && rawImages.length > 0;
 
                 container.innerHTML = `
-                    <div class="print-receipt-page space-y-4 p-2 sm:p-4">
-                        <!-- Encabezado Principal -->
-                        <div class="text-center border-b-2 border-slate-800 pb-2 mb-3">
+                    <div class="print-receipt-page p-2 sm:p-4">
+                        <div class="print-receipt-header text-center border-b-2 border-slate-800 pb-2 mb-2">
                             <h2 class="text-2xl font-black tracking-wider uppercase text-slate-900">ADL SERVICIO TÉCNICO</h2>
                             <p class="text-xs font-black tracking-wider text-slate-600 uppercase">ORDEN DE INGRESO Y COMPROBANTE TÉCNICO</p>
                         </div>
 
-                        <!-- Fila de Identificación de Orden y Fecha -->
-                        <div class="grid grid-cols-2 gap-3 bg-slate-100 p-3 rounded-2xl border border-slate-300 text-sm">
-                            <div>
-                                <span class="text-slate-500 font-black block text-xs uppercase tracking-wider">ORDEN DE SERVICIO</span>
-                                <strong class="text-2xl font-black text-sky-900">ST-${getTicketDisplay(item)}</strong>
+                        <div class="print-receipt-body space-y-3">
+                            <!-- Fila de Identificación de Orden y Fecha -->
+                            <div class="grid grid-cols-2 gap-3 bg-slate-100 p-3 rounded-2xl border border-slate-300 text-sm">
+                                <div>
+                                    <span class="text-slate-500 font-black block text-xs uppercase tracking-wider">ORDEN DE SERVICIO</span>
+                                    <strong class="text-3xl sm:text-4xl font-black text-sky-900 print-ticket-number tracking-tight">ST-${getTicketDisplay(item)}</strong>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-slate-500 font-black block text-xs uppercase tracking-wider">FECHA DE CARGA</span>
+                                    <strong class="text-sm font-bold text-slate-800">${dateCreated}</strong>
+                                </div>
                             </div>
-                            <div class="text-right">
-                                <span class="text-slate-500 font-black block text-xs uppercase tracking-wider">FECHA DE CARGA</span>
-                                <strong class="text-sm font-bold text-slate-800">${dateCreated}</strong>
-                            </div>
-                        </div>
 
-                        <!-- Bloque: Datos del Cliente -->
-                        <div class="bg-white p-3 rounded-2xl border border-slate-200 text-sm space-y-1.5">
-                            <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DATOS DEL CLIENTE</h4>
-                            <div class="grid grid-cols-2 gap-2 pt-1">
-                                <p><strong class="text-slate-700">Nombre:</strong> ${item.clientName}</p>
-                                <p><strong class="text-slate-700">DNI / CUIT:</strong> ${item.clientDni || '-'}</p>
+                            <!-- Bloque: Datos del Cliente -->
+                            <div class="bg-white p-3 rounded-2xl border border-slate-200 text-sm space-y-1.5">
+                                <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DATOS DEL CLIENTE</h4>
+                                <div class="grid grid-cols-2 gap-2 pt-1">
+                                    <p><strong class="text-slate-700">Nombre:</strong> ${item.clientName}</p>
+                                    <p><strong class="text-slate-700">DNI / CUIT:</strong> ${item.clientDni || '-'}</p>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <p><strong class="text-slate-700">Código Cliente:</strong> ${item.clientCode || '-'}</p>
+                                    <p><strong class="text-slate-700">Teléfono / WhatsApp:</strong> ${item.clientPhone}</p>
+                                </div>
                             </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <p><strong class="text-slate-700">Código Cliente:</strong> ${item.clientCode || '-'}</p>
-                                <p><strong class="text-slate-700">Teléfono / WhatsApp:</strong> ${item.clientPhone}</p>
-                            </div>
-                        </div>
 
-                        <!-- Bloque: Detalle de la Herramienta -->
-                        <div class="bg-white p-3 rounded-2xl border border-slate-200 text-sm space-y-1.5">
-                            <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DETALLE DE LA HERRAMIENTA</h4>
-                            <div class="grid grid-cols-2 gap-2 pt-1">
-                                <p><strong class="text-slate-700">Equipo:</strong> ${item.toolType}</p>
-                                <p><strong class="text-slate-700">Marca / Modelo:</strong> ${item.toolBrand} ${item.toolModel || ''}</p>
+                            <!-- Bloque: Detalle de la Herramienta -->
+                            <div class="bg-white p-3 rounded-2xl border border-slate-200 text-sm space-y-1.5">
+                                <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DETALLE DE LA HERRAMIENTA</h4>
+                                <div class="grid grid-cols-2 gap-2 pt-1">
+                                    <p><strong class="text-slate-700">Equipo:</strong> ${item.toolType}</p>
+                                    <p><strong class="text-slate-700">Marca / Modelo:</strong> ${item.toolBrand} ${item.toolModel || ''}</p>
+                                </div>
+                                <p><strong class="text-slate-700">Accesorios incluidos:</strong> ${item.toolAccessories || 'Ninguno'}</p>
+                                <div class="pt-1">
+                                    <strong class="text-slate-700 block text-xs uppercase tracking-wider mb-1">FALLA Y DIAGNÓSTICO:</strong>
+                                    <div class="bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-200 text-slate-800 italic font-medium whitespace-pre-line leading-relaxed print-failure-box">${item.failureDescription || 'Sin observaciones'}</div>
+                                </div>
                             </div>
-                            <p><strong class="text-slate-700">Accesorios incluidos:</strong> ${item.toolAccessories || 'Ninguno'}</p>
-                            <div class="pt-1">
-                                <strong class="text-slate-700 block text-xs uppercase tracking-wider mb-1">Falla Reportada por el Cliente:</strong>
-                                <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-slate-800 italic font-medium">${item.failureDescription}</div>
-                            </div>
-                        </div>
 
-                        <!-- Bloque: Resumen Económico -->
-                        <div class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-300 space-y-2 text-sm">
-                            <div class="flex justify-between items-center"><span class="text-slate-700 font-bold">Presupuesto Estimado Total:</span><strong class="text-slate-900 text-base font-black">$ ${total.toLocaleString('es-AR')}</strong></div>
-                            <div class="flex justify-between items-center"><span class="text-slate-700 font-bold">Monto Abonado / Seña:</span><strong class="text-emerald-700 text-base font-black">$ ${paid.toLocaleString('es-AR')}</strong></div>
-                            <div class="flex justify-between items-center border-t-2 border-slate-300 pt-2 text-base font-black">
-                                <span class="text-slate-900">Saldo Pendiente de Pago:</span>
-                                <span class="${balance > 0 ? 'text-rose-600 text-lg' : 'text-emerald-600 text-lg'}">$ ${balance.toLocaleString('es-AR')}</span>
+                            <!-- Bloque: Resumen Económico -->
+                            <div class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-300 space-y-2 text-sm">
+                                <div class="flex justify-between items-center"><span class="text-slate-700 font-bold">Presupuesto Estimado Total:</span><strong class="text-slate-900 text-base font-black">$ ${total.toLocaleString('es-AR')}</strong></div>
+                                <div class="flex justify-between items-center"><span class="text-slate-700 font-bold">Monto Abonado / Seña:</span><strong class="text-emerald-700 text-base font-black">$ ${paid.toLocaleString('es-AR')}</strong></div>
+                                <div class="flex justify-between items-center border-t-2 border-slate-300 pt-2 text-base font-black">
+                                    <span class="text-slate-900">Saldo Pendiente de Pago:</span>
+                                    <span class="${balance > 0 ? 'text-rose-600 text-lg' : 'text-emerald-600 text-lg'}">$ ${balance.toLocaleString('es-AR')}</span>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Bloque: Firmas y Términos Legales -->
-                        <div class="pt-6 text-xs text-slate-500 text-center space-y-4">
-                            <div class="flex justify-between items-end pt-8 px-4">
+                        <div class="print-receipt-footer pt-4 text-xs text-slate-500 text-center space-y-3">
+                            <div class="flex justify-between items-end pt-6 px-4">
                                 <div class="border-t-2 border-slate-600 w-36 text-center pt-1 font-bold text-slate-800">Firma del Cliente</div>
                                 <div class="border-t-2 border-slate-600 w-36 text-center pt-1 font-bold text-slate-800">Firma Taller ADL</div>
                             </div>
-                            <p class="text-[11px] text-slate-500 leading-relaxed px-2">Conserve este comprobante para el retiro de su equipo. Pasados los 60 días sin retirar la empresa se reserva el derecho de tenencia.</p>
+                            <p class="text-[11px] text-slate-500 leading-relaxed px-2 legal-text">Conserve este comprobante para el retiro de su equipo. Pasados los 60 días sin retirar la empresa se reserva el derecho de tenencia.</p>
                         </div>
                     </div>
 
-                    ${showImagesPage ? `
-                    <div class="print-images-page space-y-4 p-2 sm:p-4">
-                        <div class="text-center border-b-2 border-slate-800 pb-2 mb-3">
-                            <h2 class="text-xl font-black tracking-wider uppercase text-slate-900">FOTOGRAFÍAS ADJUNTAS</h2>
-                            <p class="text-xs font-bold text-slate-600">Orden ST-${getTicketDisplay(item)} — ${item.clientName || ''}</p>
-                        </div>
-                        ${rawImages.map((imgObj, idx) => {
-                            const src = getSafeImageUrl(imgObj);
-                            const driveId = extractDriveId(imgObj);
-                            return `
-                            <div class="print-image-block text-center space-y-1">
-                                <img src="${src}" ${driveId ? `data-drive-id="${driveId}"` : ''} alt="Foto ${idx + 1}" class="print-image" onerror="this.onerror=null; if(driveId && !this.src.includes('lh3.googleusercontent.com')){ this.src='https://lh3.googleusercontent.com/d/' + driveId + '=w800'; } else { this.src='${getPlaceholderSvg('Foto no disponible')}'; }">
-                                <p class="text-xs text-slate-600 font-bold">Foto ${idx + 1} de ${rawImages.length}</p>
+                    ${showImagesPage ? rawImages.map((imgObj, idx) => {
+                        const src = getSafeImageUrl(imgObj);
+                        const driveId = extractDriveId(imgObj);
+                        return `
+                        <div class="print-photo-page mt-8 pt-4 border-t-2 border-slate-200">
+                            <div class="print-photo-header text-center border-b-2 border-slate-800 pb-1 mb-1.5">
+                                <div class="flex justify-between items-center text-xs font-black uppercase text-slate-900 tracking-wider">
+                                    <span>ADL SERVICIO TÉCNICO — FOTOGRAFÍA ADJUNTA</span>
+                                    <span>ORDEN ST-${getTicketDisplay(item)}</span>
+                                    <span>FOTO ${idx + 1} DE ${rawImages.length}</span>
+                                </div>
+                                <p class="text-[11px] font-bold text-slate-600 truncate mt-0.5">${item.clientName ? `Cliente: ${item.clientName} | ` : ''}${item.toolBrand || ''} ${item.toolModel || ''} (${item.toolType || ''})</p>
                             </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    ` : ''}
+                            <div class="print-photo-body">
+                                <img src="${src}" ${driveId ? `data-drive-id="${driveId}"` : ''} alt="Foto ${idx + 1}" class="print-photo-img rounded-xl border border-slate-200 shadow-sm" onerror="this.onerror=null; if(driveId && !this.src.includes('lh3.googleusercontent.com')){ this.src='https://lh3.googleusercontent.com/d/' + driveId + '=w1200'; } else { this.src='${getPlaceholderSvg('Foto no disponible')}'; }">
+                            </div>
+                        </div>
+                        `;
+                    }).join('') : ''}
                 `;
             }
         }
@@ -6086,56 +6240,100 @@
             const area = document.getElementById('printable-area');
             const rm = document.getElementById('receipt-modal');
             const withImages = printIncludeImages && activePrintType === 'order';
+            const printBtn = document.getElementById('btn-trigger-print');
 
             if (rm) rm.classList.remove('hidden');
-            if (withImages) {
-                area?.classList.add('print-with-images');
-                const item = allServices.find(s => s.id === activePrintReceiptId);
-                if (item && item.imagesBase64 && item.imagesBase64.length > 0) {
-                    for (const img of item.imagesBase64) {
-                        const driveId = extractDriveId(img);
-                        if (driveId && !ADL_MEDIA_CACHE.has(driveId)) {
-                            await fetchMediaViaProxy(driveId);
-                        }
-                    }
-                    const format = document.getElementById('print-format-selector')?.value || 'a4';
-                    renderPrintableReceipt(format);
-                }
+
+            if (printBtn) {
+                printBtn.disabled = true;
+                printBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1.5"></i> Preparando...';
             }
 
-            // Asignar dinámicamente el nombre de archivo sugerido para exportación PDF: "Orden ST-XXXX (DD-MM-AA)"
-            const originalTitle = document.title;
             try {
-                if (activePrintType === 'payment') {
-                    const p = activePaymentReceiptData;
-                    const ordClean = p?.orderNum || 'Cobro';
-                    const now = new Date();
-                    const dd = String(now.getDate()).padStart(2, '0');
-                    const mm = String(now.getMonth() + 1).padStart(2, '0');
-                    const yy = String(now.getFullYear()).slice(-2);
-                    document.title = `Recibo ${ordClean} (${dd}-${mm}-${yy})`;
-                } else {
+                if (withImages) {
+                    area?.classList.add('print-with-images');
                     const item = allServices.find(s => s.id === activePrintReceiptId);
-                    const ticketDigits = item ? (item.ticketNum || getTicketDisplay(item)) : 'Orden';
-                    let datePart = '';
-                    if (item && item.createdAt) {
-                        const d = new Date(item.createdAt);
-                        const dd = String(d.getDate()).padStart(2, '0');
-                        const mm = String(d.getMonth() + 1).padStart(2, '0');
-                        const yy = String(d.getFullYear()).slice(-2);
-                        datePart = ` (${dd}-${mm}-${yy})`;
+                    if (item && item.imagesBase64 && item.imagesBase64.length > 0) {
+                        for (const img of item.imagesBase64) {
+                            const driveId = extractDriveId(img);
+                            if (driveId && !ADL_MEDIA_CACHE.has(driveId)) {
+                                await fetchMediaViaProxy(driveId);
+                            }
+                        }
+                        const format = document.getElementById('print-format-selector')?.value || 'a4';
+                        renderPrintableReceipt(format);
                     }
-                    document.title = `Orden ST-${ticketDigits}${datePart}`;
                 }
-            } catch (errTitle) {}
 
-            requestAnimationFrame(() => {
+                // Esperar a que TODAS las imágenes dentro de #printable-area estén completamente cargadas y decodificadas
+                if (area) {
+                    const imgElements = Array.from(area.querySelectorAll('img'));
+                    if (imgElements.length > 0) {
+                        await Promise.all(imgElements.map(img => {
+                            if (img.complete && img.naturalWidth > 0) {
+                                return (img.decode ? img.decode() : Promise.resolve()).catch(() => {});
+                            }
+                            return new Promise(resolve => {
+                                let done = false;
+                                const finish = () => {
+                                    if (!done) {
+                                        done = true;
+                                        if (img.decode) {
+                                            img.decode().then(resolve).catch(resolve);
+                                        } else {
+                                            resolve();
+                                        }
+                                    }
+                                };
+                                img.addEventListener('load', finish, { once: true });
+                                img.addEventListener('error', finish, { once: true });
+                                setTimeout(finish, 3500); // Límite de seguridad para no bloquear
+                            });
+                        }));
+                    }
+                }
+
+                // Breve pausa para asegurar reflow y renderizado completo del DOM antes del diálogo del sistema
+                await new Promise(r => setTimeout(r, 200));
+
+                // Asignar dinámicamente el nombre de archivo sugerido para exportación PDF: "Orden ST-XXXX (DD-MM-AA)"
+                const originalTitle = document.title;
+                try {
+                    if (activePrintType === 'payment') {
+                        const p = activePaymentReceiptData;
+                        const ordClean = p?.orderNum || 'Cobro';
+                        const now = new Date();
+                        const dd = String(now.getDate()).padStart(2, '0');
+                        const mm = String(now.getMonth() + 1).padStart(2, '0');
+                        const yy = String(now.getFullYear()).slice(-2);
+                        document.title = `Recibo ${ordClean} (${dd}-${mm}-${yy})`;
+                    } else {
+                        const item = allServices.find(s => s.id === activePrintReceiptId);
+                        const ticketDigits = item ? (item.ticketNum || getTicketDisplay(item)) : 'Orden';
+                        let datePart = '';
+                        if (item && item.createdAt) {
+                            const d = new Date(item.createdAt);
+                            const dd = String(d.getDate()).padStart(2, '0');
+                            const mm = String(d.getMonth() + 1).padStart(2, '0');
+                            const yy = String(d.getFullYear()).slice(-2);
+                            datePart = ` (${dd}-${mm}-${yy})`;
+                        }
+                        document.title = `Orden ST-${ticketDigits}${datePart}`;
+                    }
+                } catch (errTitle) {}
+
                 window.print();
+
                 setTimeout(() => {
                     document.title = originalTitle;
                     area?.classList.remove('print-with-images');
                 }, 1000);
-            });
+            } finally {
+                if (printBtn) {
+                    printBtn.disabled = false;
+                    printBtn.innerHTML = '<i class="fas fa-print mr-1.5"></i> Imprimir';
+                }
+            }
         }
 
         function closeReceiptModal() {
@@ -6428,6 +6626,11 @@
             const previousStatus = item.status;
             item.status = newStatus;
             item.updatedAt = new Date().toISOString();
+            if (newStatus === 'Entregado') {
+                if (!item.deliveredAt) item.deliveredAt = item.updatedAt;
+            } else {
+                item.deliveredAt = null;
+            }
 
             await saveDatabaseData();
             pushDatabaseToDriveSilently();
