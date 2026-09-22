@@ -1378,7 +1378,7 @@
                 </button>
                 
                 <div class="zoom-viewport" id="zoom-viewport">
-                    <img id="image-modal-img" src="" alt="Fotografía Herramienta HD" class="zoom-image" onerror="if(this.src && !this.src.startsWith('data:image/svg')) { this.src = getPlaceholderSvg('Cargando HD de Drive...'); }">
+                    <img id="image-modal-img" src="" alt="Fotografía Herramienta HD" class="zoom-image" onerror="if(this.src && !this.src.startsWith('data:image/svg')) { this.src = getPlaceholderSvg('Foto no disponible en Drive'); }">
                 </div>
                 
                 <button id="btn-gallery-next" onclick="navigateGallery(1)" class="absolute right-2 sm:right-4 bg-slate-900/85 hover:bg-sky-600 text-white p-3.5 sm:p-4 rounded-full text-xl shadow-2xl border border-slate-600 transition-all z-20 cursor-pointer">
@@ -2044,7 +2044,7 @@
             isSyncingInBackground = true;
             try {
                 const reqUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=load&token=' + encodeURIComponent(token) + '&_t=' + Date.now();
-                const res = await fetch(reqUrl, { method: 'GET', mode: 'cors' });
+                const res = await fetch(reqUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
                 if (!res.ok) return false;
                 const data = await res.json();
 
@@ -2514,6 +2514,17 @@
                 await new Promise(r => setTimeout(r, 250));
             }
 
+            // Limpiar referencias huérfanas de fotos HEIC que ya no existen en Drive
+            allServices.forEach(order => {
+                if (Array.isArray(order.imagesBase64)) {
+                    order.imagesBase64 = order.imagesBase64.filter(img => {
+                        if (!img) return false;
+                        const isHeic = (img.name && /\.(heic|heif)$/i.test(img.name)) || (img.type && (img.type.includes('heic') || img.type.includes('heif')));
+                        return !isHeic;
+                    });
+                }
+            });
+
             // Guardar base actualizada local y sincronizar con Drive
             await saveDatabaseData();
             sortAndRefreshUI();
@@ -2614,8 +2625,14 @@
                     if (!url) return null;
                     const token = getAuthToken();
                     const reqUrl = `${url}${url.includes('?') ? '&' : '?'}action=getFile&id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`;
-                    const res = await fetch(reqUrl, { method: 'GET', mode: 'cors' });
-                    if (!res.ok) return null;
+                    const res = await fetch(reqUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
+                    if (!res.ok) {
+                        document.querySelectorAll(`img[data-drive-id="${fileId}"]`).forEach(img => {
+                            img.src = getPlaceholderSvg('Foto no disponible');
+                            img.removeAttribute('data-drive-id');
+                        });
+                        return null;
+                    }
                     const json = await res.json();
                     if (json && json.success && json.base64) {
                         let finalBase64 = json.base64;
@@ -2630,9 +2647,19 @@
                             img.removeAttribute('data-drive-id');
                         });
                         return finalBase64;
+                    } else {
+                        // Si el archivo no existe en Drive (FILE_NOT_FOUND) o error devuelto por la API
+                        document.querySelectorAll(`img[data-drive-id="${fileId}"]`).forEach(img => {
+                            img.src = getPlaceholderSvg('Foto no disponible');
+                            img.removeAttribute('data-drive-id');
+                        });
                     }
                 } catch (e) {
                     console.warn("Error obteniendo medio via proxy:", fileId, e);
+                    document.querySelectorAll(`img[data-drive-id="${fileId}"]`).forEach(img => {
+                        img.src = getPlaceholderSvg('Foto no disponible');
+                        img.removeAttribute('data-drive-id');
+                    });
                 } finally {
                     pendingFetches.delete(fileId);
                 }
@@ -4600,12 +4627,27 @@
                         </div>
 
                         ${images.length > 0 ? (() => {
-                            const firstImgSrc = getSafeImageUrl(images[0]);
+                            let selectedIdx = 0;
+                            const validIdx = images.findIndex(img => {
+                                if (!img) return false;
+                                if (typeof img === 'string' && img.startsWith('data:image')) return true;
+                                if (img.previewUrl || img.dataBase64) return true;
+                                const name = String(img.name || img.fileName || '').toLowerCase();
+                                const type = String(img.type || '').toLowerCase();
+                                return !name.includes('.heic') && !name.includes('.heif') && !type.includes('heic') && !type.includes('heif');
+                            });
+                            if (validIdx !== -1) {
+                                selectedIdx = validIdx;
+                            }
+
+                            const selectedImg = images[selectedIdx];
+                            const firstImgSrc = getSafeImageUrl(selectedImg);
                             if (!firstImgSrc) return '';
-                            const badgeHtml = getImageUploadBadge(images[0]);
+                            const badgeHtml = getImageUploadBadge(selectedImg);
+                            const driveId = extractDriveId(selectedImg);
                             return `
-                            <div class="relative cursor-pointer group" onclick="openGalleryModal('${safeId}', 0)">
-                                <img src="${firstImgSrc}" ${extractDriveId(images[0]) ? `data-drive-id="${extractDriveId(images[0])}"` : ''} alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity" onerror="this.onerror=null; this.src='${getPlaceholderSvg('Foto en Drive HD')}';">
+                            <div class="relative cursor-pointer group" onclick="openGalleryModal('${safeId}', ${selectedIdx})">
+                                <img src="${firstImgSrc}" ${driveId ? `data-drive-id="${driveId}"` : ''} alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity" onerror="this.onerror=null; this.src='${getPlaceholderSvg('Foto no disponible')}';">
                                 <span class="absolute bottom-2.5 right-2.5 bg-slate-900/85 text-white text-xs font-black px-3 py-1.5 rounded-xl backdrop-blur-sm flex items-center shadow-lg border border-slate-700">
                                     <i class="fas fa-search-plus mr-1.5 text-sky-400 text-sm"></i> Lupa HD (${images.length} foto/s)
                                 </span>
@@ -5218,8 +5260,12 @@
                     }
 
                     const loaded = await fetchMediaViaProxy(driveId);
-                    if (loaded && activeGalleryImages[activeGalleryIndex] === curGImg) {
-                        img.src = loaded;
+                    if (activeGalleryImages[activeGalleryIndex] === curGImg) {
+                        if (loaded) {
+                            img.src = loaded;
+                        } else if (isKnownHeic || !img.src || img.src.startsWith('data:image/svg')) {
+                            img.src = getPlaceholderSvg('Foto no disponible');
+                        }
                     }
                 } else {
                     img.src = curGImg?.url || '';
@@ -5517,10 +5563,14 @@
                                         });
                                         continue;
                                     }
+                                } else {
+                                    // Si no existe físicamente en Drive, omitir para limpiar la referencia huérfana sin errores
+                                    console.warn("Foto HEIC huérfana no encontrada en Drive, omitiendo referencia:", targetFileName);
+                                    continue;
                                 }
                             } catch(migErr) {
-                                // Si no se puede ubicar o falla, continuar de forma segura sin generar errores
-                                console.warn("No se pudo migrar foto HEIC vieja, conservando referencia:", migErr);
+                                console.warn("No se pudo migrar foto HEIC vieja:", migErr);
+                                continue;
                             }
                         }
 
@@ -5987,7 +6037,7 @@
                             const driveId = extractDriveId(imgObj);
                             return `
                             <div class="print-image-block text-center space-y-1">
-                                <img src="${src}" ${driveId ? `data-drive-id="${driveId}"` : ''} alt="Foto ${idx + 1}" class="print-image" onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/${driveId}=w800';">
+                                <img src="${src}" ${driveId ? `data-drive-id="${driveId}"` : ''} alt="Foto ${idx + 1}" class="print-image" onerror="this.onerror=null; if(driveId && !this.src.includes('lh3.googleusercontent.com')){ this.src='https://lh3.googleusercontent.com/d/' + driveId + '=w800'; } else { this.src='${getPlaceholderSvg('Foto no disponible')}'; }">
                                 <p class="text-xs text-slate-600 font-bold">Foto ${idx + 1} de ${rawImages.length}</p>
                             </div>
                             `;
