@@ -1021,10 +1021,10 @@
                         <!-- Saneador de Fotos HEIC a JPG en Drive -->
                         <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
                             <button type="button" id="btn-clean-heic-drive" onclick="startHeicToJpgSanitizer()" class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-2xl transition-all flex items-center justify-center shadow-md cursor-pointer">
-                                <i class="fas fa-wand-magic-sparkles mr-2 text-sm text-indigo-300"></i> Saneador de Fotos: Convertir HEIC a JPG en Drive
+                                <i class="fas fa-wand-magic-sparkles mr-2 text-sm text-indigo-300"></i> Sincronizar y Sanear Fotos en Google Drive
                             </button>
                             <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 text-center">
-                                Convierte fotos de iPhone (.heic/.heif) a JPG en Drive de a una de forma segura. Restaura miniaturas rápidas al instante sin generar errores si alguna foto no se ubica.
+                                Detecta y vincula automáticamente fotos físicas de Drive con las órdenes de taller, convirtiendo formatos incompatibles y restaurando miniaturas HD instantáneas.
                             </p>
                         </div>
 
@@ -2458,7 +2458,41 @@
             });
 
             if (pendingTasks.length === 0) {
-                showToast("Base Limpia", "No se detectaron fotos en formato HEIC/HEIF en las órdenes de Google Drive.", "success");
+                // Si no hay HEICs pendientes, intentar conciliar fotos físicas huérfanas en Google Drive
+                try {
+                    const url = getCloudApiUrl();
+                    const token = getAuthToken();
+                    if (url && token) {
+                        if (btn) {
+                            btn.disabled = true;
+                            btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2 text-sm text-indigo-300"></i> Verificando fotos físicas en Google Drive...`;
+                        }
+                        const reqUrl = `${url}${url.includes('?') ? '&' : '?'}action=reconcileDrive&token=${encodeURIComponent(token)}`;
+                        const res = await fetch(reqUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
+                        if (res.ok) {
+                            const json = await res.json();
+                            if (json && json.success && json.updatedOrders > 0) {
+                                showToast("Fotos Conciliadas", `Se vincularon fotos encontradas en Google Drive a ${json.updatedOrders} orden(es).`, "success");
+                                await syncLatestCloudDataSilently();
+                                sortAndRefreshUI();
+                                if (btn) {
+                                    btn.disabled = false;
+                                    btn.innerHTML = originalHtml;
+                                }
+                                return;
+                            }
+                        }
+                    }
+                } catch(reconcileErr) {
+                    console.warn("reconcileDrive error:", reconcileErr);
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                    }
+                }
+
+                showToast("Base Sincronizada", "No hay fotos HEIC pendientes y todas las órdenes coinciden con Google Drive.", "success");
                 return;
             }
 
