@@ -220,10 +220,10 @@
                 max-width: none !important;
                 max-height: none !important;
                 margin: 0 !important;
-                padding: 10px 14px !important;
+                padding: 0 !important;
                 background: white !important;
                 color: #0f172a !important;
-                font-size: 11pt !important;
+                font-size: 10.5pt !important;
                 line-height: 1.35 !important;
                 box-sizing: border-box !important;
                 box-shadow: none !important;
@@ -233,66 +233,80 @@
             #printable-area:not(.print-with-images) {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+                -webkit-column-break-inside: avoid !important;
             }
             .print-receipt-page {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                page-break-after: avoid !important;
-                break-after: avoid !important;
-                min-height: 275mm !important;
-                max-height: 275mm !important;
-                height: 275mm !important;
+                -webkit-column-break-inside: avoid !important;
                 box-sizing: border-box !important;
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: space-between !important;
                 overflow: hidden !important;
-                padding: 1mm 0 !important;
+                max-height: 232mm !important;
+                height: auto !important;
+                min-height: auto !important;
+                padding: 0 !important;
                 margin: 0 !important;
             }
             .print-receipt-header {
                 flex-shrink: 0 !important;
+                margin-bottom: 1.5mm !important;
             }
             .print-receipt-body {
                 flex: 1 1 auto !important;
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: space-around !important;
-                gap: 2.5mm !important;
+                gap: 2mm !important;
                 min-height: 0 !important;
             }
             .print-receipt-footer {
                 flex-shrink: 0 !important;
-                padding-top: 3mm !important;
+                padding-top: 2mm !important;
             }
             .print-failure-box {
                 white-space: pre-line !important;
                 word-break: break-word !important;
-                max-height: 75mm !important;
+                max-height: 45mm !important;
                 overflow: hidden !important;
-                line-height: 1.4 !important;
+                line-height: 1.35 !important;
             }
             .print-photo-page {
                 page-break-before: always !important;
                 break-before: page !important;
+                -webkit-column-break-before: always !important;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+                -webkit-column-break-inside: avoid !important;
                 page-break-after: avoid !important;
                 break-after: avoid !important;
-                height: 275mm !important;
-                max-height: 275mm !important;
+                height: 228mm !important;
+                max-height: 228mm !important;
+                min-height: 228mm !important;
                 box-sizing: border-box !important;
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: flex-start !important;
                 align-items: stretch !important;
                 overflow: hidden !important;
-                padding: 1mm 0 0 0 !important;
+                padding: 0 !important;
                 margin: 0 !important;
+                border: none !important;
             }
             .print-photo-header {
                 flex-shrink: 0 !important;
-                margin-bottom: 2mm !important;
+                height: 14mm !important;
+                max-height: 14mm !important;
+                margin: 0 0 2mm 0 !important;
+                padding-bottom: 1mm !important;
+                border-bottom: 2px solid #0f172a !important;
+                box-sizing: border-box !important;
+            }
+            .print-photo-header * {
+                font-size: 8.5pt !important;
+                line-height: 1.2 !important;
             }
             .print-photo-body {
                 flex: 1 1 auto !important;
@@ -300,35 +314,40 @@
                 align-items: center !important;
                 justify-content: center !important;
                 width: 100% !important;
-                max-height: 256mm !important;
+                height: 210mm !important;
+                max-height: 210mm !important;
+                box-sizing: border-box !important;
                 overflow: hidden !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             .print-photo-img {
                 max-width: 100% !important;
-                max-height: 254mm !important;
+                max-height: 208mm !important;
                 width: auto !important;
                 height: auto !important;
                 object-fit: contain !important;
                 display: block !important;
                 margin: auto !important;
                 border-radius: 4px !important;
+                box-sizing: border-box !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            #printable-area h2 { font-size: 18pt !important; margin-bottom: 2px !important; }
-            #printable-area h3, #printable-area h4 { font-size: 12.5pt !important; font-weight: 900 !important; margin-bottom: 2.5mm !important; }
-            #printable-area p, #printable-area div, #printable-area span { font-size: 12pt !important; }
-            #printable-area strong { font-size: 12.5pt !important; font-weight: 800 !important; }
-            #printable-area .print-ticket-number { font-size: 28pt !important; font-weight: 900 !important; line-height: 1.05 !important; color: #0c4a6e !important; }
-            #printable-area .print-failure-box { font-size: 11.5pt !important; line-height: 1.4 !important; max-height: 58mm !important; }
-            #printable-area .print-failure-box * { font-size: 11.5pt !important; }
-            #printable-area .legal-text { font-size: 9.5pt !important; line-height: 1.3 !important; }
-            #printable-area .p-6, #printable-area .p-8 { padding: 4mm 5mm !important; }
-            #printable-area .p-3, #printable-area .p-4 { padding: 3mm 4mm !important; }
-            #printable-area .mb-3, #printable-area .pb-3, #printable-area .mb-4, #printable-area .pb-4 { margin-bottom: 2mm !important; padding-bottom: 2mm !important; }
+            #printable-area h2 { font-size: 16pt !important; margin-bottom: 2px !important; }
+            #printable-area h3, #printable-area h4 { font-size: 11pt !important; font-weight: 900 !important; margin-bottom: 1.5mm !important; }
+            #printable-area p, #printable-area div, #printable-area span { font-size: 10.5pt !important; }
+            #printable-area strong { font-size: 11pt !important; font-weight: 800 !important; }
+            #printable-area .print-ticket-number { font-size: 24pt !important; font-weight: 900 !important; line-height: 1.05 !important; color: #0c4a6e !important; }
+            #printable-area .print-failure-box { font-size: 10pt !important; line-height: 1.35 !important; max-height: 45mm !important; }
+            #printable-area .print-failure-box * { font-size: 10pt !important; }
+            #printable-area .legal-text { font-size: 8.5pt !important; line-height: 1.2 !important; }
+            #printable-area .p-6, #printable-area .p-8 { padding: 3mm 4mm !important; }
+            #printable-area .p-3, #printable-area .p-4 { padding: 2.5mm 3.5mm !important; }
+            #printable-area .mb-3, #printable-area .pb-3, #printable-area .mb-4, #printable-area .pb-4 { margin-bottom: 1.5mm !important; padding-bottom: 1.5mm !important; }
             @page {
                 size: A4 portrait;
-                margin: 6mm 8mm;
+                margin: 8mm;
             }
         }
     </style>
@@ -812,7 +831,7 @@
                                 <button type="button" onclick="clearSelectedClientInForm()" class="text-slate-400 hover:text-rose-600 text-xs font-bold underline">Cambiar</button>
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">DNI / CUIT (ID Único) *</label>
                                     <div class="relative">
@@ -829,6 +848,10 @@
                                 <div>
                                     <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Teléfono / WhatsApp *</label>
                                     <input type="tel" id="client-phone" required class="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-semibold focus:outline-none focus:border-sky-500" placeholder="Ej. 3415478009">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Domicilio</label>
+                                    <input type="text" id="client-address" class="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-semibold focus:outline-none focus:border-sky-500" placeholder="Ej. Av. Pellegrini 1234">
                                 </div>
                             </div>
                             <span id="client-code-display" class="text-xs font-bold text-slate-400 block text-right">Código Cliente: Autogenerado</span>
@@ -1788,6 +1811,7 @@
                 clientCode: 'CLI-0001',
                 clientName: 'Carlos Rodríguez',
                 clientPhone: '3415478009',
+                clientAddress: 'Av. Pellegrini 1450',
                 toolType: 'Taladro Percutor',
                 toolBrand: 'DeWalt',
                 toolModel: 'DCD791',
@@ -1814,6 +1838,7 @@
                 clientCode: 'CLI-0002',
                 clientName: 'María Giménez',
                 clientPhone: '3419876543',
+                clientAddress: 'Bv. Oroño 820',
                 toolType: 'Amoladora Angular',
                 toolBrand: 'Bosch',
                 toolModel: 'GWS 850',
@@ -2316,6 +2341,7 @@
             const rawDni = item.clientDni !== undefined && item.clientDni !== null ? String(item.clientDni).trim() : (item.dni !== undefined && item.dni !== null ? String(item.dni).trim() : '');
             const rawName = item.clientName || item.cliente || item.name || 'Sin Nombre';
             const rawPhone = item.clientPhone !== undefined && item.clientPhone !== null ? String(item.clientPhone).trim() : (item.phone !== undefined && item.phone !== null ? String(item.phone).trim() : (item.telefono !== undefined && item.telefono !== null ? String(item.telefono).trim() : ''));
+            const rawAddress = item.clientAddress !== undefined && item.clientAddress !== null ? String(item.clientAddress).trim() : (item.address !== undefined && item.address !== null ? String(item.address).trim() : (item.domicilio !== undefined && item.domicilio !== null ? String(item.domicilio).trim() : ''));
             const rawCode = item.clientCode || item.code || '';
             const rawType = item.toolType || item.equipo || item.tool || 'Herramienta';
             const rawBrand = item.toolBrand || item.marca || '';
@@ -2332,6 +2358,7 @@
                 clientName: String(rawName),
                 clientDni: rawDni,
                 clientPhone: rawPhone,
+                clientAddress: String(rawAddress),
                 clientCode: String(rawCode),
                 toolType: String(rawType),
                 toolBrand: String(rawBrand),
@@ -3040,10 +3067,16 @@
                             code: code,
                             name: String(order.clientName || 'Sin Nombre'),
                             phone: String(order.clientPhone || '').trim(),
+                            address: String(order.clientAddress || '').trim(),
                             tickets: []
                         };
+                    } else if (!clientMap[dniKey].address && order.clientAddress) {
+                        clientMap[dniKey].address = String(order.clientAddress).trim();
                     }
                     order.clientCode = clientMap[dniKey].code;
+                    if (!order.clientAddress && clientMap[dniKey].address) {
+                        order.clientAddress = clientMap[dniKey].address;
+                    }
                     clientMap[dniKey].tickets.push(order);
                 });
 
@@ -3477,7 +3510,8 @@
                     (c.name || '').toLowerCase().includes(query) ||
                     (c.dni && c.dni.toLowerCase().includes(query)) ||
                     (c.code && c.code.toLowerCase().includes(query)) ||
-                    (c.phone && c.phone.includes(query))
+                    (c.phone && c.phone.includes(query)) ||
+                    (c.address && c.address.toLowerCase().includes(query))
                 );
 
                 const cnt = document.getElementById('client-stat-count');
@@ -3529,10 +3563,18 @@
                                     <span class="px-2.5 py-1 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-black text-xs rounded-xl">${c.code}</span>
                                     <h3 class="font-black text-slate-900 dark:text-white text-lg">${c.name}</h3>
                                 </div>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center space-x-2 font-semibold">
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
                                     <span><strong>DNI:</strong> ${c.dni}</span>
                                     <span>|</span>
                                     ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 font-extrabold flex items-center"><i class="fab fa-whatsapp text-sm mr-1"></i> ${c.phone}</a>` : `<span>${c.phone}</span>`}
+                                    <span>|</span>
+                                    <span class="inline-flex items-center">
+                                        <i class="fas fa-location-dot text-slate-400 mr-1 text-[11px]"></i>
+                                        <strong>Domicilio:</strong>&nbsp;${c.address ? `<span class="text-slate-800 dark:text-slate-200">${c.address}</span>` : '<span class="text-slate-400 italic">No especificado</span>'}
+                                        <button onclick="promptEditClientAddress('${c.dni}')" class="text-slate-400 hover:text-sky-600 transition-colors ml-1.5 p-0.5 cursor-pointer" title="Editar Domicilio">
+                                            <i class="fas fa-pencil text-[10px]"></i>
+                                        </button>
+                                    </span>
                                 </p>
                             </div>
                             <button onclick="createNewOrderForClient('${c.dni}')" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-2xl text-xs shadow-md">
@@ -3588,6 +3630,27 @@
             }
         }
 
+        async function promptEditClientAddress(dni) {
+            const client = allClients.find(c => c.dni === dni);
+            if (!client) return;
+            const currentAddr = client.address || '';
+            const newAddr = prompt(`Modificar Domicilio para ${client.name} (DNI: ${client.dni}):`, currentAddr);
+            if (newAddr === null) return;
+            const cleanAddr = newAddr.trim();
+
+            allServices.forEach(s => {
+                if (getClientDniKey(s) === dni || String(s.clientDni).trim() === dni) {
+                    s.clientAddress = cleanAddr;
+                }
+            });
+
+            await saveDatabaseData();
+            pushDatabaseToDriveSilently();
+            rebuildClientsMap();
+            renderClientsTab();
+            showToast("Domicilio Actualizado", `Domicilio guardado para ${client.name}`, "success");
+        }
+
         function createNewOrderForClient(dni) {
             cancelServiceForm();
             selectExistingClientForOrder(dni);
@@ -3600,8 +3663,10 @@
             if (client) {
                 const cname = document.getElementById('client-name');
                 const cphone = document.getElementById('client-phone');
+                const caddr = document.getElementById('client-address');
                 if (cname) cname.value = client.name;
                 if (cphone) cphone.value = client.phone;
+                if (caddr) caddr.value = client.address || '';
                 if (cdisp) cdisp.innerText = `Código Cliente: ${client.code}`;
             } else {
                 if (cdisp) cdisp.innerText = `Código Cliente: Autogenerado`;
@@ -3618,9 +3683,11 @@
             if (client) {
                 const cname = document.getElementById('client-name');
                 const cphone = document.getElementById('client-phone');
+                const caddr = document.getElementById('client-address');
                 const cdisp = document.getElementById('client-code-display');
                 if (cname) cname.value = client.name;
                 if (cphone) cphone.value = client.phone;
+                if (caddr) caddr.value = client.address || '';
                 if (cdisp) cdisp.innerText = `Código Cliente: ${client.code}`;
                 showToast("Cliente Encontrado", `Datos cargados para ${client.name} (${client.code})`, "success");
             } else {
@@ -4360,7 +4427,8 @@
                 (c.name || '').toLowerCase().includes(query) ||
                 (c.dni && c.dni.toLowerCase().includes(query)) ||
                 (c.code && c.code.toLowerCase().includes(query)) ||
-                (c.phone && c.phone.includes(query))
+                (c.phone && c.phone.includes(query)) ||
+                (c.address && c.address.toLowerCase().includes(query))
             );
 
             if (filtered.length === 0) {
@@ -4382,7 +4450,7 @@
                             <span class="font-black text-slate-900 dark:text-white text-sm">${c.name}</span>
                         </div>
                         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            <strong>DNI:</strong> ${c.dni} | <strong>Tel:</strong> ${c.phone} | (${c.tickets.length} orden/es previa/s)
+                            <strong>DNI:</strong> ${c.dni} | <strong>Tel:</strong> ${c.phone} ${c.address ? `| <strong>Dom:</strong> ${c.address}` : ''} | (${c.tickets.length} orden/es previa/s)
                         </p>
                     </div>
                     <button class="px-4 py-2 bg-sky-600 text-white font-black rounded-xl text-xs shadow">
@@ -4399,6 +4467,7 @@
             const cdni = document.getElementById('client-dni');
             const cname = document.getElementById('client-name');
             const cphone = document.getElementById('client-phone');
+            const caddr = document.getElementById('client-address');
             const cdisp = document.getElementById('client-code-display');
             const badge = document.getElementById('selected-client-badge-container');
             const badgeText = document.getElementById('selected-client-badge-text');
@@ -4406,6 +4475,7 @@
             if (cdni) cdni.value = client.dni;
             if (cname) cname.value = client.name;
             if (cphone) cphone.value = client.phone;
+            if (caddr) caddr.value = client.address || '';
             if (cdisp) cdisp.innerText = `Código Cliente: ${client.code}`;
 
             if (badge && badgeText) {
@@ -4428,12 +4498,14 @@
             const cdni = document.getElementById('client-dni');
             const cname = document.getElementById('client-name');
             const cphone = document.getElementById('client-phone');
+            const caddr = document.getElementById('client-address');
             const cdisp = document.getElementById('client-code-display');
             const badge = document.getElementById('selected-client-badge-container');
 
             if (cdni) cdni.value = '';
             if (cname) cname.value = '';
             if (cphone) cphone.value = '';
+            if (caddr) caddr.value = '';
             if (cdisp) cdisp.innerText = `Código Cliente: Autogenerado`;
             if (badge) badge.classList.add('hidden');
         }
@@ -4488,6 +4560,7 @@
                     const dni = String(item.clientDni || '').toLowerCase();
                     const code = String(item.clientCode || '').toLowerCase();
                     const phone = String(item.clientPhone || '').toLowerCase();
+                    const address = String(item.clientAddress || '').toLowerCase();
                     const type = String(item.toolType || '').toLowerCase();
                     const brand = String(item.toolBrand || '').toLowerCase();
                     const model = String(item.toolModel || item.modelo || item.model || '').toLowerCase();
@@ -4499,6 +4572,7 @@
                         dni.includes(query) ||
                         code.includes(query) ||
                         phone.includes(query) ||
+                        address.includes(query) ||
                         type.includes(query) ||
                         brand.includes(query) ||
                         model.includes(query) ||
@@ -4707,6 +4781,7 @@
                                                     <span>DNI: ${item.clientDni || '-'}</span>
                                                     ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 hover:text-emerald-700 font-extrabold flex items-center ml-1"><i class="fab fa-whatsapp text-sm mr-0.5"></i> ${item.clientPhone}</a>` : `<span>${item.clientPhone || ''}</span>`}
                                                 </div>
+                                                ${item.clientAddress ? `<div class="text-slate-400 text-[11px] truncate max-w-[180px] mt-0.5" title="${item.clientAddress}"><i class="fas fa-map-marker-alt mr-1 text-slate-400"></i>${item.clientAddress}</div>` : ''}
                                             </td>
                                             <td class="p-4">
                                                 <div class="font-extrabold text-slate-800 dark:text-slate-200">${item.toolType || 'Herramienta'}</div>
@@ -4829,6 +4904,7 @@
                                     </a>
                                 ` : ''}
                             </div>
+                            ${item.clientAddress ? `<div class="text-slate-500 dark:text-slate-400 font-semibold"><strong class="text-slate-700 dark:text-slate-300 font-extrabold">Dom:</strong> ${item.clientAddress}</div>` : ''}
                             <div class="text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-200/60 dark:border-slate-700 font-medium"><strong class="text-slate-800 dark:text-slate-200 font-extrabold">Falla:</strong> ${item.failureDescription || ''}</div>
 
                             <!-- (VISUALIZADOR DE MÚLTIPLES DESPIECES) -->
@@ -5058,6 +5134,7 @@
                 orderNum: `ST-${item.ticketNum || item.id.substring(0,4)}`,
                 clientName: item.clientName,
                 clientDni: item.clientDni || '-',
+                clientAddress: item.clientAddress || '',
                 clientPhone: item.clientPhone,
                 toolInfo: `${item.toolType} ${item.toolBrand}`,
                 paymentAmount: inputVal,
@@ -5792,6 +5869,7 @@
                     clientCode: clientCode,
                     clientName: (document.getElementById('client-name')?.value || '').trim(),
                     clientPhone: (document.getElementById('client-phone')?.value || '').trim(),
+                    clientAddress: (document.getElementById('client-address')?.value || '').trim(),
                     toolType: (document.getElementById('tool-type')?.value || '').trim(),
                     toolBrand: (document.getElementById('tool-brand')?.value || '').trim(),
                     toolModel: (document.getElementById('tool-model')?.value || '').trim(),
@@ -5880,6 +5958,7 @@
             const cdni = document.getElementById('client-dni');
             const cname = document.getElementById('client-name');
             const cphone = document.getElementById('client-phone');
+            const caddr = document.getElementById('client-address');
             const ttype = document.getElementById('tool-type');
             const tbrand = document.getElementById('tool-brand');
             const tmodel = document.getElementById('tool-model');
@@ -5894,6 +5973,7 @@
             if (cdni) cdni.value = item.clientDni || '';
             if (cname) cname.value = item.clientName || '';
             if (cphone) cphone.value = item.clientPhone || '';
+            if (caddr) caddr.value = item.clientAddress || '';
             if (ttype) ttype.value = item.toolType || '';
             if (tbrand) tbrand.value = item.toolBrand || '';
             if (tmodel) tmodel.value = item.toolModel || '';
@@ -5976,13 +6056,36 @@
             showToast('Orden Eliminada', 'Eliminada correctamente del sistema', 'info');
         }
 
+        const APP_DEFAULT_TITLE = 'ADL Servicio Técnico - Gestión de Herramientas y Clientes';
+
+        function getOrderPrintTitle(item) {
+            if (!item) return 'ST-Orden';
+            const rawTicket = String(item.ticketNum !== undefined && item.ticketNum !== null && String(item.ticketNum).trim() !== '' ? item.ticketNum : (getTicketDisplay(item) || '')).trim();
+            const cleanDigits = rawTicket.replace(/^ST-?/i, '').trim();
+            const stPrefix = cleanDigits ? `ST-${cleanDigits}` : (rawTicket ? `ST-${rawTicket}` : 'ST-Orden');
+            const cleanClient = String(item.clientName || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+            return cleanClient ? `${stPrefix} ${cleanClient}` : stPrefix;
+        }
+
+        function getPaymentPrintTitle(p) {
+            if (!p) return 'Recibo de Pago';
+            const rawOrder = String(p.orderNum || '').trim();
+            const cleanDigits = rawOrder.replace(/^ST-?/i, '').trim();
+            const stPrefix = cleanDigits ? `ST-${cleanDigits}` : rawOrder;
+            const cleanClient = String(p.clientName || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+            return cleanClient ? `Recibo ${stPrefix} ${cleanClient}`.trim() : `Recibo ${stPrefix}`.trim();
+        }
+
         async function openReceipt(id) {
-            const item = allServices.find(s => s.id === id);
+            const item = allServices.find(s => String(s.id) === String(id));
             if (!item) return;
 
             activePrintReceiptId = id;
             activePrintType = 'order';
             printIncludeImages = false;
+
+            // Nombre de archivo sugerido al exportar a PDF: "ST-XXXX Nombre Cliente" (ej: "ST-1065 Walter Estigarribia")
+            document.title = getOrderPrintTitle(item);
 
             const chk = document.getElementById('print-include-images');
             if (chk) chk.checked = false;
@@ -6007,6 +6110,8 @@
             if (!activePaymentReceiptData) return;
             activePrintType = 'payment';
             printIncludeImages = false;
+
+            document.title = getPaymentPrintTitle(activePaymentReceiptData);
 
             const wrapper = document.getElementById('print-images-option');
             if (wrapper) wrapper.classList.add('hidden');
@@ -6107,6 +6212,7 @@
                                     <p><strong class="text-slate-700">Teléfono:</strong> ${p.clientPhone}</p>
                                     <p><strong class="text-slate-700">Orden de Servicio:</strong> <strong class="text-sky-800">${p.orderNum}</strong></p>
                                 </div>
+                                ${p.clientAddress ? `<p><strong class="text-slate-700">Domicilio:</strong> ${p.clientAddress}</p>` : ''}
                                 <p><strong class="text-slate-700">Herramienta:</strong> ${p.toolInfo}</p>
                             </div>
 
@@ -6176,6 +6282,7 @@
                                     <p><strong class="text-slate-700">Código Cliente:</strong> ${item.clientCode || '-'}</p>
                                     <p><strong class="text-slate-700">Teléfono / WhatsApp:</strong> ${item.clientPhone}</p>
                                 </div>
+                                ${item.clientAddress ? `<p><strong class="text-slate-700">Domicilio:</strong> ${item.clientAddress}</p>` : ''}
                             </div>
 
                             <!-- Bloque: Detalle de la Herramienta -->
@@ -6296,38 +6403,17 @@
                 // Breve pausa para asegurar reflow y renderizado completo del DOM antes del diálogo del sistema
                 await new Promise(r => setTimeout(r, 200));
 
-                // Asignar dinámicamente el nombre de archivo sugerido para exportación PDF: "Orden ST-XXXX (DD-MM-AA)"
-                const originalTitle = document.title;
+                // Asignar dinámicamente el nombre de archivo sugerido para exportación PDF: "ST-XXXX Nombre Cliente" (ej: "ST-1065 Walter Estigarribia")
                 try {
                     if (activePrintType === 'payment') {
-                        const p = activePaymentReceiptData;
-                        const ordClean = p?.orderNum || 'Cobro';
-                        const now = new Date();
-                        const dd = String(now.getDate()).padStart(2, '0');
-                        const mm = String(now.getMonth() + 1).padStart(2, '0');
-                        const yy = String(now.getFullYear()).slice(-2);
-                        document.title = `Recibo ${ordClean} (${dd}-${mm}-${yy})`;
+                        document.title = getPaymentPrintTitle(activePaymentReceiptData);
                     } else {
-                        const item = allServices.find(s => s.id === activePrintReceiptId);
-                        const ticketDigits = item ? (item.ticketNum || getTicketDisplay(item)) : 'Orden';
-                        let datePart = '';
-                        if (item && item.createdAt) {
-                            const d = new Date(item.createdAt);
-                            const dd = String(d.getDate()).padStart(2, '0');
-                            const mm = String(d.getMonth() + 1).padStart(2, '0');
-                            const yy = String(d.getFullYear()).slice(-2);
-                            datePart = ` (${dd}-${mm}-${yy})`;
-                        }
-                        document.title = `Orden ST-${ticketDigits}${datePart}`;
+                        const item = allServices.find(s => String(s.id) === String(activePrintReceiptId));
+                        document.title = getOrderPrintTitle(item);
                     }
                 } catch (errTitle) {}
 
                 window.print();
-
-                setTimeout(() => {
-                    document.title = originalTitle;
-                    area?.classList.remove('print-with-images');
-                }, 1000);
             } finally {
                 if (printBtn) {
                     printBtn.disabled = false;
@@ -6339,7 +6425,17 @@
         function closeReceiptModal() {
             const rm = document.getElementById('receipt-modal');
             if (rm) rm.classList.add('hidden');
+            document.title = APP_DEFAULT_TITLE;
+            const area = document.getElementById('printable-area');
+            if (area) area.classList.remove('print-with-images');
         }
+
+        window.addEventListener('afterprint', () => {
+            const rm = document.getElementById('receipt-modal');
+            if (rm && rm.classList.contains('hidden')) {
+                document.title = APP_DEFAULT_TITLE;
+            }
+        });
 
         function exportDatabaseJSON() {
             const backupObj = {
@@ -6449,6 +6545,7 @@
                     "Código Cliente": item.clientCode || '',
                     "Cliente": item.clientName || '',
                     "Teléfono": item.clientPhone || '',
+                    "Domicilio": item.clientAddress || '',
                     "Herramienta": item.toolType || '',
                     "Marca": item.toolBrand || '',
                     "Modelo": item.toolModel || '',
@@ -6487,6 +6584,7 @@
                     "DNI / CUIT": c.dni,
                     "Nombre Cliente": c.name,
                     "Teléfono": c.phone,
+                    "Domicilio": c.address || '',
                     "Cantidad de Órdenes": c.tickets.length,
                     "Presupuesto Acumulado ($)": totalBudget,
                     "Total Abonado ($)": totalPaid,
@@ -6536,6 +6634,7 @@
                                 clientCode: row['Código Cliente'] || `CLI-${String(idx+1).padStart(4,'0')}`,
                                 clientName: row['Cliente'] || row['Nombre Cliente'] || 'Cliente Importado',
                                 clientPhone: row['Teléfono'] || '',
+                                clientAddress: row['Domicilio'] || row['Dirección'] || '',
                                 toolType: row['Herramienta'] || 'Herramienta',
                                 toolBrand: row['Marca'] || 'Genérico',
                                 toolModel: row['Modelo'] || '',
@@ -6720,6 +6819,7 @@
         window.renderClientsTab = renderClientsTab;
         window.getTicketDisplay = getTicketDisplay;
         window.createNewOrderForClient = createNewOrderForClient;
+        window.promptEditClientAddress = promptEditClientAddress;
         window.onDniInputChanged = onDniInputChanged;
         window.searchClientByDni = searchClientByDni;
         window.openTechNoteModal = openTechNoteModal;
