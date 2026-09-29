@@ -2276,18 +2276,46 @@
 
         async function initApp() {
             try {
-                // 1. Restauración inmediata de sesión si existe token persistente en memoria
+                // 1. Verificación previa de sesión persistente contra el servidor
                 const storedToken = window.safeGetStorage('adl_session_token', '') || (typeof localStorage !== 'undefined' ? localStorage.getItem('adl_session_token') || '' : '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_session_token') || '' : '');
                 const storedUser = window.safeGetStorage('adl_current_user', '') || (typeof localStorage !== 'undefined' ? localStorage.getItem('adl_current_user') || '' : '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_current_user') || '' : '');
 
-                if (storedToken && storedUser) {
-                    sessionToken = storedToken;
-                    currentUser = storedUser;
-                    hideLoginModal();
-                    updateHeaderUserUI();
-                    resetInactivityWatchdog();
-                } else {
-                    showLoginModal();
+                let sessionVerified = false;
+
+                if (storedToken && storedUser && navigator.onLine) {
+                    try {
+                        const checkUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=verifyToken&token=' + encodeURIComponent(storedToken) + '&_t=' + Date.now();
+                        const vRes = await fetch(checkUrl, { method: 'GET', mode: 'cors' });
+                        if (vRes.ok) {
+                            const vData = await vRes.json();
+                            if (vData && vData.success && vData.user) {
+                                sessionToken = storedToken;
+                                currentUser = vData.user;
+                                hideLoginModal();
+                                updateHeaderUserUI();
+                                resetInactivityWatchdog();
+                                sessionVerified = true;
+                            }
+                        }
+                    } catch (netErr) {
+                        console.warn("Verificación de sesión online no disponible:", netErr);
+                    }
+                }
+
+                if (!sessionVerified) {
+                    // Si no hay token, si el token es inválido/expiró, o si está offline:
+                    // Se asegura que la sesión esté limpia y se muestra el formulario de login.
+                    sessionToken = '';
+                    currentUser = '';
+                    if (storedToken) {
+                        window.safeSetStorage('adl_session_token', '');
+                        window.safeSetStorage('adl_current_user', '');
+                        try {
+                            sessionStorage.removeItem('adl_session_token');
+                            sessionStorage.removeItem('adl_current_user');
+                        } catch (e) {}
+                    }
+                    showLoginModal(navigator.onLine ? '' : 'Modo sin conexión: ingrese sus credenciales para acceder localmente.');
                 }
 
                 applyDarkModeState();
