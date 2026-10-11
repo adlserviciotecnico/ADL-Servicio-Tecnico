@@ -1761,6 +1761,32 @@
             } catch (e) {}
         };
 
+        /* HTML Sanitization and Attribute Escaping Helpers (XSS Protection - ETAPA 3) */
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+        window.escapeHtml = escapeHtml;
+
+        function escapeJsAttr(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\r/g, '')
+                .replace(/\n/g, '\\n');
+        }
+        window.escapeJsAttr = escapeJsAttr;
+
         /* Application Data State */
         let allServices = [];
         let allClients = [];
@@ -1773,6 +1799,69 @@
         let activePaymentReceiptData = null;
         let lastSavedOrderId = null;
         let activeDespieceFile = null;
+
+        /* Optimistic Concurrency Control (OCC) & Persistent Deletions Queue (ETAPA 4) */
+        let currentCloudVersion = parseInt(window.safeGetStorage('adl_cloud_version', '1'), 10) || 1;
+        let isPushingToCloud = false;
+        let pendingPushRequested = false;
+
+        function getPendingDeletedOrderIds() {
+            try {
+                const raw = window.safeGetStorage('adl_deleted_orders_queue', '[]');
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch(e) { return []; }
+        }
+        function addPendingDeletedOrderId(id) {
+            if (!id) return;
+            const list = getPendingDeletedOrderIds();
+            const sid = String(id);
+            if (!list.includes(sid)) list.push(sid);
+            window.safeSetStorage('adl_deleted_orders_queue', JSON.stringify(list));
+        }
+        function clearPendingDeletedOrderIds() {
+            window.safeSetStorage('adl_deleted_orders_queue', '[]');
+        }
+
+        function getPendingDeletedNoteIds() {
+            try {
+                const raw = window.safeGetStorage('adl_deleted_notes_queue', '[]');
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch(e) { return []; }
+        }
+        function addPendingDeletedNoteId(id) {
+            if (!id) return;
+            const list = getPendingDeletedNoteIds();
+            const sid = String(id);
+            if (!list.includes(sid)) list.push(sid);
+            window.safeSetStorage('adl_deleted_notes_queue', JSON.stringify(list));
+        }
+        function clearPendingDeletedNoteIds() {
+            window.safeSetStorage('adl_deleted_notes_queue', '[]');
+        }
+
+        function getPendingTrashedFileIds() {
+            try {
+                const raw = window.safeGetStorage('adl_trashed_files_queue', '[]');
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch(e) { return []; }
+        }
+        function addPendingTrashedFileIds(ids) {
+            if (!ids) return;
+            const toAdd = Array.isArray(ids) ? ids : [ids];
+            if (toAdd.length === 0) return;
+            const list = getPendingTrashedFileIds();
+            toAdd.forEach(id => {
+                const sid = String(id || '').trim();
+                if (sid && !list.includes(sid)) list.push(sid);
+            });
+            window.safeSetStorage('adl_trashed_files_queue', JSON.stringify(list));
+        }
+        function clearPendingTrashedFileIds() {
+            window.safeSetStorage('adl_trashed_files_queue', '[]');
+        }
         
         /* Form Attachments State */
         let currentImagesBase64 = [];
@@ -1943,6 +2032,14 @@
                 resetInactivityWatchdog();
                 triggerSilentSync();
             });
+
+            window.addEventListener('online', () => {
+                resetInactivityWatchdog();
+                lastSyncCheckTime = 0;
+                syncLatestCloudDataSilently().then(() => {
+                    pushDatabaseToDriveSilently();
+                }).catch(() => {});
+            });
         }
 
         function showLoginModal(reason = '') {
@@ -2023,13 +2120,6 @@
             }
         }
 
-        /* HASH CRIPTOGRÁFICO SHA-256 PARA AUTENTICACIÓN INMEDIATA Y OFFLINE (ZERO TRUST) */
-        const AUTHORIZED_HASH_MAP = {
-            "admin": "84643920a3fc65117dc77c57f6588a22670e595bcec391fb0c8e32a5fa522e5f",
-            "bruno": "28385ab12fb3a9cf291bd27311d86250b1a2d8d30036b5c9e5c8661738dd0818",
-            "antonio": "20ae9ef909ddb88e97ded9afede4d31af3ecd140e98353046d1bf4a3e6e8eeec"
-        };
-
         async function computeSha256(text) {
             try {
                 const encoder = new TextEncoder();
@@ -2066,23 +2156,10 @@
             }
 
             try {
-                // 1. Verificación Criptográfica Local Instantánea (Zero Trust)
-                const computedHash = await computeSha256(username + ":" + password);
-                const isLocalValid = AUTHORIZED_HASH_MAP[username] === computedHash;
+                let loginSuccess = false;
+                let userToken = '';
 
-                if (!isLocalValid) {
-                    if (errText) errText.innerText = 'Usuario o contraseña incorrectos.';
-                    if (errDiv) errDiv.classList.remove('hidden');
-                    return;
-                }
-
-                // Generar Token Criptográfico de Sesión
-                const timestamp = Date.now();
-                const rawTokenPayload = `${username}.${timestamp}.${computedHash.substring(0, 16)}`;
-                sessionToken = btoa(rawTokenPayload);
-                currentUser = username;
-
-                // Intentar obtener el token firmado del servidor si estamos online
+                // 1. Autenticación en línea con el Backend Oficial (Google Apps Script)
                 if (navigator.onLine) {
                     try {
                         const reqUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=login';
@@ -2095,13 +2172,47 @@
                         if (res.ok) {
                             const srvData = await res.json();
                             if (srvData && srvData.success && srvData.token) {
-                                sessionToken = srvData.token;
+                                loginSuccess = true;
+                                userToken = srvData.token;
+                                // Registrar hash localmente para permitir acceso offline posterior en este equipo
+                                const computedHash = await computeSha256(username + ":" + password);
+                                window.safeSetStorage('adl_offline_auth_' + username, computedHash);
+                            } else {
+                                const errorReason = srvData?.error || 'Usuario o contraseña incorrectos.';
+                                if (errText) errText.innerText = errorReason;
+                                if (errDiv) errDiv.classList.remove('hidden');
+                                return;
                             }
+                        } else {
+                            throw new Error("Respuesta del servidor no disponible (" + res.status + ")");
                         }
                     } catch (netErr) {
-                        console.warn("Autenticación local activa (offline fallback):", netErr);
+                        console.warn("No se pudo conectar con el servidor, verificando modo offline:", netErr);
                     }
                 }
+
+                // 2. Modo Offline: si no hay conexión o falló la red, verificar contra credenciales previamente autenticadas en este equipo
+                if (!loginSuccess) {
+                    const cachedHash = window.safeGetStorage('adl_offline_auth_' + username, '');
+                    const computedHash = await computeSha256(username + ":" + password);
+                    if (cachedHash && cachedHash === computedHash) {
+                        loginSuccess = true;
+                        const timestamp = Date.now();
+                        const rawTokenPayload = `${username}.${timestamp}.${computedHash.substring(0, 16)}`;
+                        userToken = btoa(rawTokenPayload);
+                    } else {
+                        if (!navigator.onLine) {
+                            if (errText) errText.innerText = 'Sin conexión a internet. Debe haber iniciado sesión previamente en este equipo para trabajar sin conexión.';
+                        } else {
+                            if (errText) errText.innerText = 'Usuario o contraseña incorrectos.';
+                        }
+                        if (errDiv) errDiv.classList.remove('hidden');
+                        return;
+                    }
+                }
+
+                sessionToken = userToken;
+                currentUser = username;
 
                 window.safeSetStorage('adl_session_token', sessionToken);
                 window.safeSetStorage('adl_current_user', currentUser);
@@ -2111,10 +2222,12 @@
                 } catch (sErr) {}
 
                 hideLoginModal();
-                showToast(`Bienvenido ${currentUser.toUpperCase()}`, 'Autenticación exitosa. Sesión protegida iniciada.', 'success');
+                showToast(`Bienvenido ${currentUser.toUpperCase()}`, navigator.onLine ? 'Autenticación exitosa. Sesión protegida iniciada.' : 'Modo sin conexión activo con credenciales guardadas.', 'success');
 
-                // Sincronización silenciosa en segundo plano
-                syncLatestCloudDataSilently();
+                // Sincronización silenciosa en segundo plano si hay red
+                if (navigator.onLine) {
+                    syncLatestCloudDataSilently();
+                }
             } catch (err) {
                 console.error("Error al autenticar:", err);
                 if (errText) errText.innerText = 'Error al procesar la autenticación.';
@@ -2139,22 +2252,46 @@
 
             isSyncingInBackground = true;
             try {
-                const reqUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=load&token=' + encodeURIComponent(token) + '&_t=' + Date.now();
-                const res = await fetch(reqUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
+                const reqUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=load';
+                const res = await fetch(reqUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'load', token: token }),
+                    redirect: 'follow'
+                });
                 if (!res.ok) return false;
                 const data = await res.json();
 
                 if (data && data.success && Array.isArray(data.orders)) {
+                    if (data.version) {
+                        currentCloudVersion = parseInt(data.version, 10) || currentCloudVersion;
+                        window.safeSetStorage('adl_cloud_version', currentCloudVersion);
+                    }
                     let hasNewUpdates = false;
 
-                    // Fusionar órdenes por ID y Timestamp
+                    // Unir tombstones del servidor con eliminaciones locales pendientes
+                    const serverDeletedOrders = (data.deletedOrders && typeof data.deletedOrders === 'object') ? data.deletedOrders : {};
+                    const pendingDeletedOrders = getPendingDeletedOrderIds();
+                    const deletedOrderSet = new Set([...Object.keys(serverDeletedOrders), ...pendingDeletedOrders].map(String));
+
+                    // Fusionar órdenes por ID y Timestamp, excluyendo eliminaciones
                     const orderMap = {};
                     data.orders.forEach(o => {
-                        if (o && o.id) orderMap[o.id] = sanitizeOrder(o);
+                        if (o && o.id && !deletedOrderSet.has(String(o.id))) {
+                            orderMap[o.id] = sanitizeOrder(o);
+                        }
                     });
 
-                    allServices.forEach(localOrd => {
+                    // Purgar localmente órdenes que fueron eliminadas en la nube o pendientes
+                    for (const localOrd of allServices) {
                         if (localOrd && localOrd.id) {
+                            const sid = String(localOrd.id);
+                            if (deletedOrderSet.has(sid)) {
+                                hasNewUpdates = true;
+                                await ADL_DB.deleteOrder(localOrd.id);
+                                continue;
+                            }
                             const cloudOrd = orderMap[localOrd.id];
                             if (!cloudOrd) {
                                 orderMap[localOrd.id] = localOrd;
@@ -2168,19 +2305,30 @@
                                 }
                             }
                         }
-                    });
+                    }
 
                     allServices = Object.values(orderMap);
 
-                    // Fusionar notas técnicas
+                    // Fusionar notas técnicas con soporte de tombstones
                     if (Array.isArray(data.notes)) {
+                        const serverDeletedNotes = (data.deletedNotes && typeof data.deletedNotes === 'object') ? data.deletedNotes : {};
+                        const pendingDeletedNotes = getPendingDeletedNoteIds();
+                        const deletedNoteSet = new Set([...Object.keys(serverDeletedNotes), ...pendingDeletedNotes].map(String));
+
                         const noteMap = {};
                         data.notes.forEach(n => {
-                            if (n && n.id) noteMap[n.id] = sanitizeNote(n);
+                            if (n && n.id && !deletedNoteSet.has(String(n.id))) {
+                                noteMap[n.id] = sanitizeNote(n);
+                            }
                         });
 
                         allTechNotes.forEach(localNote => {
                             if (localNote && localNote.id) {
+                                const sid = String(localNote.id);
+                                if (deletedNoteSet.has(sid)) {
+                                    hasNewUpdates = true;
+                                    return;
+                                }
                                 const cloudNote = noteMap[localNote.id];
                                 if (!cloudNote) {
                                     noteMap[localNote.id] = localNote;
@@ -2220,17 +2368,31 @@
             const token = getAuthToken();
             if (!token || !sessionToken) return false;
 
+            if (isPushingToCloud) {
+                pendingPushRequested = true;
+                return false;
+            }
+
+            isPushingToCloud = true;
             try {
+                const pendingOrders = getPendingDeletedOrderIds();
+                const pendingNotes = getPendingDeletedNoteIds();
+                const pendingTrashedFiles = getPendingTrashedFileIds();
+
                 const payload = JSON.stringify({
-                    action: 'overwrite',
+                    action: 'save',
                     token: token,
-                    forceOverwrite: true,
+                    forceOverwrite: false,
+                    baseVersion: currentCloudVersion,
                     updatedAt: new Date().toISOString(),
+                    deletedOrderIds: pendingOrders,
+                    deletedNoteIds: pendingNotes,
+                    trashedFileIds: pendingTrashedFiles,
                     orders: prepareOrdersForSave(allServices),
                     notes: prepareOrdersForSave(allTechNotes)
                 });
 
-                const saveUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=overwrite&token=' + encodeURIComponent(token);
+                const saveUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=save';
                 const res = await fetch(saveUrl, {
                     method: 'POST',
                     mode: 'cors',
@@ -2242,12 +2404,28 @@
                 if (res.ok) {
                     const result = await res.json();
                     if (result && result.success) {
+                        if (result.version) {
+                            currentCloudVersion = parseInt(result.version, 10) || currentCloudVersion;
+                            window.safeSetStorage('adl_cloud_version', currentCloudVersion);
+                        }
+                        clearPendingDeletedOrderIds();
+                        clearPendingDeletedNoteIds();
+                        clearPendingTrashedFileIds();
                         updateSyncBadge('cloud');
+                        if (result.conflictResolved) {
+                            setTimeout(syncLatestCloudDataSilently, 100);
+                        }
                         return true;
                     }
                 }
             } catch (e) {
                 console.warn("Silent push to cloud deferred:", e);
+            } finally {
+                isPushingToCloud = false;
+                if (pendingPushRequested) {
+                    pendingPushRequested = false;
+                    setTimeout(pushDatabaseToDriveSilently, 250);
+                }
             }
             return false;
         }
@@ -2284,8 +2462,13 @@
 
                 if (storedToken && storedUser && navigator.onLine) {
                     try {
-                        const checkUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=verifyToken&token=' + encodeURIComponent(storedToken) + '&_t=' + Date.now();
-                        const vRes = await fetch(checkUrl, { method: 'GET', mode: 'cors' });
+                        const checkUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=verifyToken';
+                        const vRes = await fetch(checkUrl, {
+                            method: 'POST',
+                            mode: 'cors',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({ action: 'verifyToken', token: storedToken })
+                        });
                         if (vRes.ok) {
                             const vData = await vRes.json();
                             if (vData && vData.success && vData.user) {
@@ -2457,8 +2640,7 @@
         async function testCloudConnection() {
             showToast("Probando Conexión", "Contactando backend en Google Drive...", "info");
             try {
-                const token = getAuthToken();
-                const pingUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=ping&token=' + encodeURIComponent(token) + '&_t=' + Date.now();
+                const pingUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=ping&_t=' + Date.now();
                 const res = await fetch(pingUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
                 if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
@@ -2481,8 +2663,14 @@
 
             showToast("Descargando de Drive", "Consultando base de datos oficial en Google Drive...", "info");
             try {
-                const reqUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=load&token=' + encodeURIComponent(token) + '&_t=' + Date.now();
-                const res = await fetch(reqUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
+                const reqUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=load';
+                const res = await fetch(reqUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'load', token: token }),
+                    redirect: 'follow'
+                });
                 if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
 
@@ -2503,6 +2691,9 @@
                     return;
                 }
 
+                if (data.version) {
+                    currentCloudVersion = parseInt(data.version, 10) || currentCloudVersion;
+                }
                 allServices = rawOrders.map(sanitizeOrder).filter(Boolean);
                 allTechNotes = rawNotes.map(sanitizeNote).filter(Boolean);
 
@@ -2540,7 +2731,7 @@
                     notes: prepareOrdersForSave(allTechNotes)
                 });
 
-                const saveUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=overwrite&token=' + encodeURIComponent(token);
+                const saveUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=overwrite';
                 const res = await fetch(saveUrl, {
                     method: 'POST',
                     mode: 'cors',
@@ -2593,8 +2784,14 @@
                             btn.disabled = true;
                             btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2 text-sm text-indigo-300"></i> Verificando fotos físicas en Google Drive...`;
                         }
-                        const reqUrl = `${url}${url.includes('?') ? '&' : '?'}action=reconcileDrive&token=${encodeURIComponent(token)}`;
-                        const res = await fetch(reqUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
+                        const reqUrl = `${url}${url.includes('?') ? '&' : '?'}action=reconcileDrive`;
+                        const res = await fetch(reqUrl, {
+                            method: 'POST',
+                            mode: 'cors',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({ action: 'reconcileDrive', token: token }),
+                            redirect: 'follow'
+                        });
                         if (res.ok) {
                             const json = await res.json();
                             if (json && json.success && json.updatedOrders > 0) {
@@ -2784,8 +2981,14 @@
                     const url = getCloudApiUrl();
                     if (!url) return null;
                     const token = getAuthToken();
-                    const reqUrl = `${url}${url.includes('?') ? '&' : '?'}action=getFile&id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`;
-                    const res = await fetch(reqUrl, { method: 'GET', mode: 'cors', redirect: 'follow' });
+                    const reqUrl = `${url}${url.includes('?') ? '&' : '?'}action=getFile`;
+                    const res = await fetch(reqUrl, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'getFile', id: fileId, token: token }),
+                        redirect: 'follow'
+                    });
                     if (!res.ok) {
                         document.querySelectorAll(`img[data-drive-id="${fileId}"]`).forEach(img => {
                             img.src = getPlaceholderSvg('Foto no disponible');
@@ -2843,7 +3046,7 @@
                     mimeType: mimeType || 'image/jpeg',
                     folderType: folderType
                 });
-                const reqUrl = url + (url.includes('?') ? '&' : '?') + 'action=upload&token=' + encodeURIComponent(token);
+                const reqUrl = url + (url.includes('?') ? '&' : '?') + 'action=upload';
                 const res = await fetch(reqUrl, {
                     method: 'POST',
                     mode: 'cors',
@@ -3501,21 +3704,21 @@
                 container.innerHTML = accounts.map(account => `
                     <div class="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-900 p-6 space-y-4 shadow-sm">
                         <div class="flex items-start justify-between border-b border-slate-100 dark:border-slate-900 pb-3">
-                            <div><span class="text-xs font-black text-sky-600 dark:text-sky-400">${account.client.code}</span><h3 class="font-black text-slate-900 dark:text-white text-lg">${account.client.name}</h3><p class="text-xs text-slate-500">DNI/CUIT: ${account.client.dni} · Tel: ${account.client.phone}</p></div>
+                            <div><span class="text-xs font-black text-sky-600 dark:text-sky-400">${escapeHtml(account.client.code)}</span><h3 class="font-black text-slate-900 dark:text-white text-lg">${escapeHtml(account.client.name)}</h3><p class="text-xs text-slate-500">DNI/CUIT: ${escapeHtml(account.client.dni)} · Tel: ${escapeHtml(account.client.phone)}</p></div>
                             <span class="font-black text-rose-600 dark:text-rose-400">$ ${account.balance.toLocaleString('es-AR')}</span>
                         </div>
                         <div class="space-y-2">${account.pendingOrders.map(item => `
                             <div class="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl">
                                 <div class="text-xs">
                                     <div class="flex items-center space-x-1.5">
-                                        <strong class="text-sky-600 dark:text-sky-400">ST-${getTicketDisplay(item.order)}</strong>
-                                        ${item.order.status === 'Entregado' ? '<span class="px-1.5 py-0.5 bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-black rounded">Entregado</span>' : `<span class="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold rounded">${item.order.status || 'En Taller'}</span>`}
+                                        <strong class="text-sky-600 dark:text-sky-400">ST-${escapeHtml(getTicketDisplay(item.order))}</strong>
+                                        ${item.order.status === 'Entregado' ? '<span class="px-1.5 py-0.5 bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-black rounded">Entregado</span>' : `<span class="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold rounded">${escapeHtml(item.order.status || 'En Taller')}</span>`}
                                     </div>
-                                    <span class="block text-slate-500 mt-0.5">${item.order.toolType || ''} ${item.order.toolBrand || ''}</span>
+                                    <span class="block text-slate-500 mt-0.5">${escapeHtml(item.order.toolType || '')} ${escapeHtml(item.order.toolBrand || '')}</span>
                                 </div>
                                 <div class="text-right">
                                     <strong class="block text-rose-600 dark:text-rose-400 text-sm">$ ${item.balance.toLocaleString('es-AR')}</strong>
-                                    <button type="button" onclick="openPaymentModal('${String(item.order.id || '')}')" class="mt-1 px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-black cursor-pointer hover:bg-emerald-500 transition-colors">+ Cobro</button>
+                                    <button type="button" onclick="openPaymentModal('${escapeJsAttr(String(item.order.id || ''))}')" class="mt-1 px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-black cursor-pointer hover:bg-emerald-500 transition-colors">+ Cobro</button>
                                 </div>
                             </div>
                         `).join('')}</div>
@@ -3588,24 +3791,24 @@
                         <div class="flex items-start justify-between border-b border-slate-100 dark:border-slate-900 pb-3">
                             <div>
                                 <div class="flex items-center space-x-2">
-                                    <span class="px-2.5 py-1 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-black text-xs rounded-xl">${c.code}</span>
-                                    <h3 class="font-black text-slate-900 dark:text-white text-lg">${c.name}</h3>
+                                    <span class="px-2.5 py-1 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-black text-xs rounded-xl">${escapeHtml(c.code)}</span>
+                                    <h3 class="font-black text-slate-900 dark:text-white text-lg">${escapeHtml(c.name)}</h3>
                                 </div>
                                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
-                                    <span><strong>DNI:</strong> ${c.dni}</span>
+                                    <span><strong>DNI:</strong> ${escapeHtml(c.dni)}</span>
                                     <span>|</span>
-                                    ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 font-extrabold flex items-center"><i class="fab fa-whatsapp text-sm mr-1"></i> ${c.phone}</a>` : `<span>${c.phone}</span>`}
+                                    ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 font-extrabold flex items-center"><i class="fab fa-whatsapp text-sm mr-1"></i> ${escapeHtml(c.phone)}</a>` : `<span>${escapeHtml(c.phone)}</span>`}
                                     <span>|</span>
                                     <span class="inline-flex items-center">
                                         <i class="fas fa-location-dot text-slate-400 mr-1 text-[11px]"></i>
-                                        <strong>Domicilio:</strong>&nbsp;${c.address ? `<span class="text-slate-800 dark:text-slate-200">${c.address}</span>` : '<span class="text-slate-400 italic">No especificado</span>'}
-                                        <button onclick="promptEditClientAddress('${c.dni}')" class="text-slate-400 hover:text-sky-600 transition-colors ml-1.5 p-0.5 cursor-pointer" title="Editar Domicilio">
+                                        <strong>Domicilio:</strong>&nbsp;${c.address ? `<span class="text-slate-800 dark:text-slate-200">${escapeHtml(c.address)}</span>` : '<span class="text-slate-400 italic">No especificado</span>'}
+                                        <button onclick="promptEditClientAddress('${escapeJsAttr(c.dni)}')" class="text-slate-400 hover:text-sky-600 transition-colors ml-1.5 p-0.5 cursor-pointer" title="Editar Domicilio">
                                             <i class="fas fa-pencil text-[10px]"></i>
                                         </button>
                                     </span>
                                 </p>
                             </div>
-                            <button onclick="createNewOrderForClient('${c.dni}')" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-2xl text-xs shadow-md">
+                            <button onclick="createNewOrderForClient('${escapeJsAttr(c.dni)}')" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-2xl text-xs shadow-md">
                                 + Nueva Orden
                             </button>
                         </div>
@@ -3636,16 +3839,16 @@
                                     return `
                                     <div class="bg-slate-100/70 dark:bg-slate-800/50 p-3 rounded-2xl text-xs flex items-center justify-between">
                                         <div>
-                                            <span class="font-black text-sky-600 dark:text-sky-400 mr-2 text-sm">ST-${getTicketDisplay(t)}</span>
-                                            <span class="font-extrabold text-slate-800 dark:text-slate-200">${t.toolType} ${t.toolBrand}</span>
+                                            <span class="font-black text-sky-600 dark:text-sky-400 mr-2 text-sm">ST-${escapeHtml(getTicketDisplay(t))}</span>
+                                            <span class="font-extrabold text-slate-800 dark:text-slate-200">${escapeHtml(t.toolType)} ${escapeHtml(t.toolBrand)}</span>
                                             <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                                 Pres: $${cost.toLocaleString('es-AR')} | Abonado: $${paid.toLocaleString('es-AR')} | <strong class="${bal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}">Saldo: $${bal.toLocaleString('es-AR')}</strong>
                                             </div>
                                         </div>
                                         <div class="flex items-center space-x-1">
-                                            <button onclick="openPaymentModal('${t.id}')" class="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold text-xs rounded-xl">+ Cobro</button>
-                                            <button onclick="openReceipt('${t.id}')" class="p-1.5 text-slate-500 hover:text-emerald-600 rounded-xl" title="Imprimir Ticket de Orden"><i class="fas fa-print text-sm"></i></button>
-                                            <button onclick="editService('${t.id}')" class="text-slate-400 hover:text-sky-600 p-1.5" title="Editar"><i class="fas fa-edit text-sm"></i></button>
+                                            <button onclick="openPaymentModal('${escapeJsAttr(t.id)}')" class="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold text-xs rounded-xl">+ Cobro</button>
+                                            <button onclick="openReceipt('${escapeJsAttr(t.id)}')" class="p-1.5 text-slate-500 hover:text-emerald-600 rounded-xl" title="Imprimir Ticket de Orden"><i class="fas fa-print text-sm"></i></button>
+                                            <button onclick="editService('${escapeJsAttr(t.id)}')" class="text-slate-400 hover:text-sky-600 p-1.5" title="Editar"><i class="fas fa-edit text-sm"></i></button>
                                         </div>
                                     </div>
                                 `}).join('')}
@@ -3745,19 +3948,20 @@
                 const dateStr = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
                 const imgs = n.images || [];
                 const docs = n.despieces || [];
+                const safeNoteId = escapeJsAttr(String(n.id || ''));
 
                 return `
                 <div class="rounded-3xl p-6 border shadow-sm space-y-4 flex flex-col justify-between ${colorClasses} hover:shadow-md transition-all">
                     <div class="space-y-3">
                         <div class="flex items-start justify-between border-b border-black/10 dark:border-white/10 pb-2">
-                            <h3 class="text-xl font-black leading-tight tracking-tight">${n.title}</h3>
+                            <h3 class="text-xl font-black leading-tight tracking-tight">${escapeHtml(n.title)}</h3>
                             <div class="flex items-center space-x-1 shrink-0 ml-2">
-                                <button onclick="editTechNote('${n.id}')" class="p-1.5 opacity-75 hover:opacity-100" title="Editar"><i class="fas fa-edit text-base"></i></button>
-                                <button onclick="deleteTechNote('${n.id}')" class="p-1.5 opacity-75 hover:opacity-100 hover:text-rose-600" title="Eliminar"><i class="fas fa-trash-alt text-base"></i></button>
+                                <button onclick="editTechNote('${safeNoteId}')" class="p-1.5 opacity-75 hover:opacity-100" title="Editar"><i class="fas fa-edit text-base"></i></button>
+                                <button onclick="deleteTechNote('${safeNoteId}')" class="p-1.5 opacity-75 hover:opacity-100 hover:text-rose-600" title="Eliminar"><i class="fas fa-trash-alt text-base"></i></button>
                             </div>
                         </div>
 
-                        <p class="text-xs font-bold opacity-80 whitespace-pre-wrap leading-relaxed">${n.content || 'Sin descripción adicional'}</p>
+                        <p class="text-xs font-bold opacity-80 whitespace-pre-wrap leading-relaxed">${escapeHtml(n.content || 'Sin descripción adicional')}</p>
 
                         <!-- IMÁGENES DE LA NOTA Y BOTÓN DE PIZARRA CON FLECHAS -->
                         ${imgs.length > 0 ? `
@@ -3767,7 +3971,7 @@
                                     ${imgs.map((imgSrc, idx) => `
                                         <div class="relative group rounded-xl overflow-hidden border border-black/10">
                                             <img src="${imgSrc}" class="w-full h-24 object-cover">
-                                            <button onclick="openCanvasAnnotator('${n.id}', ${idx})" title="Dibujar flechas y texto en Pizarra" class="absolute inset-0 bg-slate-950/75 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center font-black text-xs transition-opacity space-x-1">
+                                            <button onclick="openCanvasAnnotator('${safeNoteId}', ${idx})" title="Dibujar flechas y texto en Pizarra" class="absolute inset-0 bg-slate-950/75 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center font-black text-xs transition-opacity space-x-1">
                                                 <i class="fas fa-pencil-alt text-amber-400"></i>
                                                 <span>Pizarra / Flechas</span>
                                             </button>
@@ -3783,9 +3987,9 @@
                                 <span class="text-[10px] font-black uppercase tracking-wider block opacity-75">Despieces / Planos (${docs.length}):</span>
                                 <div class="space-y-1">
                                     ${docs.map((doc, dIdx) => `
-                                        <button onclick="openNoteDespiece('${n.id}', ${dIdx})" class="w-full text-left px-3 py-1.5 bg-black/10 dark:bg-white/10 rounded-xl text-xs font-black truncate flex items-center space-x-2">
+                                        <button onclick="openNoteDespiece('${safeNoteId}', ${dIdx})" class="w-full text-left px-3 py-1.5 bg-black/10 dark:bg-white/10 rounded-xl text-xs font-black truncate flex items-center space-x-2">
                                             <i class="${getDespieceIconClass(doc.name)}"></i>
-                                            <span class="truncate">${doc.name}</span>
+                                            <span class="truncate">${escapeHtml(doc.name)}</span>
                                         </button>
                                     `).join('')}
                                 </div>
@@ -4034,7 +4238,7 @@
             if (!list) return;
             list.innerHTML = currentNoteDespieces.map((doc, idx) => `
                 <div class="flex items-center justify-between bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-                    <span class="truncate font-bold text-slate-800 dark:text-slate-200">${doc.name}</span>
+                    <span class="truncate font-bold text-slate-800 dark:text-slate-200">${escapeHtml(doc.name)}</span>
                     <button type="button" onclick="removeNoteDespiece(${idx})" class="text-rose-500 p-1"><i class="fas fa-times"></i></button>
                 </div>
             `).join('');
@@ -4178,6 +4382,22 @@
 
         async function deleteTechNote(id) {
             if (!confirm("¿Desea eliminar esta nota técnica?")) return;
+            const targetNote = allTechNotes.find(n => n.id === id);
+            if (targetNote) {
+                const fids = [];
+                if (Array.isArray(targetNote.images)) {
+                    targetNote.images.forEach(img => { const fid = extractDriveId(img); if (fid) fids.push(fid); });
+                }
+                if (Array.isArray(targetNote.documents)) {
+                    targetNote.documents.forEach(doc => { const fid = extractDriveId(doc); if (fid) fids.push(fid); });
+                }
+                if (Array.isArray(targetNote.despieces)) {
+                    targetNote.despieces.forEach(doc => { const fid = extractDriveId(doc); if (fid) fids.push(fid); });
+                }
+                if (fids.length > 0) addPendingTrashedFileIds(fids);
+            }
+            recentlyDeletedNoteIds.push(id);
+            addPendingDeletedNoteId(id);
             allTechNotes = allTechNotes.filter(n => n.id !== id);
             await saveNotesData();
             pushDatabaseToDriveSilently();
@@ -4406,7 +4626,7 @@
             const note = allTechNotes.find(n => n.id === activeCanvasNoteId);
             if (!note || !note.images) return;
 
-            const annotatedBase64 = canvas.toDataURL("image/jpeg", 0.92);
+            const annotatedBase64 = canvas.toDataURL("image/jpeg", 1.0);
             const fileName = "anotacion_" + Date.now() + ".jpg";
 
             const uploaded = await apiUploadFile(annotatedBase64, fileName, "image/jpeg");
@@ -4471,14 +4691,14 @@
             }
 
             container.innerHTML = filtered.map(c => `
-                <div onclick="selectExistingClientForOrder('${c.dni}')" class="p-3.5 bg-slate-50 dark:bg-slate-800/60 hover:bg-sky-50 dark:hover:bg-sky-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl cursor-pointer flex items-center justify-between transition-colors">
+                <div onclick="selectExistingClientForOrder('${escapeJsAttr(c.dni)}')" class="p-3.5 bg-slate-50 dark:bg-slate-800/60 hover:bg-sky-50 dark:hover:bg-sky-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl cursor-pointer flex items-center justify-between transition-colors">
                     <div>
                         <div class="flex items-center space-x-2">
-                            <span class="px-2.5 py-0.5 bg-sky-600 text-white font-black text-xs rounded-lg">${c.code}</span>
-                            <span class="font-black text-slate-900 dark:text-white text-sm">${c.name}</span>
+                            <span class="px-2.5 py-0.5 bg-sky-600 text-white font-black text-xs rounded-lg">${escapeHtml(c.code)}</span>
+                            <span class="font-black text-slate-900 dark:text-white text-sm">${escapeHtml(c.name)}</span>
                         </div>
                         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            <strong>DNI:</strong> ${c.dni} | <strong>Tel:</strong> ${c.phone} ${c.address ? `| <strong>Dom:</strong> ${c.address}` : ''} | (${c.tickets.length} orden/es previa/s)
+                            <strong>DNI:</strong> ${escapeHtml(c.dni)} | <strong>Tel:</strong> ${escapeHtml(c.phone)} ${c.address ? `| <strong>Dom:</strong> ${escapeHtml(c.address)}` : ''} | (${c.tickets.length} orden/es previa/s)
                         </p>
                     </div>
                     <button class="px-4 py-2 bg-sky-600 text-white font-black rounded-xl text-xs shadow">
@@ -4789,8 +5009,8 @@
                                         const imgCount = (item.imagesBase64 || []).length;
                                         const despieceList = item.despieceFiles || [];
                                         const waLink = getWhatsappLink(item.clientPhone);
-                                        const ticketCode = getTicketDisplay(item);
-                                        const safeId = String(item.id || '');
+                                         const ticketCode = escapeHtml(getTicketDisplay(item));
+                                        const safeId = escapeJsAttr(String(item.id || ''));
 
                                         return `
                                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
@@ -4804,19 +5024,19 @@
                                                 ` : ''}
                                             </td>
                                             <td class="p-4">
-                                                <div class="font-extrabold text-slate-900 dark:text-white">${item.clientName || 'Sin Nombre'}</div>
+                                                <div class="font-extrabold text-slate-900 dark:text-white">${escapeHtml(item.clientName || 'Sin Nombre')}</div>
                                                 <div class="text-slate-400 text-xs flex items-center space-x-1 mt-0.5">
-                                                    <span>DNI: ${item.clientDni || '-'}</span>
-                                                    ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 hover:text-emerald-700 font-extrabold flex items-center ml-1"><i class="fab fa-whatsapp text-sm mr-0.5"></i> ${item.clientPhone}</a>` : `<span>${item.clientPhone || ''}</span>`}
+                                                    <span>DNI: ${escapeHtml(item.clientDni || '-')}</span>
+                                                    ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 hover:text-emerald-700 font-extrabold flex items-center ml-1"><i class="fab fa-whatsapp text-sm mr-0.5"></i> ${escapeHtml(item.clientPhone)}</a>` : `<span>${escapeHtml(item.clientPhone || '')}</span>`}
                                                 </div>
-                                                ${item.clientAddress ? `<div class="text-slate-400 text-[11px] truncate max-w-[180px] mt-0.5" title="${item.clientAddress}"><i class="fas fa-map-marker-alt mr-1 text-slate-400"></i>${item.clientAddress}</div>` : ''}
+                                                ${item.clientAddress ? `<div class="text-slate-400 text-[11px] truncate max-w-[180px] mt-0.5" title="${escapeHtml(item.clientAddress)}"><i class="fas fa-map-marker-alt mr-1 text-slate-400"></i>${escapeHtml(item.clientAddress)}</div>` : ''}
                                             </td>
                                             <td class="p-4">
-                                                <div class="font-extrabold text-slate-800 dark:text-slate-200">${item.toolType || 'Herramienta'}</div>
-                                                <div class="text-slate-400 text-xs font-bold">${item.toolBrand || ''} ${item.toolModel ? ' - ' + item.toolModel : ''}</div>
+                                                <div class="font-extrabold text-slate-800 dark:text-slate-200">${escapeHtml(item.toolType || 'Herramienta')}</div>
+                                                <div class="text-slate-400 text-xs font-bold">${escapeHtml(item.toolBrand || '')} ${item.toolModel ? ' - ' + escapeHtml(item.toolModel) : ''}</div>
                                             </td>
                                             <td class="p-4 max-w-xs">
-                                                <div class="text-slate-600 dark:text-slate-400 text-xs truncate font-semibold">${item.failureDescription || ''}</div>
+                                                <div class="text-slate-600 dark:text-slate-400 text-xs truncate font-semibold">${escapeHtml(item.failureDescription || '')}</div>
                                             </td>
                                             <td class="p-4">
                                                 ${imgCount > 0 ? `
@@ -4830,10 +5050,11 @@
                                                     <div class="space-y-1">
                                                         ${despieceList.map((dFile, dIdx) => {
                                                             const fileName = typeof dFile === 'string' ? dFile : (dFile && dFile.name ? dFile.name : 'Despiece');
+                                                            const safeFileName = escapeHtml(fileName);
                                                             return `
-                                                            <button onclick="openDespieceModal('${safeId}', ${dIdx})" title="Abrir Despiece" class="px-2.5 py-1 bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded-lg font-black text-xs flex items-center space-x-1 hover:bg-indigo-200">
+                                                            <button onclick="openDespieceModal('${safeId}', ${dIdx})" title="Abrir Despiece: ${safeFileName}" class="px-2.5 py-1 bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded-lg font-black text-xs flex items-center space-x-1 hover:bg-indigo-200">
                                                                 <i class="fas fa-file-pdf text-rose-500 text-xs"></i>
-                                                                <span class="truncate max-w-[100px]">${fileName}</span>
+                                                                <span class="truncate max-w-[100px]">${safeFileName}</span>
                                                             </button>`;
                                                         }).join('')}
                                                     </div>
@@ -4876,20 +5097,29 @@
                     const waLink = getWhatsappLink(item.clientPhone);
                     const ticketCode = getTicketDisplay(item);
                     const safeId = String(item.id || '');
+                    const safeJsId = escapeJsAttr(safeId);
+                    const safeTicketCode = escapeHtml(ticketCode);
+                    const safeToolType = escapeHtml(item.toolType || 'Herramienta');
+                    const safeToolBrand = escapeHtml(item.toolBrand || '');
+                    const safeToolModel = escapeHtml(item.toolModel ? 'Modelo: ' + item.toolModel : 'Sin modelo especificado');
+                    const safeClientName = escapeHtml(item.clientName || 'Sin Nombre');
+                    const safeClientPhone = escapeHtml(item.clientPhone || '');
+                    const safeClientAddress = escapeHtml(item.clientAddress || '');
+                    const safeFailureDesc = escapeHtml(item.failureDescription || '');
 
                     return `
                     <div class="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-900 shadow-sm p-6 space-y-4 hover:shadow-md transition-shadow">
                         <div class="flex items-start justify-between border-b border-slate-100 dark:border-slate-900 pb-3">
                             <div>
                                 <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400 block">Orden ST-</span>
-                                <h3 class="font-black text-sky-600 dark:text-sky-400 text-lg">ST-${ticketCode}</h3>
+                                <h3 class="font-black text-sky-600 dark:text-sky-400 text-lg">ST-${safeTicketCode}</h3>
                             </div>
                             ${getStatusSelector(safeId, item.status)}
                         </div>
 
                         <div>
-                            <h4 class="font-black text-slate-900 dark:text-white text-base">${item.toolType || 'Herramienta'} - ${item.toolBrand || ''}</h4>
-                            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">${item.toolModel ? 'Modelo: ' + item.toolModel : 'Sin modelo especificado'}</p>
+                            <h4 class="font-black text-slate-900 dark:text-white text-base">${safeToolType} - ${safeToolBrand}</h4>
+                            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">${safeToolModel}</p>
                         </div>
 
                         ${images.length > 0 ? (() => {
@@ -4912,8 +5142,8 @@
                             const badgeHtml = getImageUploadBadge(selectedImg);
                             const driveId = extractDriveId(selectedImg);
                             return `
-                            <div class="relative cursor-pointer group" onclick="openGalleryModal('${safeId}', ${selectedIdx})">
-                                <img src="${firstImgSrc}" ${driveId ? `data-drive-id="${driveId}"` : ''} alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity" onerror="this.onerror=null; this.src='${getPlaceholderSvg('Foto no disponible')}';">
+                            <div class="relative cursor-pointer group" onclick="openGalleryModal('${safeJsId}', ${selectedIdx})">
+                                <img src="${firstImgSrc}" ${driveId ? `data-drive-id="${escapeHtml(driveId)}"` : ''} alt="Foto herramienta" class="w-full h-44 object-cover rounded-2xl border border-slate-200 dark:border-slate-900 group-hover:opacity-95 transition-opacity" onerror="this.onerror=null; this.src='${getPlaceholderSvg('Foto no disponible')}';">
                                 <span class="absolute bottom-2.5 right-2.5 bg-slate-900/85 text-white text-xs font-black px-3 py-1.5 rounded-xl backdrop-blur-sm flex items-center shadow-lg border border-slate-700">
                                     <i class="fas fa-search-plus mr-1.5 text-sky-400 text-sm"></i> Lupa HD (${images.length} foto/s)
                                 </span>
@@ -4923,17 +5153,17 @@
                         })() : ''}
 
                         <div class="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl text-xs space-y-2.5 border border-slate-100 dark:border-slate-800">
-                            <div class="text-slate-700 dark:text-slate-300 font-semibold"><strong class="text-slate-900 dark:text-white font-extrabold">Cliente:</strong> ${item.clientName || 'Sin Nombre'}</div>
+                            <div class="text-slate-700 dark:text-slate-300 font-semibold"><strong class="text-slate-900 dark:text-white font-extrabold">Cliente:</strong> ${safeClientName}</div>
                             <div class="text-slate-500 dark:text-slate-400 flex items-center justify-between font-semibold">
-                                <span><strong class="text-slate-700 dark:text-slate-300 font-extrabold">Tel:</strong> ${item.clientPhone || ''}</span>
+                                <span><strong class="text-slate-700 dark:text-slate-300 font-extrabold">Tel:</strong> ${safeClientPhone}</span>
                                 ${waLink ? `
                                     <a href="${waLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 rounded-xl text-xs font-black hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 shadow-sm">
                                         <i class="fab fa-whatsapp text-sm mr-1 text-emerald-500"></i> WhatsApp
                                     </a>
                                 ` : ''}
                             </div>
-                            ${item.clientAddress ? `<div class="text-slate-500 dark:text-slate-400 font-semibold"><strong class="text-slate-700 dark:text-slate-300 font-extrabold">Dom:</strong> ${item.clientAddress}</div>` : ''}
-                            <div class="text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-200/60 dark:border-slate-700 font-medium"><strong class="text-slate-800 dark:text-slate-200 font-extrabold">Falla:</strong> ${item.failureDescription || ''}</div>
+                            ${item.clientAddress ? `<div class="text-slate-500 dark:text-slate-400 font-semibold"><strong class="text-slate-700 dark:text-slate-300 font-extrabold">Dom:</strong> ${safeClientAddress}</div>` : ''}
+                            <div class="text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-200/60 dark:border-slate-700 font-medium"><strong class="text-slate-800 dark:text-slate-200 font-extrabold">Falla:</strong> ${safeFailureDesc}</div>
 
                             <!-- (VISUALIZADOR DE MÚLTIPLES DESPIECES) -->
                             ${despieces.length > 0 ? `
@@ -4941,11 +5171,12 @@
                                     <span class="text-[10px] font-black uppercase text-slate-400 block">Despieces Adjuntos (${despieces.length}):</span>
                                     <div class="flex flex-wrap gap-1.5">
                                         ${despieces.map((dFile, dIdx) => {
-                                            const fileName = typeof dFile === 'string' ? dFile : (dFile && dFile.name ? dFile.name : 'Despiece');
+                                            const rawFileName = typeof dFile === 'string' ? dFile : (dFile && dFile.name ? dFile.name : 'Despiece');
+                                            const safeFileName = escapeHtml(rawFileName);
                                             return `
-                                            <button onclick="openDespieceModal('${safeId}', ${dIdx})" title="Ver ${fileName}" class="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-950 dark:hover:bg-indigo-900 text-indigo-800 dark:text-indigo-200 font-extrabold rounded-xl text-xs flex items-center space-x-1 shadow-sm border border-indigo-200 dark:border-indigo-800">
-                                                <i class="${getDespieceIconClass(fileName)} text-xs"></i>
-                                                <span class="truncate max-w-[120px]">${fileName}</span>
+                                            <button onclick="openDespieceModal('${safeJsId}', ${dIdx})" title="Ver ${safeFileName}" class="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-950 dark:hover:bg-indigo-900 text-indigo-800 dark:text-indigo-200 font-extrabold rounded-xl text-xs flex items-center space-x-1 shadow-sm border border-indigo-200 dark:border-indigo-800">
+                                                <i class="${getDespieceIconClass(rawFileName)} text-xs"></i>
+                                                <span class="truncate max-w-[120px]">${safeFileName}</span>
                                             </button>`;
                                         }).join('')}
                                     </div>
@@ -4980,17 +5211,17 @@
                         ` : ''}
 
                         <div class="flex items-center justify-between text-xs pt-1">
-                            <button onclick="openPaymentModal('${item.id}')" class="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-black rounded-xl transition-colors text-xs flex items-center shadow-sm">
+                            <button onclick="openPaymentModal('${safeJsId}')" class="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-black rounded-xl transition-colors text-xs flex items-center shadow-sm">
                                 <i class="fas fa-hand-holding-dollar mr-1.5 text-sm"></i> + Cobro
                             </button>
                             <div class="flex items-center space-x-1.5">
-                                <button onclick="editService('${item.id}')" class="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-xl font-extrabold transition-colors text-xs">
+                                <button onclick="editService('${safeJsId}')" class="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-xl font-extrabold transition-colors text-xs">
                                     <i class="fas fa-edit mr-1"></i> Editar
                                 </button>
-                                <button onclick="openReceipt('${item.id}')" class="p-2.5 text-slate-600 dark:text-slate-300 hover:text-emerald-600 rounded-xl" title="Imprimir Comprobante">
+                                <button onclick="openReceipt('${safeJsId}')" class="p-2.5 text-slate-600 dark:text-slate-300 hover:text-emerald-600 rounded-xl" title="Imprimir Comprobante">
                                     <i class="fas fa-print text-base"></i>
                                 </button>
-                                <button onclick="promptDeleteService('${item.id}')" class="p-2.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 rounded-xl" title="Eliminar Orden">
+                                <button onclick="promptDeleteService('${safeJsId}')" class="p-2.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 rounded-xl" title="Eliminar Orden">
                                     <i class="fas fa-trash-alt text-base"></i>
                                 </button>
                             </div>
@@ -5290,7 +5521,7 @@
                 const driveId = extractDriveId(item);
                 return `
                 <div class="relative group">
-                    <img src="${imgSrc}" ${driveId ? `data-drive-id="${driveId}"` : ''} alt="Foto ${idx+1}" class="w-full h-24 object-cover rounded-xl border border-slate-300 dark:border-slate-700">
+                    <img src="${imgSrc}" ${driveId ? `data-drive-id="${escapeHtml(driveId)}"` : ''} alt="Foto ${idx+1}" class="w-full h-24 object-cover rounded-xl border border-slate-300 dark:border-slate-700">
                     ${badgeHtml ? `<div class="absolute top-1 left-1">${badgeHtml}</div>` : ''}
                     <button type="button" onclick="removeImageFromForm(${idx})" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 text-xs hover:bg-rose-700 shadow">
                         <i class="fas fa-times"></i>
@@ -5351,11 +5582,12 @@
 
             list.innerHTML = currentDespieceFiles.map((file, idx) => {
                 const isPending = file.pendingUpload;
+                const safeFileName = escapeHtml(file.name || '');
                 return `
                 <div class="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
                     <div class="flex items-center space-x-2 truncate mr-2">
                         <i class="${getDespieceIconClass(file.name)} text-base"></i>
-                        <span class="font-extrabold text-slate-800 dark:text-slate-200 truncate">${file.name}</span>
+                        <span class="font-extrabold text-slate-800 dark:text-slate-200 truncate">${safeFileName}</span>
                         ${isPending ? '<span class="px-1.5 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-bold rounded">Pendiente</span>' : '<span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded">Drive</span>'}
                     </div>
                     <button type="button" onclick="removeDespieceFromForm(${idx})" class="text-slate-400 hover:text-rose-600 p-1">
@@ -5410,13 +5642,14 @@
             const modalEl = document.getElementById('despiece-inline-modal');
 
             const fileName = file.name || 'Despiece de Herramienta';
+            const safeFileName = escapeHtml(fileName);
             const driveId = extractDriveId(file);
 
             if (titleEl) titleEl.innerText = fileName;
             if (iconEl) iconEl.className = `${getDespieceIconClass(fileName)} text-lg`;
 
             if (driveId) {
-                const driveUrl = `https://drive.google.com/file/d/${driveId}/preview`;
+                const driveUrl = `https://drive.google.com/file/d/${encodeURIComponent(driveId)}/preview`;
                 if (contentEl) {
                     contentEl.innerHTML = `
                         <iframe src="${driveUrl}" class="w-full h-full rounded-xl border-0" allow="autoplay"></iframe>
@@ -5433,9 +5666,9 @@
                             <object data="${dataString}" type="application/pdf" class="w-full h-full rounded-xl">
                                 <iframe src="${dataString}" class="w-full h-full rounded-xl border-0">
                                     <div class="p-6 text-center text-white text-sm">
-                                        <p class="mb-4 font-bold">Documento PDF / Despiece: ${fileName}</p>
+                                        <p class="mb-4 font-bold">Documento PDF / Despiece: ${safeFileName}</p>
                                         <button onclick="downloadDespieceCurrent()" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold rounded-xl text-xs shadow-lg">
-                                            <i class="fas fa-download mr-1.5"></i> Descargar / Ver ${fileName}
+                                            <i class="fas fa-download mr-1.5"></i> Descargar / Ver ${safeFileName}
                                         </button>
                                     </div>
                                 </iframe>
@@ -5963,7 +6196,7 @@
             const mdl = document.getElementById('save-success-modal');
 
             if (ttl) ttl.innerText = `¡Orden ST-${ticketNum} Guardada!`;
-            if (msg) msg.innerHTML = `${message}<br><br><span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs">✓ Orden guardada en la Base de Datos con fotografías y despieces.</span>`;
+            if (msg) msg.innerHTML = `${escapeHtml(message)}<br><br><span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs">✓ Orden guardada en la Base de Datos con fotografías y despieces.</span>`;
             if (mdl) mdl.classList.remove('hidden');
         }
 
@@ -6072,8 +6305,22 @@
             if (!orderToDeleteId) return;
 
             const idToDelete = orderToDeleteId;
+            const targetOrder = allServices.find(s => s.id === idToDelete);
+            if (targetOrder) {
+                const fids = [];
+                if (Array.isArray(targetOrder.imagesBase64)) {
+                    targetOrder.imagesBase64.forEach(img => { const fid = extractDriveId(img); if (fid) fids.push(fid); });
+                }
+                if (Array.isArray(targetOrder.despieceFiles)) {
+                    targetOrder.despieceFiles.forEach(f => { const fid = extractDriveId(f); if (fid) fids.push(fid); });
+                }
+                if (fids.length > 0) addPendingTrashedFileIds(fids);
+            }
+
             closeDeleteModal();
 
+            recentlyDeletedOrderIds.push(idToDelete);
+            addPendingDeletedOrderId(idToDelete);
             allServices = allServices.filter(s => s.id !== idToDelete);
             await ADL_DB.deleteOrder(idToDelete);
             await saveDatabaseData();
@@ -6211,6 +6458,15 @@
 
             if (activePrintType === 'payment') {
                 const p = activePaymentReceiptData;
+                const safeReceiptNum = escapeHtml(p.receiptNum);
+                const safeDate = escapeHtml(p.date);
+                const safeClientName = escapeHtml(p.clientName);
+                const safeClientDni = escapeHtml(p.clientDni);
+                const safeClientPhone = escapeHtml(p.clientPhone);
+                const safeOrderNum = escapeHtml(p.orderNum);
+                const safeClientAddress = escapeHtml(p.clientAddress);
+                const safeToolInfo = escapeHtml(p.toolInfo);
+
                 container.innerHTML = `
                     <div class="print-receipt-page p-2 sm:p-4">
                         <div class="print-receipt-header text-center border-b-2 border-slate-800 pb-2 mb-2">
@@ -6222,26 +6478,26 @@
                             <div class="grid grid-cols-2 gap-3 bg-slate-100 p-3 rounded-2xl border border-slate-300 text-sm">
                                 <div>
                                     <span class="text-slate-500 font-extrabold block text-xs uppercase">Nº DE RECIBO</span>
-                                    <strong class="text-2xl sm:text-3xl font-black text-sky-900 print-ticket-number tracking-tight">${p.receiptNum}</strong>
+                                    <strong class="text-2xl sm:text-3xl font-black text-sky-900 print-ticket-number tracking-tight">${safeReceiptNum}</strong>
                                 </div>
                                 <div class="text-right">
                                     <span class="text-slate-500 font-extrabold block text-xs uppercase">FECHA Y HORA</span>
-                                    <strong class="text-sm text-slate-800">${p.date}</strong>
+                                    <strong class="text-sm text-slate-800">${safeDate}</strong>
                                 </div>
                             </div>
 
                             <div class="bg-white p-3 rounded-2xl border border-slate-200 space-y-1.5 text-sm">
                                 <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DATOS DE LA OPERACIÓN</h4>
                                 <div class="grid grid-cols-2 gap-2 pt-1">
-                                    <p><strong class="text-slate-700">Cliente:</strong> ${p.clientName}</p>
-                                    <p><strong class="text-slate-700">DNI / CUIT:</strong> ${p.clientDni}</p>
+                                    <p><strong class="text-slate-700">Cliente:</strong> ${safeClientName}</p>
+                                    <p><strong class="text-slate-700">DNI / CUIT:</strong> ${safeClientDni}</p>
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
-                                    <p><strong class="text-slate-700">Teléfono:</strong> ${p.clientPhone}</p>
-                                    <p><strong class="text-slate-700">Orden de Servicio:</strong> <strong class="text-sky-800">${p.orderNum}</strong></p>
+                                    <p><strong class="text-slate-700">Teléfono:</strong> ${safeClientPhone}</p>
+                                    <p><strong class="text-slate-700">Orden de Servicio:</strong> <strong class="text-sky-800">${safeOrderNum}</strong></p>
                                 </div>
-                                ${p.clientAddress ? `<p><strong class="text-slate-700">Domicilio:</strong> ${p.clientAddress}</p>` : ''}
-                                <p><strong class="text-slate-700">Herramienta:</strong> ${p.toolInfo}</p>
+                                ${safeClientAddress ? `<p><strong class="text-slate-700">Domicilio:</strong> ${safeClientAddress}</p>` : ''}
+                                <p><strong class="text-slate-700">Herramienta:</strong> ${safeToolInfo}</p>
                             </div>
 
                             <div class="bg-emerald-50 border-2 border-emerald-300 p-3.5 rounded-2xl text-center space-y-1">
@@ -6279,6 +6535,19 @@
                 const rawImages = item.imagesBase64 || [];
                 const showImagesPage = includeImages && rawImages.length > 0;
 
+                const safeTicketCode = escapeHtml(getTicketDisplay(item));
+                const safeDateCreated = escapeHtml(dateCreated);
+                const safeClientName = escapeHtml(item.clientName);
+                const safeClientDni = escapeHtml(item.clientDni || '-');
+                const safeClientCode = escapeHtml(item.clientCode || '-');
+                const safeClientPhone = escapeHtml(item.clientPhone);
+                const safeClientAddress = escapeHtml(item.clientAddress);
+                const safeToolType = escapeHtml(item.toolType);
+                const safeToolBrand = escapeHtml(item.toolBrand);
+                const safeToolModel = escapeHtml(item.toolModel || '');
+                const safeToolAccessories = escapeHtml(item.toolAccessories || 'Ninguno');
+                const safeFailureDesc = escapeHtml(item.failureDescription || 'Sin observaciones');
+
                 container.innerHTML = `
                     <div class="print-receipt-page p-2 sm:p-4">
                         <div class="print-receipt-header text-center border-b-2 border-slate-800 pb-2 mb-2">
@@ -6291,11 +6560,11 @@
                             <div class="grid grid-cols-2 gap-3 bg-slate-100 p-3 rounded-2xl border border-slate-300 text-sm">
                                 <div>
                                     <span class="text-slate-500 font-black block text-xs uppercase tracking-wider">ORDEN DE SERVICIO</span>
-                                    <strong class="text-3xl sm:text-4xl font-black text-sky-900 print-ticket-number tracking-tight">ST-${getTicketDisplay(item)}</strong>
+                                    <strong class="text-3xl sm:text-4xl font-black text-sky-900 print-ticket-number tracking-tight">ST-${safeTicketCode}</strong>
                                 </div>
                                 <div class="text-right">
                                     <span class="text-slate-500 font-black block text-xs uppercase tracking-wider">FECHA DE CARGA</span>
-                                    <strong class="text-sm font-bold text-slate-800">${dateCreated}</strong>
+                                    <strong class="text-sm font-bold text-slate-800">${safeDateCreated}</strong>
                                 </div>
                             </div>
 
@@ -6303,27 +6572,27 @@
                             <div class="bg-white p-3 rounded-2xl border border-slate-200 text-sm space-y-1.5">
                                 <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DATOS DEL CLIENTE</h4>
                                 <div class="grid grid-cols-2 gap-2 pt-1">
-                                    <p><strong class="text-slate-700">Nombre:</strong> ${item.clientName}</p>
-                                    <p><strong class="text-slate-700">DNI / CUIT:</strong> ${item.clientDni || '-'}</p>
+                                    <p><strong class="text-slate-700">Nombre:</strong> ${safeClientName}</p>
+                                    <p><strong class="text-slate-700">DNI / CUIT:</strong> ${safeClientDni}</p>
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
-                                    <p><strong class="text-slate-700">Código Cliente:</strong> ${item.clientCode || '-'}</p>
-                                    <p><strong class="text-slate-700">Teléfono / WhatsApp:</strong> ${item.clientPhone}</p>
+                                    <p><strong class="text-slate-700">Código Cliente:</strong> ${safeClientCode}</p>
+                                    <p><strong class="text-slate-700">Teléfono / WhatsApp:</strong> ${safeClientPhone}</p>
                                 </div>
-                                ${item.clientAddress ? `<p><strong class="text-slate-700">Domicilio:</strong> ${item.clientAddress}</p>` : ''}
+                                ${safeClientAddress ? `<p><strong class="text-slate-700">Domicilio:</strong> ${safeClientAddress}</p>` : ''}
                             </div>
 
                             <!-- Bloque: Detalle de la Herramienta -->
                             <div class="bg-white p-3 rounded-2xl border border-slate-200 text-sm space-y-1.5">
                                 <h4 class="font-black uppercase text-xs text-sky-800 tracking-wider border-b border-slate-200 pb-1">DETALLE DE LA HERRAMIENTA</h4>
                                 <div class="grid grid-cols-2 gap-2 pt-1">
-                                    <p><strong class="text-slate-700">Equipo:</strong> ${item.toolType}</p>
-                                    <p><strong class="text-slate-700">Marca / Modelo:</strong> ${item.toolBrand} ${item.toolModel || ''}</p>
+                                    <p><strong class="text-slate-700">Equipo:</strong> ${safeToolType}</p>
+                                    <p><strong class="text-slate-700">Marca / Modelo:</strong> ${safeToolBrand} ${safeToolModel}</p>
                                 </div>
-                                <p><strong class="text-slate-700">Accesorios incluidos:</strong> ${item.toolAccessories || 'Ninguno'}</p>
+                                <p><strong class="text-slate-700">Accesorios incluidos:</strong> ${safeToolAccessories}</p>
                                 <div class="pt-1">
                                     <strong class="text-slate-700 block text-xs uppercase tracking-wider mb-1">FALLA Y DIAGNÓSTICO:</strong>
-                                    <div class="bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-200 text-slate-800 italic font-medium whitespace-pre-line leading-relaxed print-failure-box">${item.failureDescription || 'Sin observaciones'}</div>
+                                    <div class="bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-200 text-slate-800 italic font-medium whitespace-pre-line leading-relaxed print-failure-box">${safeFailureDesc}</div>
                                 </div>
                             </div>
 
@@ -6356,13 +6625,13 @@
                             <div class="print-photo-header text-center border-b-2 border-slate-800 pb-1 mb-1.5">
                                 <div class="flex justify-between items-center text-xs font-black uppercase text-slate-900 tracking-wider">
                                     <span>ADL SERVICIO TÉCNICO — FOTOGRAFÍA ADJUNTA</span>
-                                    <span>ORDEN ST-${getTicketDisplay(item)}</span>
+                                    <span>ORDEN ST-${safeTicketCode}</span>
                                     <span>FOTO ${idx + 1} DE ${rawImages.length}</span>
                                 </div>
-                                <p class="text-[11px] font-bold text-slate-600 truncate mt-0.5">${item.clientName ? `Cliente: ${item.clientName} | ` : ''}${item.toolBrand || ''} ${item.toolModel || ''} (${item.toolType || ''})</p>
+                                <p class="text-[11px] font-bold text-slate-600 truncate mt-0.5">${safeClientName ? `Cliente: ${safeClientName} | ` : ''}${safeToolBrand} ${safeToolModel} (${safeToolType})</p>
                             </div>
                             <div class="print-photo-body">
-                                <img src="${src}" ${driveId ? `data-drive-id="${driveId}"` : ''} alt="Foto ${idx + 1}" class="print-photo-img rounded-xl border border-slate-200 shadow-sm" onerror="this.onerror=null; if(driveId && !this.src.includes('lh3.googleusercontent.com')){ this.src='https://lh3.googleusercontent.com/d/' + driveId + '=w1200'; } else { this.src='${getPlaceholderSvg('Foto no disponible')}'; }">
+                                <img src="${src}" ${driveId ? `data-drive-id="${escapeHtml(driveId)}"` : ''} alt="Foto ${idx + 1}" class="print-photo-img rounded-xl border border-slate-200 shadow-sm" onerror="this.onerror=null; if(driveId && !this.src.includes('lh3.googleusercontent.com')){ this.src='https://lh3.googleusercontent.com/d/' + driveId + '=w1200'; } else { this.src='${getPlaceholderSvg('Foto no disponible')}'; }">
                             </div>
                         </div>
                         `;
@@ -6733,15 +7002,16 @@
 
         function getStatusSelector(orderId, currentStatus) {
             const safeId = String(orderId || '');
+            const safeJsId = escapeJsAttr(safeId);
             const status = currentStatus || 'Ingresado';
             const colorClass = getStatusSelectClass(status);
             const iconClass = getStatusIcon(status);
             const options = ORDER_STATUSES.map(s =>
-                `<option value="${s}" ${s === status ? 'selected' : ''}>${getStatusShortLabel(s)}</option>`
+                `<option value="${escapeHtml(s)}" ${s === status ? 'selected' : ''}>${escapeHtml(getStatusShortLabel(s))}</option>`
             ).join('');
             return `<div class="relative inline-block min-w-[210px] max-w-[240px]">
                 <i class="fas ${iconClass} absolute left-3.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none z-10"></i>
-                <select onchange="changeOrderStatus('${safeId}', this.value)" onclick="event.stopPropagation()" title="Cambiar estado de la orden" class="status-order-select ${colorClass} w-full pl-10 pr-8 py-2.5 font-extrabold text-sm rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm appearance-none">${options}</select>
+                <select onchange="changeOrderStatus('${safeJsId}', this.value)" onclick="event.stopPropagation()" title="Cambiar estado de la orden" class="status-order-select ${colorClass} w-full pl-10 pr-8 py-2.5 font-extrabold text-sm rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm appearance-none">${options}</select>
                 <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none opacity-80"></i>
             </div>`;
         }
