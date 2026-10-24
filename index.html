@@ -92,9 +92,6 @@
             padding-right: max(1rem, env(safe-area-inset-right));
         }
 
-        .block { display: block !important; }
-        .flex { display: flex !important; }
-        .grid { display: grid !important; }
         .hidden { display: none !important; }
         
         .tab-content.hidden {
@@ -447,68 +444,77 @@
     <div id="main-app" class="min-h-screen flex-1 flex flex-col filter blur-sm pointer-events-none transition-all duration-300">
         
         <!-- HEADER AMPLIO Y ACCESIBLE -->
-        <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-30 border-b border-slate-800 py-2 sm:py-2.5">
-            <div class="w-full max-w-[1920px] mx-auto px-3 sm:px-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 md:gap-4">
+        <!-- HEADER DE DOBLE HILERA / ALTURA (MÓVIL Y DESKTOP - NAVEGACIÓN 1-CLIC) -->
+        <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-30 border-b border-slate-800">
+            <div class="w-full max-w-[1920px] mx-auto px-3 sm:px-6">
                 
-                <!-- Brand & Logo Row + Quick Controls -->
-                <div class="flex items-center justify-between w-full md:w-auto shrink-0 gap-2">
-                    <div class="flex items-center space-x-2.5 cursor-pointer select-none" onclick="switchTab('services')" title="ADL Servicio Técnico">
+                <!-- HILERA 1 (SUPERIOR): Identidad, Sincronización y Acciones Rápidas -->
+                <div class="flex items-center justify-between py-2 sm:py-2.5 border-b border-slate-800/80 gap-3">
+                    <!-- Marca & Sincronización -->
+                    <div class="flex items-center space-x-2.5 sm:space-x-3 cursor-pointer select-none" onclick="switchTab('services')" title="ADL Servicio Técnico">
                         <div class="bg-gradient-to-br from-slate-800 to-sky-900 p-2 sm:p-2.5 rounded-2xl shadow-lg border border-slate-700 flex items-center justify-center shrink-0">
                             <i class="fas fa-screwdriver-wrench text-xl sm:text-2xl text-sky-400"></i>
                         </div>
                         <div class="flex flex-col items-start justify-center">
                             <span class="font-black text-sm sm:text-base tracking-wider block leading-tight text-white">ADL SERVICIO TÉCNICO</span>
                             <span id="sync-status-badge" class="w-fit inline-flex items-center space-x-1.5 mt-0.5 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 whitespace-nowrap text-[10px] sm:text-[11px] text-sky-400 font-extrabold">
-                                <span class="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0"></span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
                                 <span>Híbrido (0)</span>
                             </span>
                         </div>
                     </div>
 
-                    <!-- Quick buttons (Drive & Theme) -->
-                    <div class="flex items-center space-x-1.5 shrink-0">
+                    <!-- Controles Rápidos: Drive, Tema y Usuario -->
+                    <div class="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
                         <button onclick="downloadDatabaseFromDrive()" title="Descargar / Actualizar desde Google Drive" class="p-2 sm:px-3 bg-sky-950/80 hover:bg-sky-900 text-sky-300 rounded-xl border border-sky-700/80 flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm">
                             <i class="fas fa-cloud-arrow-down text-sky-400 text-sm"></i>
-                            <span class="hidden xl:inline text-xs font-bold">Bajar</span>
+                            <span class="hidden sm:inline text-xs font-bold">Bajar</span>
                         </button>
                         <button onclick="uploadDatabaseToDrive()" title="Subir / Guardar base en Google Drive" class="p-2 sm:px-3 bg-sky-950/80 hover:bg-sky-900 text-sky-300 rounded-xl border border-sky-700/80 flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm">
                             <i class="fas fa-cloud-arrow-up text-sky-400 text-sm"></i>
-                            <span class="hidden xl:inline text-xs font-bold">Subir</span>
+                            <span class="hidden sm:inline text-xs font-bold">Subir</span>
                         </button>
                         <button onclick="toggleDarkMode()" title="Cambiar Modo Claro/Oscuro" class="p-2 sm:px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm">
                             <i class="theme-toggle-icon fas fa-moon text-amber-400 text-sm"></i>
                         </button>
+                        <div id="header-user-badge-desktop" class="hidden items-center space-x-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700 text-xs text-slate-300">
+                            <i class="fas fa-user-circle text-sky-400"></i>
+                            <span id="header-username-text-desktop" class="font-bold">admin</span>
+                            <button onclick="logoutUser('Sesión cerrada a petición del usuario.')" title="Cerrar Sesión" class="ml-1 text-slate-400 hover:text-rose-400 cursor-pointer">
+                                <i class="fas fa-right-from-bracket text-[11px]"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- NAVBAR CENTRAL -->
-                <nav class="w-full md:flex-1 flex items-center justify-start md:justify-end xl:justify-center overflow-x-auto gap-1.5 sm:gap-2 py-1 scrollbar-none">
-                    <button onclick="switchTab('services')" id="nav-services" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-lg bg-sky-600 text-white border-sky-400 shadow-sky-600/30 whitespace-nowrap">
+                <!-- HILERA 2 (INFERIOR): Barra de Navegación 1-Clic Completa -->
+                <nav class="w-full flex items-center justify-start sm:justify-center overflow-x-auto gap-1.5 sm:gap-2.5 py-2 scrollbar-none">
+                    <button onclick="switchTab('services')" id="nav-services" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-lg bg-sky-600 text-white border-sky-400 shadow-sky-600/30 whitespace-nowrap cursor-pointer">
                         <i class="fas fa-screwdriver-wrench text-sm mr-1.5 text-white"></i>
                         <span>Órdenes</span>
                     </button>
                     
-                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap cursor-pointer">
                         <i class="fas fa-chart-pie text-sm mr-1.5 text-sky-400"></i>
                         <span>Panel Resumen</span>
                     </button>
 
-                    <button onclick="switchTab('clients')" id="nav-clients" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                    <button onclick="switchTab('clients')" id="nav-clients" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap cursor-pointer">
                         <i class="fas fa-users text-sm mr-1.5 text-sky-400"></i>
                         <span>Clientes</span>
                     </button>
 
-                    <button onclick="switchTab('current-accounts')" id="nav-current-accounts" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                    <button onclick="switchTab('current-accounts')" id="nav-current-accounts" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap cursor-pointer">
                         <i class="fas fa-file-invoice-dollar text-sm mr-1.5 text-amber-400"></i>
-                        <span>Cuentas corrientes</span>
+                        <span>Cuentas Corrientes</span>
                     </button>
 
-                    <button onclick="onNewOrderNavClicked()" id="nav-new-service" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
-                        <i class="fas fa-plus-circle text-sm mr-1.5 text-sky-400"></i>
+                    <button onclick="onNewOrderNavClicked()" id="nav-new-service" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap cursor-pointer">
+                        <i class="fas fa-plus-circle text-sm mr-1.5 text-emerald-400"></i>
                         <span>Nueva Orden</span>
                     </button>
 
-                    <button onclick="switchTab('database')" id="nav-database" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap">
+                    <button onclick="switchTab('database')" id="nav-database" class="nav-btn shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all border flex items-center justify-center shadow-md bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700/80 whitespace-nowrap cursor-pointer">
                         <i class="fas fa-database text-sm mr-1.5 text-sky-400"></i>
                         <span>BD / Excel</span>
                     </button>
@@ -622,53 +628,77 @@
                     </div>
 
                     <!-- TARJETAS KPIS / BOTONES CLICKEABLES (ESTILO MERCADO LIBRE CON LÍNEA ACENTO SUPERIOR) -->
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                         
                         <!-- Tarjeta 1: Ingresos Cobrados -->
-                        <button type="button" onclick="selectDashboardMetric('paid')" id="metric-card-paid" class="text-left bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer shadow-sm relative overflow-hidden group border-t-4 border-t-emerald-500 ring-2 ring-emerald-500/20">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ingresos Cobrados</span>
-                                <i class="fas fa-money-bill-wave text-emerald-500 text-lg"></i>
+                        <button type="button" onclick="selectDashboardMetric('paid')" id="metric-card-paid" class="text-left bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer shadow-sm relative overflow-hidden group border-t-4 border-t-emerald-500 ring-2 ring-emerald-500/20">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cobrado</span>
+                                <i class="fas fa-money-bill-wave text-emerald-500 text-base"></i>
                             </div>
-                            <h3 id="dash-stat-paid" class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">$ 0</h3>
-                            <p class="text-[11px] text-slate-400 font-semibold mt-1 flex items-center">
-                                <i class="fas fa-arrow-trend-up text-emerald-500 mr-1"></i> Cobro efectivo abonado
+                            <h3 id="dash-stat-paid" class="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">$ 0</h3>
+                            <p class="text-[10px] text-slate-400 font-semibold mt-1 truncate">
+                                <i class="fas fa-arrow-trend-up text-emerald-500 mr-1"></i> Cobro efectivo
                             </p>
                         </button>
 
-                        <!-- Tarjeta 2: Presupuesto Generado -->
-                        <button type="button" onclick="selectDashboardMetric('budget')" id="metric-card-budget" class="text-left bg-slate-50 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer opacity-80 hover:opacity-100 relative overflow-hidden group">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Presupuesto Generado</span>
-                                <i class="fas fa-calculator text-sky-500 text-lg"></i>
+                        <!-- Tarjeta 2: Ganancia Real -->
+                        <button type="button" onclick="selectDashboardMetric('profit')" id="metric-card-profit" class="text-left bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer opacity-80 hover:opacity-100 relative overflow-hidden group">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ganancia Real</span>
+                                <i class="fas fa-coins text-teal-500 text-base"></i>
                             </div>
-                            <h3 id="dash-stat-budget" class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">$ 0</h3>
-                            <p class="text-[11px] text-slate-400 font-semibold mt-1 flex items-center">
-                                <i class="fas fa-file-invoice text-sky-500 mr-1"></i> Facturación bruta cotizada
+                            <h3 id="dash-stat-profit" class="text-xl sm:text-2xl font-black text-teal-600 dark:text-teal-400 tracking-tight">$ 0</h3>
+                            <p class="text-[10px] text-slate-400 font-semibold mt-1 truncate">
+                                <i class="fas fa-sack-dollar text-teal-500 mr-1"></i> Presup. - Costos
                             </p>
                         </button>
 
-                        <!-- Tarjeta 3: Saldo por Cobrar -->
-                        <button type="button" onclick="selectDashboardMetric('debt')" id="metric-card-debt" class="text-left bg-slate-50 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer opacity-80 hover:opacity-100 relative overflow-hidden group">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Saldo por Cobrar</span>
-                                <i class="fas fa-hand-holding-dollar text-rose-500 text-lg"></i>
+                        <!-- Tarjeta 3: Costos / Insumos -->
+                        <button type="button" onclick="selectDashboardMetric('cost')" id="metric-card-cost" class="text-left bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer opacity-80 hover:opacity-100 relative overflow-hidden group">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Costos/Insumos</span>
+                                <i class="fas fa-wrench text-amber-500 text-base"></i>
                             </div>
-                            <h3 id="dash-stat-debt" class="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tight">$ 0</h3>
-                            <p class="text-[11px] text-slate-400 font-semibold mt-1 flex items-center">
-                                <i class="fas fa-clock text-rose-500 mr-1"></i> Pendiente de cobro
+                            <h3 id="dash-stat-cost" class="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tight">$ 0</h3>
+                            <p class="text-[10px] text-slate-400 font-semibold mt-1 truncate">
+                                <i class="fas fa-receipt text-amber-500 mr-1"></i> Repuestos/insumos
                             </p>
                         </button>
 
-                        <!-- Tarjeta 4: Cantidad de Órdenes -->
-                        <button type="button" onclick="selectDashboardMetric('count')" id="metric-card-count" class="text-left bg-slate-50 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer opacity-80 hover:opacity-100 relative overflow-hidden group">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Órdenes / Servicios</span>
-                                <i class="fas fa-cubes text-indigo-500 text-lg"></i>
+                        <!-- Tarjeta 4: Presupuesto Generado -->
+                        <button type="button" onclick="selectDashboardMetric('budget')" id="metric-card-budget" class="text-left bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer opacity-80 hover:opacity-100 relative overflow-hidden group">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Presupuesto</span>
+                                <i class="fas fa-calculator text-sky-500 text-base"></i>
                             </div>
-                            <h3 id="dash-stat-orders-count" class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">0</h3>
-                            <p class="text-[11px] text-slate-400 font-semibold mt-1 flex items-center">
-                                <i class="fas fa-tools text-indigo-500 mr-1"></i> Equipos recepcionados
+                            <h3 id="dash-stat-budget" class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">$ 0</h3>
+                            <p class="text-[10px] text-slate-400 font-semibold mt-1 truncate">
+                                <i class="fas fa-file-invoice text-sky-500 mr-1"></i> Cotizado total
+                            </p>
+                        </button>
+
+                        <!-- Tarjeta 5: Saldo por Cobrar -->
+                        <button type="button" onclick="selectDashboardMetric('debt')" id="metric-card-debt" class="text-left bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer opacity-80 hover:opacity-100 relative overflow-hidden group">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Saldo Deudor</span>
+                                <i class="fas fa-hand-holding-dollar text-rose-500 text-base"></i>
+                            </div>
+                            <h3 id="dash-stat-debt" class="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tight">$ 0</h3>
+                            <p class="text-[10px] text-slate-400 font-semibold mt-1 truncate">
+                                <i class="fas fa-clock text-rose-500 mr-1"></i> Por cobrar
+                            </p>
+                        </button>
+
+                        <!-- Tarjeta 6: Cantidad de Órdenes -->
+                        <button type="button" onclick="selectDashboardMetric('count')" id="metric-card-count" class="text-left bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer opacity-80 hover:opacity-100 relative overflow-hidden group">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Órdenes</span>
+                                <i class="fas fa-cubes text-indigo-500 text-base"></i>
+                            </div>
+                            <h3 id="dash-stat-orders-count" class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">0</h3>
+                            <p class="text-[10px] text-slate-400 font-semibold mt-1 truncate">
+                                <i class="fas fa-tools text-indigo-500 mr-1"></i> Equipos
                             </p>
                         </button>
 
@@ -720,9 +750,19 @@
                         <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">Directorio Único de Clientes</h1>
                         <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Identificación por DNI/CUIT, código correlativo y consolidado de herramientas</p>
                     </div>
-                    <div class="relative min-w-[280px]">
-                        <i class="fas fa-search absolute left-4 top-3.5 text-slate-400 text-sm"></i>
-                        <input type="text" id="client-search-input" oninput="renderClientsTab()" placeholder="Buscar por DNI, nombre o teléfono..." class="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-900 rounded-2xl text-sm font-semibold focus:outline-none focus:border-sky-500 shadow-sm">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                        <div class="relative min-w-[280px] flex-1 sm:flex-initial">
+                            <i class="fas fa-search absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+                            <input type="text" id="client-search-input" oninput="handleClientSearchInput(this.value)" placeholder="Buscar por DNI, nombre o teléfono..." class="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-900 rounded-2xl text-sm font-semibold focus:outline-none focus:border-sky-500 shadow-sm">
+                        </div>
+                        <div class="inline-flex bg-slate-200 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-300 dark:border-slate-700 shrink-0 self-end sm:self-auto">
+                            <button id="btn-client-view-grid" onclick="setClientViewMode('grid')" title="Vista Mosaico / Tarjetas" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all bg-white dark:bg-slate-950 text-sky-700 dark:text-sky-400 shadow-sm">
+                                <i class="fas fa-th-large mr-1.5"></i> Mosaico
+                            </button>
+                            <button id="btn-client-view-list" onclick="setClientViewMode('list')" title="Vista Lista Detallada" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                                <i class="fas fa-table-list mr-1.5"></i> Lista
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -850,8 +890,19 @@
                                     <input type="tel" id="client-phone" required class="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-semibold focus:outline-none focus:border-sky-500" placeholder="Ej. 3415478009">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Domicilio</label>
-                                    <input type="text" id="client-address" class="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-semibold focus:outline-none focus:border-sky-500" placeholder="Ej. Av. Pellegrini 1234">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Domicilio</label>
+                                        <a id="btn-open-maps-form" href="#" target="_blank" rel="noopener noreferrer" class="hidden text-[11px] font-black text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 inline-flex items-center space-x-1 transition-all" title="Ver dirección en Google Maps">
+                                            <i class="fas fa-map-location-dot text-xs text-rose-500"></i>
+                                            <span class="underline decoration-dotted underline-offset-2">Ver en Google Maps</span>
+                                        </a>
+                                    </div>
+                                    <div class="relative">
+                                        <input type="text" id="client-address" oninput="updateFormMapsButton()" class="w-full pl-4 pr-10 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-semibold focus:outline-none focus:border-sky-500" placeholder="Ej. Av. Pellegrini 1234">
+                                        <a id="btn-open-maps-inline" href="#" target="_blank" rel="noopener noreferrer" class="hidden absolute right-2.5 top-2.5 p-1.5 text-slate-400 hover:text-rose-600 rounded-xl transition-colors" title="Abrir ubicación en Google Maps">
+                                            <i class="fas fa-map-location-dot text-base text-rose-500"></i>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                             <span id="client-code-display" class="text-xs font-bold text-slate-400 block text-right">Código Cliente: Autogenerado</span>
@@ -924,10 +975,17 @@
                             <h3 class="text-xs font-extrabold text-sky-600 dark:text-sky-400 uppercase tracking-wider mb-3 flex items-center">
                                 <i class="fas fa-hand-holding-dollar text-xs mr-2"></i> Presupuesto, Abono Inicial y Estado
                             </h3>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Presupuesto Total ($)</label>
                                     <input type="text" id="estimated-cost" inputmode="numeric" placeholder="0" oninput="handleCurrencyInput(this); validateFormPayment();" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-900 rounded-2xl text-base font-black text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-sky-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                                        <span>Costos o Insumos ($)</span>
+                                        <span class="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase bg-amber-100 dark:bg-amber-950 px-1.5 py-0.5 rounded-md">Taller</span>
+                                    </label>
+                                    <input type="text" id="repair-cost" inputmode="numeric" placeholder="0" oninput="handleCurrencyInput(this); validateFormPayment();" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-amber-300/80 dark:border-amber-700/60 rounded-2xl text-base font-black text-amber-600 dark:text-amber-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-amber-500" title="Costo interno de repuestos/insumos. NO figura en el recibo del cliente.">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Abono Inicial / Seña ($)</label>
@@ -944,10 +1002,24 @@
                                     </select>
                                 </div>
                             </div>
+
+                            <!-- Cálculo de Ganancia Real en vivo (Interno taller) -->
+                            <div id="form-profit-preview" class="mt-3 px-4 py-2.5 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-coins text-emerald-500 text-sm"></i>
+                                    <span class="font-extrabold text-slate-700 dark:text-slate-300">Ganancia Real Estimada:</span>
+                                    <span id="form-calc-profit" class="font-black text-emerald-600 dark:text-emerald-400 text-sm">$ 0</span>
+                                </div>
+                                <span class="text-[11px] text-slate-400 font-medium">(Presupuesto Total - Costos/Insumos) · Confidencial interno</span>
+                            </div>
+
                             <p id="form-payment-warning" class="hidden text-xs text-rose-500 font-extrabold mt-2 flex items-center">
                                 <i class="fas fa-exclamation-circle mr-1 text-sm"></i> El abono inicial no puede ser mayor que el presupuesto total.
                             </p>
                         </div>
+
+                        <!-- Historial de Modificaciones (visible al editar orden existente) -->
+                        <div id="form-order-history-box" class="pt-3 border-t border-slate-100 dark:border-slate-900 hidden"></div>
 
                         <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-100 dark:border-slate-900">
                             <button type="button" onclick="cancelServiceForm()" class="px-6 py-3.5 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-extrabold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Cancelar</button>
@@ -1023,25 +1095,6 @@
                         </div>
                     </div>
 
-                    <!-- Renumeración de códigos de clientes -->
-                    <div class="bg-white dark:bg-slate-950 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-900 space-y-4 md:col-span-2">
-                        <div class="flex items-center space-x-3 text-amber-600 dark:text-amber-400">
-                            <div class="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950 flex items-center justify-center text-xl font-bold">
-                                <i class="fas fa-hashtag"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Códigos de Cliente (CLI-XXXX)</h3>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Renumeración consecutiva sin afectar órdenes ST-XXXX ni datos del cliente</p>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                            Asigna códigos <strong>CLI-0001, CLI-0002…</strong> de forma consecutiva a cada cliente único (por DNI/teléfono), ordenados por fecha de primera orden.
-                            Los números de orden <strong>ST-XXXX</strong> no se modifican. Nombres, DNI, teléfonos e historial se mantienen intactos.
-                        </p>
-                        <button onclick="promptRenumberClientCodes()" class="w-full py-3.5 px-5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-sm rounded-2xl shadow transition-all flex items-center justify-center">
-                            <i class="fas fa-sort-numeric-up mr-2 text-lg"></i> Renumerar Códigos de Clientes
-                        </button>
-                    </div>
 
                     <!-- Panel de Control de Google Drive y Sincronización Manual -->
                     <div class="bg-white dark:bg-slate-950 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-900 space-y-5 md:col-span-2">
@@ -1707,7 +1760,8 @@
 
             getOrdersFromLocalStorage() {
                 try {
-                    const raw = localStorage.getItem('adl_services_backup');
+                    let raw = localStorage.getItem('adl_services_backup');
+                    if (!raw) raw = localStorage.getItem('adl_services_backup_light');
                     return raw ? JSON.parse(raw) : [];
                 } catch(e) { return []; }
             },
@@ -1792,6 +1846,8 @@
         let allClients = [];
         let allTechNotes = [];
         let orderToDeleteId = null;
+        let recentlyDeletedOrderIds = [];
+        let recentlyDeletedNoteIds = [];
         let orderToPayId = null;
         let activePrintReceiptId = null;
         let activePrintType = 'order'; 
@@ -1887,6 +1943,7 @@
 
         /* View Mode & Dark Mode State */
         let currentViewMode = window.safeGetStorage('adl_view_mode', 'grid');
+        let currentClientViewMode = window.safeGetStorage('adl_client_view_mode', 'grid');
         let isDarkMode = window.safeGetStorage('adl_dark_mode', 'false') === 'true';
         // Filtro exclusivamente visual: no se guarda ni modifica datos de las órdenes.
         let showDeliveredOrders = false;
@@ -1964,8 +2021,15 @@
         }
 
         function parseFormattedCurrency(value) {
-            if (!value) return 0;
-            const cleanStr = value.toString().replace(/\./g, '').replace(/,/g, '.').replace(/[^\d.]/g, '');
+            if (value === null || value === undefined || value === '') return 0;
+            if (typeof value === 'number') return isNaN(value) ? 0 : value;
+            let str = String(value).trim();
+            if (str.includes(',')) {
+                str = str.replace(/\./g, '').replace(',', '.');
+            } else if (!/\.\d{1,2}$/.test(str)) {
+                str = str.replace(/\./g, '');
+            }
+            const cleanStr = str.replace(/[^\d.-]/g, '');
             const num = parseFloat(cleanStr);
             return isNaN(num) ? 0 : num;
         }
@@ -1974,6 +2038,15 @@
             const rawVal = inputEl.value;
             const formatted = formatCurrencyInput(rawVal);
             inputEl.value = formatted;
+        }
+
+        /* LIGHTWEIGHT DEBOUNCE UTILITY */
+        function debounce(func, wait = 250) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
         }
 
         /* ====================================================
@@ -2008,37 +2081,101 @@
             });
         }
 
-        /* SINCRONIZACIÓN AUTOMÁTICA INTELIGENTE AL DESPERTAR / ENFOCAR */
+        /* ====================================================
+           SINCRONIZACIÓN AUTOMÁTICA VIVA (ETAPA 7 - PUNTO 9)
+           Nivel 1: Inmediato (On-Demand / Login / Guardado)
+           Nivel 2: Reingreso / Foco / Visibilidad (60s)
+           Nivel 3: Actividad Continua en Primer Plano (120s)
+        ==================================================== */
+        const REENTRY_SYNC_INTERVAL_MS = 60 * 1000;   // 60s al reenfocar o volver visible la pestaña
+        const ACTIVITY_SYNC_INTERVAL_MS = 120 * 1000; // 120s de actividad continua
+        const MIN_SYNC_GAP_MS = 15 * 1000;           // 15s de separación mínima entre sincronizaciones
+
         let lastSyncCheckTime = 0;
-        const SYNC_THROTTLE_MS = 20000; // Mínimo 20 segundos entre comprobaciones automáticas
+        let isLiveSyncActive = false;
+        let liveSyncActivityInterval = null;
+
+        async function performLiveSync(reason = 'auto') {
+            if (isLiveSyncActive || isSyncingInBackground || isPushingToCloud) return false;
+            if (!sessionToken || !currentUser || !navigator.onLine) return false;
+
+            const now = Date.now();
+            if (now - lastSyncCheckTime < MIN_SYNC_GAP_MS) return false;
+            lastSyncCheckTime = now;
+            isLiveSyncActive = true;
+
+            try {
+                updateSyncBadge('syncing');
+                const pullSuccess = await syncLatestCloudDataSilently();
+
+                // Si hay operaciones pendientes en cola local (eliminaciones u órdenes), enviar a Google Drive
+                const pendingOrders = getPendingDeletedOrderIds();
+                const pendingNotes = getPendingDeletedNoteIds();
+                const pendingTrashedFiles = getPendingTrashedFileIds();
+                if (pendingOrders.length > 0 || pendingNotes.length > 0 || pendingTrashedFiles.length > 0) {
+                    await pushDatabaseToDriveSilently();
+                }
+                return pullSuccess;
+            } catch (err) {
+                console.warn(`[ADL LiveSync (${reason})] error controlado:`, err);
+                return false;
+            } finally {
+                isLiveSyncActive = false;
+                updateSyncBadge('idle');
+            }
+        }
+
+        function setupLiveSyncTimers() {
+            if (liveSyncActivityInterval) {
+                clearInterval(liveSyncActivityInterval);
+                liveSyncActivityInterval = null;
+            }
+            // Temporizador de actividad viva: comprueba periódicamente cada 10s si corresponde sincronizar por los 120s
+            liveSyncActivityInterval = setInterval(() => {
+                if (!sessionToken || !currentUser || !navigator.onLine || document.visibilityState !== 'visible') {
+                    return;
+                }
+                const now = Date.now();
+                const timeSinceLastSync = now - lastSyncCheckTime;
+                const timeSinceLastActivity = now - lastUserActivityTime;
+
+                // Nivel 3: Si hubo actividad reciente del usuario y pasaron >= 120s desde la última sincronización
+                if (timeSinceLastActivity < ACTIVITY_SYNC_INTERVAL_MS && timeSinceLastSync >= ACTIVITY_SYNC_INTERVAL_MS) {
+                    performLiveSync('activity');
+                }
+            }, 10000);
+        }
 
         function setupVisibilityAndFocusSync() {
-            const triggerSilentSync = () => {
+            const triggerReentrySync = () => {
+                resetInactivityWatchdog();
                 if (!sessionToken || !navigator.onLine) return;
                 const now = Date.now();
-                if (now - lastSyncCheckTime < SYNC_THROTTLE_MS) return;
-                lastSyncCheckTime = now;
-                syncLatestCloudDataSilently();
+                // Nivel 2: Reingreso / foco si pasaron >= 60 segundos
+                if (now - lastSyncCheckTime >= REENTRY_SYNC_INTERVAL_MS) {
+                    performLiveSync('reentry');
+                }
             };
 
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
-                    resetInactivityWatchdog();
-                    triggerSilentSync();
+                    triggerReentrySync();
                 }
             });
 
             window.addEventListener('focus', () => {
-                resetInactivityWatchdog();
-                triggerSilentSync();
+                triggerReentrySync();
             });
 
             window.addEventListener('online', () => {
                 resetInactivityWatchdog();
                 lastSyncCheckTime = 0;
-                syncLatestCloudDataSilently().then(() => {
-                    pushDatabaseToDriveSilently();
-                }).catch(() => {});
+                updateSyncBadge('idle');
+                performLiveSync('online');
+            });
+
+            window.addEventListener('offline', () => {
+                updateSyncBadge('offline');
             });
         }
 
@@ -2225,8 +2362,9 @@
                 showToast(`Bienvenido ${currentUser.toUpperCase()}`, navigator.onLine ? 'Autenticación exitosa. Sesión protegida iniciada.' : 'Modo sin conexión activo con credenciales guardadas.', 'success');
 
                 // Sincronización silenciosa en segundo plano si hay red
+                setupLiveSyncTimers();
                 if (navigator.onLine) {
-                    syncLatestCloudDataSilently();
+                    performLiveSync('login');
                 }
             } catch (err) {
                 console.error("Error al autenticar:", err);
@@ -2445,6 +2583,11 @@
                 sessionInactivityTimer = null;
             }
 
+            if (liveSyncActivityInterval) {
+                clearInterval(liveSyncActivityInterval);
+                liveSyncActivityInterval = null;
+            }
+
             updateHeaderUserUI();
             showLoginModal(reason);
             if (reason) {
@@ -2477,6 +2620,7 @@
                                 hideLoginModal();
                                 updateHeaderUserUI();
                                 resetInactivityWatchdog();
+                                setupLiveSyncTimers();
                                 sessionVerified = true;
                             }
                         }
@@ -2510,9 +2654,10 @@
                 setupZoomEvents();
                 setupCanvasEvents();
 
-                // Chequeo en la nube en segundo plano si la sesión está activa
+                // Chequeo en la nube en segundo plano si la sesión está activa (Nivel 1 Inicial)
                 if (sessionToken && currentUser) {
-                    syncLatestCloudDataSilently();
+                    setupLiveSyncTimers();
+                    performLiveSync('init');
                 }
             } catch (e) {
                 console.error("Init Error handled cleanly:", e);
@@ -2577,8 +2722,11 @@
                 toolAccessories: String(rawAcc),
                 failureDescription: String(rawDesc),
                 estimatedCost: typeof item.estimatedCost !== 'undefined' ? (parseFloat(item.estimatedCost) || 0) : (parseFloat(item.presupuesto || item.total) || 0),
+                repairCost: typeof item.repairCost !== 'undefined' ? (parseFloat(item.repairCost) || 0) : (parseFloat(item.costo || item.cost || item.partsCost) || 0),
                 amountPaid: typeof item.amountPaid !== 'undefined' ? (parseFloat(item.amountPaid) || 0) : (parseFloat(item.abonado || item.seña) || 0),
                 status: item.status || item.estado || 'Ingresado',
+                deliveredAt: item.deliveredAt || null,
+                history: Array.isArray(item.history) ? item.history : (Array.isArray(item.logs) ? item.logs : []),
                 imagesBase64: Array.isArray(item.imagesBase64) ? item.imagesBase64 : (Array.isArray(item.images) ? item.images : []),
                 despieceFiles: Array.isArray(item.despieceFiles) ? item.despieceFiles : (Array.isArray(item.despieces) ? item.despieces : [])
             };
@@ -2619,6 +2767,118 @@
                 formattedPhone = '549' + digits;
             }
             return `https://wa.me/${formattedPhone}`;
+        }
+
+        function getGoogleMapsUrl(rawAddress) {
+            if (!rawAddress) return '';
+            const trimmed = String(rawAddress).trim();
+            if (!trimmed || trimmed.length < 2) return '';
+
+            // Ciudad por defecto del taller / empresa (preparado para parametrizar por usuario registrado a futuro)
+            const defaultCity = 'Rosario';
+            const defaultCountry = 'Argentina';
+
+            let query = trimmed;
+            // Si no menciona Rosario ni otra localidad conocida ni provincia, inferir ciudad por defecto
+            const hasExplicitLocation = /\b(rosario|funes|roldan|roldán|perez|pérez|ibarlucea|vgg|villa gobernador gálvez|villa gobernador galvez|baigorria|granadero baigorria|san lorenzo|bermudez|bermúdez|beltran|beltrán|arroyo seco|alvear|pueblo esther|santa fe|buenos aires|caba|cordoba|córdoba|mendoza)\b/i.test(query);
+
+            if (!hasExplicitLocation) {
+                query = `${query}, ${defaultCity}`;
+            }
+
+            if (!/argentina/i.test(query)) {
+                query = `${query}, ${defaultCountry}`;
+            }
+
+            return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+        }
+
+        function updateFormMapsButton() {
+            const addrInput = document.getElementById('client-address');
+            const btnForm = document.getElementById('btn-open-maps-form');
+            const btnInline = document.getElementById('btn-open-maps-inline');
+            const val = addrInput ? (addrInput.value || '').trim() : '';
+            const url = val ? getGoogleMapsUrl(val) : '';
+
+            if (btnForm) {
+                if (url) {
+                    btnForm.href = url;
+                    btnForm.classList.remove('hidden');
+                } else {
+                    btnForm.href = '#';
+                    btnForm.classList.add('hidden');
+                }
+            }
+            if (btnInline) {
+                if (url) {
+                    btnInline.href = url;
+                    btnInline.classList.remove('hidden');
+                } else {
+                    btnInline.href = '#';
+                    btnInline.classList.add('hidden');
+                }
+            }
+        }
+
+        /* ====================================================
+           TRAZABILIDAD Y REGISTRO HISTÓRICO DE ÓRDENES (LOGS)
+        ==================================================== */
+        function formatLogDateTime(isoDateStr) {
+            if (!isoDateStr) return '';
+            const d = new Date(isoDateStr);
+            if (isNaN(d.getTime())) return '';
+            return d.toLocaleDateString('es-AR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function getOrderLogs(item) {
+            if (!item) return [];
+            let list = Array.isArray(item.history) ? [...item.history] : (Array.isArray(item.logs) ? [...item.logs] : []);
+            if (list.length === 0) {
+                const createdIso = item.createdAt || new Date().toISOString();
+                list.push({ action: 'Creación', at: createdIso });
+                if (item.updatedAt && item.updatedAt !== item.createdAt) {
+                    list.push({ action: 'Modificado', at: item.updatedAt });
+                }
+            }
+            return list;
+        }
+
+        function appendOrderLog(item, action = 'Modificado') {
+            if (!item) return;
+            const nowIso = new Date().toISOString();
+            if (!Array.isArray(item.history)) {
+                item.history = getOrderLogs(item);
+            }
+            item.history.push({ action: action, at: nowIso });
+            if (item.history.length > 30) {
+                const first = item.history[0];
+                item.history = [first, ...item.history.slice(-29)];
+            }
+        }
+
+        function renderOrderHistoryHtml(item) {
+            const logs = getOrderLogs(item);
+            if (!logs || !logs.length) return '';
+
+            const formattedItems = logs.map(l => {
+                const actionLabel = escapeHtml(l.action || 'Modificado');
+                const dt = formatLogDateTime(l.at);
+                const isCreation = actionLabel.toLowerCase().includes('creaci');
+                const actionClass = isCreation ? 'text-sky-600 dark:text-sky-400 font-extrabold' : 'text-slate-700 dark:text-slate-300 font-bold';
+                return `<span class="${actionClass}">${actionLabel} <span class="text-slate-500 dark:text-slate-400 font-normal">${dt}</span></span>`;
+            });
+
+            return `
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[10px] text-slate-400 leading-tight">
+                <span class="text-slate-400 font-bold mr-1"><i class="fas fa-clock-rotate-left text-[9px] mr-0.5"></i> Historial:</span>
+                (${formattedItems.join(', ')})
+            </div>`;
         }
 
         /* ====================================================
@@ -3072,12 +3332,25 @@
         }
 
         /* SYNC & API HELPER FUNCTIONS */
-        function updateSyncBadge(status) {
+        function updateSyncBadge(status = 'idle') {
             const badge = document.getElementById('sync-status-badge');
             if (!badge) return;
             const ordCount = Array.isArray(allServices) ? allServices.length : 0;
+
+            if (status === 'syncing') {
+                badge.className = "w-fit inline-flex items-center space-x-1.5 mt-0.5 bg-sky-500/20 px-2 py-0.5 rounded-full border border-sky-400/40 whitespace-nowrap text-[10px] sm:text-[11px] text-sky-300 font-black animate-pulse";
+                badge.innerHTML = `<i class="fas fa-arrows-rotate fa-spin text-sky-400 shrink-0 text-[10px]"></i><span>Sincronizando...</span>`;
+                return;
+            }
+
+            if (!navigator.onLine || status === 'offline') {
+                badge.className = "w-fit inline-flex items-center space-x-1.5 mt-0.5 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30 whitespace-nowrap text-[10px] sm:text-[11px] text-amber-400 font-extrabold";
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span><span>Modo Local (${ordCount})</span>`;
+                return;
+            }
+
             badge.className = "w-fit inline-flex items-center space-x-1.5 mt-0.5 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 whitespace-nowrap text-[10px] sm:text-[11px] text-sky-400 font-extrabold";
-            badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0"></span><span>Híbrido (${ordCount})</span>`;
+            badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span><span>Híbrido (${ordCount})</span>`;
         }
 
 
@@ -3125,17 +3398,30 @@
 
             // 1. Cargar datos locales exclusivamente de IndexedDB y LocalStorage
             try {
+                const hasInitialized = window.safeGetStorage('adl_app_initialized', '') || (typeof localStorage !== 'undefined' ? localStorage.getItem('adl_app_initialized') : '');
                 let dbOrders = await ADL_DB.getAllOrders();
                 let dbNotes = await ADL_DB.getAllNotes();
 
                 if (dbOrders && dbOrders.length > 0) {
                     allServices = dbOrders.map(sanitizeOrder).filter(Boolean);
+                    if (!hasInitialized) {
+                        window.safeSetStorage('adl_app_initialized', '1');
+                        try { localStorage.setItem('adl_app_initialized', '1'); } catch(e){}
+                    }
                 } else {
                     const localOrders = ADL_DB.getOrdersFromLocalStorage();
                     if (localOrders && localOrders.length > 0) {
                         allServices = localOrders.map(sanitizeOrder).filter(Boolean);
-                    } else {
+                        if (!hasInitialized) {
+                            window.safeSetStorage('adl_app_initialized', '1');
+                            try { localStorage.setItem('adl_app_initialized', '1'); } catch(e){}
+                        }
+                    } else if (!hasInitialized) {
                         allServices = [...SEED_SERVICES].map(sanitizeOrder).filter(Boolean);
+                        window.safeSetStorage('adl_app_initialized', '1');
+                        try { localStorage.setItem('adl_app_initialized', '1'); } catch(e){}
+                    } else {
+                        allServices = [];
                     }
                 }
 
@@ -3145,14 +3431,16 @@
                     const localNotes = ADL_DB.getNotesFromLocalStorage();
                     if (localNotes && localNotes.length > 0) {
                         allTechNotes = localNotes.map(sanitizeNote).filter(Boolean);
-                    } else {
+                    } else if (!hasInitialized) {
                         allTechNotes = [...SEED_NOTES].map(sanitizeNote).filter(Boolean);
+                    } else {
+                        allTechNotes = [];
                     }
                 }
             } catch (e) {
                 console.error("Error cargando base local:", e);
-                allServices = [...SEED_SERVICES].map(sanitizeOrder).filter(Boolean);
-                allTechNotes = [...SEED_NOTES].map(sanitizeNote).filter(Boolean);
+                allServices = [];
+                allTechNotes = [];
             }
 
             rebuildClientsMap();
@@ -3161,11 +3449,7 @@
             updateSyncBadge('local');
         }
 
-        let isMigratingImages = false;
-        async function autoMigrateBase64ImagesToDrive() {
-            // Desactivado en Etapa 1 para proteger imágenes Base64 locales
-            return;
-        }
+
 
         async function saveDatabaseData() {
             try {
@@ -3217,64 +3501,6 @@
 
         function getNextClientCode() {
             return `CLI-${String(getMaxClientCodeNumber() + 1).padStart(4, '0')}`;
-        }
-
-        function hasDuplicateClientCodes() {
-            const codeToDni = {};
-            for (const order of allServices) {
-                if (!order?.clientCode) continue;
-                const dniKey = getClientDniKey(order);
-                if (codeToDni[order.clientCode] && codeToDni[order.clientCode] !== dniKey) {
-                    return true;
-                }
-                codeToDni[order.clientCode] = dniKey;
-            }
-            return false;
-        }
-
-        async function renumberAllClientCodes() {
-            const clientMap = {};
-
-            allServices.forEach(order => {
-                if (!order) return;
-                const dniKey = getClientDniKey(order);
-                const orderTime = order.createdAt ? new Date(order.createdAt).getTime() : Number.MAX_SAFE_INTEGER;
-
-                if (!clientMap[dniKey]) {
-                    clientMap[dniKey] = { orders: [], earliestDate: orderTime };
-                } else if (orderTime < clientMap[dniKey].earliestDate) {
-                    clientMap[dniKey].earliestDate = orderTime;
-                }
-                clientMap[dniKey].orders.push(order);
-            });
-
-            const sortedClients = Object.values(clientMap).sort((a, b) => a.earliestDate - b.earliestDate);
-            let counter = 1;
-
-            sortedClients.forEach(clientData => {
-                const newCode = `CLI-${String(counter++).padStart(4, '0')}`;
-                clientData.orders.forEach(order => {
-                    order.clientCode = newCode;
-                });
-            });
-
-            await saveDatabaseData();
-            rebuildClientsMap();
-            sortAndRefreshUI();
-
-            const total = sortedClients.length;
-            showToast('Códigos Renumerados', `Se asignaron ${total} códigos consecutivos (CLI-0001 a CLI-${String(total).padStart(4, '0')}). Las órdenes ST-XXXX no fueron modificadas.`, 'success');
-        }
-
-        function promptRenumberClientCodes() {
-            const uniqueCount = new Set(allServices.map(getClientDniKey)).size;
-            if (uniqueCount === 0) {
-                showToast('Sin Clientes', 'No hay clientes registrados para renumerar.', 'info');
-                return;
-            }
-            if (confirm(`Se renumerarán ${uniqueCount} clientes con códigos CLI-0001, CLI-0002… consecutivos.\n\n• No se modifican números de orden ST-XXXX\n• No se modifican nombres, DNI ni teléfonos\n• Solo cambian los códigos CLI-XXXX\n\n¿Desea continuar?`)) {
-                renumberAllClientCodes();
-            }
         }
 
         function rebuildClientsMap() {
@@ -3356,7 +3582,9 @@
                     const icon = btn.querySelector('i');
                     if (icon) {
                         icon.classList.remove('text-white');
-                        icon.classList.add('text-sky-400');
+                        if (btn.id === 'nav-new-service') icon.classList.add('text-emerald-400');
+                        else if (btn.id === 'nav-current-accounts') icon.classList.add('text-amber-400');
+                        else icon.classList.add('text-sky-400');
                     }
                 });
 
@@ -3372,9 +3600,22 @@
                     
                     const icon = targetNav.querySelector('i');
                     if (icon) {
-                        icon.classList.remove('text-sky-400');
+                        icon.classList.remove('text-sky-400', 'text-emerald-400', 'text-amber-400');
                         icon.classList.add('text-white');
                     }
+                }
+
+                const moduleTitles = {
+                    'services': 'Órdenes de Servicio',
+                    'dashboard': 'Panel Resumen (Dashboard)',
+                    'clients': 'Directorio de Clientes',
+                    'current-accounts': 'Cuentas Corrientes',
+                    'new-service': 'Nueva Orden de Taller',
+                    'database': 'Base de Datos y Excel'
+                };
+                const titleEl = document.getElementById('header-active-module-title');
+                if (titleEl && moduleTitles[tabId]) {
+                    titleEl.innerText = moduleTitles[tabId];
                 }
 
                 if (tabId === 'services') filterServices();
@@ -3405,6 +3646,27 @@
             filterServices();
         }
 
+        function updateClientViewButtonsUI() {
+            const btnGrid = document.getElementById('btn-client-view-grid');
+            const btnList = document.getElementById('btn-client-view-list');
+            if (!btnGrid || !btnList) return;
+
+            if (currentClientViewMode === 'grid') {
+                btnGrid.className = 'px-4 py-2 rounded-xl text-sm font-extrabold transition-all bg-white dark:bg-slate-950 text-sky-700 dark:text-sky-400 shadow-sm';
+                btnList.className = 'px-4 py-2 rounded-xl text-sm font-extrabold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+            } else {
+                btnList.className = 'px-4 py-2 rounded-xl text-sm font-extrabold transition-all bg-white dark:bg-slate-950 text-sky-700 dark:text-sky-400 shadow-sm';
+                btnGrid.className = 'px-4 py-2 rounded-xl text-sm font-extrabold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+            }
+        }
+
+        function setClientViewMode(mode) {
+            currentClientViewMode = mode;
+            window.safeSetStorage('adl_client_view_mode', mode);
+            updateClientViewButtonsUI();
+            renderClientsTab();
+        }
+
         /* ----------------------------------------------------
            1. MERCADO LIBRE LIVE SALES MONITOR & CARTESIAN CHART
         ---------------------------------------------------- */
@@ -3416,18 +3678,20 @@
 
             const metrics = {
                 paid: { border: 'border-t-emerald-500', ring: 'ring-2 ring-emerald-500/20' },
+                profit: { border: 'border-t-teal-500', ring: 'ring-2 ring-teal-500/20' },
+                cost: { border: 'border-t-amber-500', ring: 'ring-2 ring-amber-500/20' },
                 budget: { border: 'border-t-sky-500', ring: 'ring-2 ring-sky-500/20' },
                 debt: { border: 'border-t-rose-500', ring: 'ring-2 ring-rose-500/20' },
                 count: { border: 'border-t-indigo-500', ring: 'ring-2 ring-indigo-500/20' }
             };
 
-            ['paid', 'budget', 'debt', 'count'].forEach(key => {
+            ['paid', 'profit', 'cost', 'budget', 'debt', 'count'].forEach(key => {
                 const btn = document.getElementById(`metric-card-${key}`);
                 if (btn) {
                     if (key === metricKey) {
-                        btn.className = `text-left bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer shadow-md relative overflow-hidden group border-t-4 ${metrics[key].border} ${metrics[key].ring} scale-[1.01]`;
+                        btn.className = `text-left bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer shadow-md relative overflow-hidden group border-t-4 ${metrics[key].border} ${metrics[key].ring} scale-[1.01]`;
                     } else {
-                        btn.className = `text-left bg-slate-50 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer opacity-75 hover:opacity-100 relative overflow-hidden group`;
+                        btn.className = `text-left bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer opacity-75 hover:opacity-100 relative overflow-hidden group`;
                     }
                 }
             });
@@ -3439,21 +3703,28 @@
             const period = document.getElementById('dash-period-filter')?.value || '30days';
             const periodOrders = getOrdersForPeriod(period);
 
-            let totalPaid = 0, totalBudget = 0, totalDebt = 0;
+            let totalPaid = 0, totalBudget = 0, totalDebt = 0, totalCost = 0, totalProfit = 0;
             periodOrders.forEach(s => {
                 const b = parseFloat(s.estimatedCost) || 0;
                 const p = parseFloat(s.amountPaid) || 0;
+                const c = parseFloat(s.repairCost) || 0;
                 totalBudget += b;
                 totalPaid += p;
+                totalCost += c;
+                totalProfit += Math.max(0, b - c);
                 totalDebt += Math.max(0, b - p);
             });
 
             const paidEl = document.getElementById('dash-stat-paid');
+            const profitEl = document.getElementById('dash-stat-profit');
+            const costEl = document.getElementById('dash-stat-cost');
             const bdgEl = document.getElementById('dash-stat-budget');
             const dbtEl = document.getElementById('dash-stat-debt');
             const cntEl = document.getElementById('dash-stat-orders-count');
 
             if (paidEl) paidEl.innerText = `$ ${totalPaid.toLocaleString('es-AR')}`;
+            if (profitEl) profitEl.innerText = `$ ${totalProfit.toLocaleString('es-AR')}`;
+            if (costEl) costEl.innerText = `$ ${totalCost.toLocaleString('es-AR')}`;
             if (bdgEl) bdgEl.innerText = `$ ${totalBudget.toLocaleString('es-AR')}`;
             if (dbtEl) dbtEl.innerText = `$ ${totalDebt.toLocaleString('es-AR')}`;
             if (cntEl) cntEl.innerText = periodOrders.length;
@@ -3524,6 +3795,8 @@
 
             const metricConfig = {
                 paid: { title: 'Ingresos Cobrados ($)', color: '#10b981', dotClass: 'bg-emerald-500' },
+                profit: { title: 'Ganancia Real Estimada ($)', color: '#14b8a6', dotClass: 'bg-teal-500' },
+                cost: { title: 'Costos e Insumos ($)', color: '#f59e0b', dotClass: 'bg-amber-500' },
                 budget: { title: 'Presupuesto Generado ($)', color: '#0284c7', dotClass: 'bg-sky-500' },
                 debt: { title: 'Saldo por Cobrar ($)', color: '#f43f5e', dotClass: 'bg-rose-500' },
                 count: { title: 'Cantidad de Órdenes (#)', color: '#6366f1', dotClass: 'bg-indigo-500' }
@@ -3660,11 +3933,16 @@
         }
 
         function getMetricValue(order, metricKey) {
-            const cost = parseFloat(order.estimatedCost) || 0;
+            const budget = parseFloat(order.estimatedCost) || 0;
             const paid = parseFloat(order.amountPaid) || 0;
+            const cost = parseFloat(order.repairCost) || 0;
+            const profit = Math.max(0, budget - cost);
+
             if (metricKey === 'paid') return paid;
-            if (metricKey === 'budget') return cost;
-            if (metricKey === 'debt') return Math.max(0, cost - paid);
+            if (metricKey === 'profit') return profit;
+            if (metricKey === 'cost') return cost;
+            if (metricKey === 'budget') return budget;
+            if (metricKey === 'debt') return Math.max(0, budget - paid);
             if (metricKey === 'count') return 1;
             return 0;
         }
@@ -3731,6 +4009,8 @@
 
         function renderClientsTab() {
             try {
+                updateClientViewButtonsUI();
+
                 const query = (document.getElementById('client-search-input')?.value || '').toLowerCase();
                 const container = document.getElementById('clients-container');
                 if (!container) return;
@@ -3766,6 +4046,7 @@
                 if (dbt) dbt.innerText = `$ ${grandDebt.toLocaleString('es-AR')}`;
 
                 if (filteredClients.length === 0) {
+                    container.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
                     container.innerHTML = `
                         <div class="col-span-full bg-white dark:bg-slate-950 p-10 text-center rounded-3xl border border-slate-200 dark:border-slate-900 text-slate-400">
                             <i class="fas fa-users-slash text-4xl mb-3 block"></i>
@@ -3774,90 +4055,251 @@
                     return;
                 }
 
-                container.innerHTML = filteredClients.map(c => {
-                    let clientBudget = 0, clientPaid = 0, clientDebt = 0;
-                    c.tickets.forEach(t => {
-                        const cost = parseFloat(t.estimatedCost) || 0;
-                        const paid = parseFloat(t.amountPaid) || 0;
-                        clientBudget += cost;
-                        clientPaid += paid;
-                        clientDebt += Math.max(0, cost - paid);
-                    });
+                if (currentClientViewMode === 'list') {
+                    container.className = "w-full max-w-none";
+                    container.innerHTML = `
+                        <div class="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-900 overflow-hidden shadow-sm p-2 sm:p-3">
+                            <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-900">
+                                <table class="w-full min-w-[1050px] text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 dark:bg-slate-800/80 text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-900">
+                                            <th class="p-3.5">Código</th>
+                                            <th class="p-3.5">Cliente (Nombre / DNI)</th>
+                                            <th class="p-3.5">Teléfono / WhatsApp</th>
+                                            <th class="p-3.5">Domicilio</th>
+                                            <th class="p-3.5">Órdenes / Equipos</th>
+                                            <th class="p-3.5 text-right">Presupuesto</th>
+                                            <th class="p-3.5 text-right">Abonado</th>
+                                            <th class="p-3.5 text-right">Saldo</th>
+                                            <th class="p-3.5 text-center">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                                        ${filteredClients.map((c, idx) => {
+                                            let clientBudget = 0, clientPaid = 0, clientDebt = 0;
+                                            c.tickets.forEach(t => {
+                                                const cost = parseFloat(t.estimatedCost) || 0;
+                                                const paid = parseFloat(t.amountPaid) || 0;
+                                                clientBudget += cost;
+                                                clientPaid += paid;
+                                                clientDebt += Math.max(0, cost - paid);
+                                            });
+                                            const waLink = getWhatsappLink(c.phone);
+                                            const safeDni = escapeHtml(c.dni);
+                                            const safeJsDni = escapeJsAttr(c.dni);
+                                            const hasTickets = c.tickets && c.tickets.length > 0;
 
-                    const waLink = getWhatsappLink(c.phone);
+                                            return `
+                                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                <td class="p-3.5 font-black text-xs">
+                                                    <span class="px-2.5 py-1 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 rounded-xl whitespace-nowrap">${escapeHtml(c.code)}</span>
+                                                </td>
+                                                <td class="p-3.5">
+                                                    <div class="font-black text-slate-900 dark:text-white text-sm">${escapeHtml(c.name)}</div>
+                                                    <div class="text-xs text-slate-400 font-semibold mt-0.5">DNI: ${safeDni}</div>
+                                                </td>
+                                                <td class="p-3.5 text-xs font-semibold">
+                                                    ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-extrabold flex items-center whitespace-nowrap"><i class="fab fa-whatsapp text-sm mr-1.5"></i> ${escapeHtml(c.phone)}</a>` : `<span class="text-slate-600 dark:text-slate-400">${escapeHtml(c.phone || '-')}</span>`}
+                                                </td>
+                                                <td class="p-3.5 text-xs">
+                                                    <div class="flex items-center space-x-1.5">
+                                                        ${c.address ? `
+                                                            <a href="${getGoogleMapsUrl(c.address)}" target="_blank" rel="noopener noreferrer" class="text-slate-800 dark:text-slate-200 hover:text-rose-600 dark:hover:text-rose-400 font-medium underline decoration-dotted underline-offset-2 flex items-center space-x-1 transition-colors" title="Abrir en Google Maps: ${escapeHtml(c.address)}">
+                                                                <i class="fas fa-map-location-dot text-rose-500 text-[11px]"></i>
+                                                                <span>${escapeHtml(c.address)}</span>
+                                                            </a>
+                                                        ` : '<span class="text-slate-400 italic">No especificado</span>'}
+                                                        <button onclick="promptEditClientAddress('${safeJsDni}')" class="text-slate-400 hover:text-sky-600 transition-colors p-1 cursor-pointer" title="Editar Domicilio">
+                                                            <i class="fas fa-pencil text-[10px]"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td class="p-3.5">
+                                                    <div class="flex items-center space-x-2">
+                                                        <span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-extrabold text-xs whitespace-nowrap">
+                                                            ${c.tickets.length} orden(es)
+                                                        </span>
+                                                        ${hasTickets ? `
+                                                        <button onclick="toggleClientRowOrders(${idx})" id="btn-toggle-client-orders-${idx}" class="text-slate-400 hover:text-sky-600 text-xs p-1 cursor-pointer flex items-center space-x-1" title="Ver desglose de órdenes">
+                                                            <span class="text-[11px] font-bold hidden xl:inline">Detalles</span>
+                                                            <i id="client-drawer-icon-${idx}" class="fas fa-chevron-down text-[11px]"></i>
+                                                        </button>
+                                                        ` : ''}
+                                                    </div>
+                                                    ${hasTickets ? `
+                                                    <div class="flex flex-wrap gap-1 mt-1 max-w-xs">
+                                                        ${c.tickets.slice(0, 3).map(t => `
+                                                            <span onclick="editService('${escapeJsAttr(t.id)}')" class="inline-block bg-slate-100 hover:bg-sky-100 dark:bg-slate-800 dark:hover:bg-sky-950 px-1.5 py-0.5 rounded text-[10px] font-bold text-sky-700 dark:text-sky-300 cursor-pointer transition-colors" title="Ver/Editar ST-${escapeHtml(getTicketDisplay(t))}: ${escapeHtml(t.toolType)} ${escapeHtml(t.toolBrand)}">
+                                                                ST-${escapeHtml(getTicketDisplay(t))}
+                                                            </span>
+                                                        `).join('')}
+                                                        ${c.tickets.length > 3 ? `<span class="text-[10px] text-slate-400 font-bold self-center">+${c.tickets.length - 3} más</span>` : ''}
+                                                    </div>
+                                                    ` : ''}
+                                                </td>
+                                                <td class="p-3.5 text-right font-extrabold text-slate-900 dark:text-white text-xs whitespace-nowrap">
+                                                    $ ${clientBudget.toLocaleString('es-AR')}
+                                                </td>
+                                                <td class="p-3.5 text-right font-black text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
+                                                    $ ${clientPaid.toLocaleString('es-AR')}
+                                                </td>
+                                                <td class="p-3.5 text-right font-black text-xs whitespace-nowrap">
+                                                    <span class="${clientDebt > 0 ? 'text-rose-600 dark:text-rose-400 font-black' : 'text-slate-400'}">$ ${clientDebt.toLocaleString('es-AR')}</span>
+                                                </td>
+                                                <td class="p-3.5 text-center whitespace-nowrap">
+                                                    <div class="flex items-center justify-center space-x-2">
+                                                        <button onclick="createNewOrderForClient('${safeJsDni}')" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-xl text-xs shadow-sm flex items-center space-x-1 transition-all">
+                                                            <i class="fas fa-plus text-[10px]"></i>
+                                                            <span>Nueva Orden</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            ${hasTickets ? `
+                                            <tr id="client-orders-drawer-${idx}" class="hidden bg-slate-50/70 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800">
+                                                <td colspan="9" class="p-3 sm:p-4">
+                                                    <div class="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                                                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                                                            <span class="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                                                <i class="fas fa-screwdriver-wrench mr-1.5 text-sky-500"></i> Historial de Órdenes y Herramientas (${escapeHtml(c.name)})
+                                                            </span>
+                                                            <span class="text-[11px] font-bold text-slate-400">Total: ${c.tickets.length} orden(es)</span>
+                                                        </div>
+                                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                                            ${c.tickets.map(t => {
+                                                                const cost = parseFloat(t.estimatedCost) || 0;
+                                                                const paid = parseFloat(t.amountPaid) || 0;
+                                                                const bal = Math.max(0, cost - paid);
+                                                                return `
+                                                                <div class="bg-slate-100/70 dark:bg-slate-800/60 p-3 rounded-xl text-xs flex items-center justify-between">
+                                                                    <div>
+                                                                        <span class="font-black text-sky-600 dark:text-sky-400 mr-2 text-sm">ST-${escapeHtml(getTicketDisplay(t))}</span>
+                                                                        <span class="font-extrabold text-slate-800 dark:text-slate-200">${escapeHtml(t.toolType)} ${escapeHtml(t.toolBrand)}</span>
+                                                                        <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                                                            Pres: $${cost.toLocaleString('es-AR')} | Cobrado: $${paid.toLocaleString('es-AR')} | <strong class="${bal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}">Saldo: $${bal.toLocaleString('es-AR')}</strong>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="flex items-center space-x-1 shrink-0 ml-2">
+                                                                        <button onclick="openPaymentModal('${escapeJsAttr(t.id)}')" class="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold text-xs rounded-xl hover:bg-emerald-200 transition-colors">+ Cobro</button>
+                                                                        <button onclick="openReceipt('${escapeJsAttr(t.id)}')" class="p-1.5 text-slate-500 hover:text-emerald-600 rounded-xl" title="Imprimir Ticket"><i class="fas fa-print text-sm"></i></button>
+                                                                        <button onclick="editService('${escapeJsAttr(t.id)}')" class="text-slate-400 hover:text-sky-600 p-1.5" title="Editar"><i class="fas fa-edit text-sm"></i></button>
+                                                                    </div>
+                                                                </div>
+                                                                `;
+                                                            }).join('')}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            ` : ''}
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
+                    container.innerHTML = filteredClients.map(c => {
+                        let clientBudget = 0, clientPaid = 0, clientDebt = 0;
+                        c.tickets.forEach(t => {
+                            const cost = parseFloat(t.estimatedCost) || 0;
+                            const paid = parseFloat(t.amountPaid) || 0;
+                            clientBudget += cost;
+                            clientPaid += paid;
+                            clientDebt += Math.max(0, cost - paid);
+                        });
 
-                    return `
-                    <div class="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-900 p-6 space-y-4 shadow-sm hover:shadow-md transition-shadow">
-                        <div class="flex items-start justify-between border-b border-slate-100 dark:border-slate-900 pb-3">
-                            <div>
-                                <div class="flex items-center space-x-2">
-                                    <span class="px-2.5 py-1 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-black text-xs rounded-xl">${escapeHtml(c.code)}</span>
-                                    <h3 class="font-black text-slate-900 dark:text-white text-lg">${escapeHtml(c.name)}</h3>
+                        const waLink = getWhatsappLink(c.phone);
+
+                        return `
+                        <div class="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-900 p-6 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                            <div class="flex items-start justify-between border-b border-slate-100 dark:border-slate-900 pb-3">
+                                <div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="px-2.5 py-1 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-black text-xs rounded-xl">${escapeHtml(c.code)}</span>
+                                        <h3 class="font-black text-slate-900 dark:text-white text-lg">${escapeHtml(c.name)}</h3>
+                                    </div>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
+                                        <span><strong>DNI:</strong> ${escapeHtml(c.dni)}</span>
+                                        <span>|</span>
+                                        ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 font-extrabold flex items-center"><i class="fab fa-whatsapp text-sm mr-1"></i> ${escapeHtml(c.phone)}</a>` : `<span>${escapeHtml(c.phone)}</span>`}
+                                        <span>|</span>
+                                        <span class="inline-flex items-center">
+                                            <i class="fas fa-map-location-dot text-rose-500 mr-1 text-[11px]"></i>
+                                            <strong>Domicilio:</strong>&nbsp;${c.address ? `
+                                                <a href="${getGoogleMapsUrl(c.address)}" target="_blank" rel="noopener noreferrer" class="text-slate-800 dark:text-slate-200 hover:text-rose-600 dark:hover:text-rose-400 font-semibold underline decoration-dotted underline-offset-2" title="Abrir en Google Maps: ${escapeHtml(c.address)}">
+                                                    ${escapeHtml(c.address)}
+                                                </a>` : '<span class="text-slate-400 italic">No especificado</span>'}
+                                            <button onclick="promptEditClientAddress('${escapeJsAttr(c.dni)}')" class="text-slate-400 hover:text-sky-600 transition-colors ml-1.5 p-0.5 cursor-pointer" title="Editar Domicilio">
+                                                <i class="fas fa-pencil text-[10px]"></i>
+                                            </button>
+                                        </span>
+                                    </p>
                                 </div>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
-                                    <span><strong>DNI:</strong> ${escapeHtml(c.dni)}</span>
-                                    <span>|</span>
-                                    ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 font-extrabold flex items-center"><i class="fab fa-whatsapp text-sm mr-1"></i> ${escapeHtml(c.phone)}</a>` : `<span>${escapeHtml(c.phone)}</span>`}
-                                    <span>|</span>
-                                    <span class="inline-flex items-center">
-                                        <i class="fas fa-location-dot text-slate-400 mr-1 text-[11px]"></i>
-                                        <strong>Domicilio:</strong>&nbsp;${c.address ? `<span class="text-slate-800 dark:text-slate-200">${escapeHtml(c.address)}</span>` : '<span class="text-slate-400 italic">No especificado</span>'}
-                                        <button onclick="promptEditClientAddress('${escapeJsAttr(c.dni)}')" class="text-slate-400 hover:text-sky-600 transition-colors ml-1.5 p-0.5 cursor-pointer" title="Editar Domicilio">
-                                            <i class="fas fa-pencil text-[10px]"></i>
-                                        </button>
-                                    </span>
-                                </p>
+                                <button onclick="createNewOrderForClient('${escapeJsAttr(c.dni)}')" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-2xl text-xs shadow-md">
+                                    + Nueva Orden
+                                </button>
                             </div>
-                            <button onclick="createNewOrderForClient('${escapeJsAttr(c.dni)}')" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-2xl text-xs shadow-md">
-                                + Nueva Orden
-                            </button>
-                        </div>
 
-                        <div class="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl text-center text-xs">
-                            <div>
-                                <span class="text-[10px] uppercase font-black text-slate-400 block">Presupuesto</span>
-                                <span class="font-extrabold text-slate-900 dark:text-white">$ ${clientBudget.toLocaleString('es-AR')}</span>
+                            <div class="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl text-center text-xs">
+                                <div>
+                                    <span class="text-[10px] uppercase font-black text-slate-400 block">Presupuesto</span>
+                                    <span class="font-extrabold text-slate-900 dark:text-white">$ ${clientBudget.toLocaleString('es-AR')}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] uppercase font-black text-slate-400 block">Abonado</span>
+                                    <span class="font-black text-emerald-600 dark:text-emerald-400">$ ${clientPaid.toLocaleString('es-AR')}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] uppercase font-black text-slate-400 block">Saldo</span>
+                                    <span class="font-black ${clientDebt > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}">$ ${clientDebt.toLocaleString('es-AR')}</span>
+                                </div>
                             </div>
-                            <div>
-                                <span class="text-[10px] uppercase font-black text-slate-400 block">Abonado</span>
-                                <span class="font-black text-emerald-600 dark:text-emerald-400">$ ${clientPaid.toLocaleString('es-AR')}</span>
-                            </div>
-                            <div>
-                                <span class="text-[10px] uppercase font-black text-slate-400 block">Saldo</span>
-                                <span class="font-black ${clientDebt > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}">$ ${clientDebt.toLocaleString('es-AR')}</span>
-                            </div>
-                        </div>
 
-                        <div class="space-y-2">
-                            <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block">Órdenes / Herramientas (${c.tickets.length}):</span>
-                            <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                ${c.tickets.map(t => {
-                                    const cost = parseFloat(t.estimatedCost) || 0;
-                                    const paid = parseFloat(t.amountPaid) || 0;
-                                    const bal = Math.max(0, cost - paid);
+                            <div class="space-y-2">
+                                <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block">Órdenes / Herramientas (${c.tickets.length}):</span>
+                                <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                    ${c.tickets.map(t => {
+                                        const cost = parseFloat(t.estimatedCost) || 0;
+                                        const paid = parseFloat(t.amountPaid) || 0;
+                                        const bal = Math.max(0, cost - paid);
 
-                                    return `
-                                    <div class="bg-slate-100/70 dark:bg-slate-800/50 p-3 rounded-2xl text-xs flex items-center justify-between">
-                                        <div>
-                                            <span class="font-black text-sky-600 dark:text-sky-400 mr-2 text-sm">ST-${escapeHtml(getTicketDisplay(t))}</span>
-                                            <span class="font-extrabold text-slate-800 dark:text-slate-200">${escapeHtml(t.toolType)} ${escapeHtml(t.toolBrand)}</span>
-                                            <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                                Pres: $${cost.toLocaleString('es-AR')} | Abonado: $${paid.toLocaleString('es-AR')} | <strong class="${bal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}">Saldo: $${bal.toLocaleString('es-AR')}</strong>
+                                        return `
+                                        <div class="bg-slate-100/70 dark:bg-slate-800/50 p-3 rounded-2xl text-xs flex items-center justify-between">
+                                            <div>
+                                                <span class="font-black text-sky-600 dark:text-sky-400 mr-2 text-sm">ST-${escapeHtml(getTicketDisplay(t))}</span>
+                                                <span class="font-extrabold text-slate-800 dark:text-slate-200">${escapeHtml(t.toolType)} ${escapeHtml(t.toolBrand)}</span>
+                                                <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                    Pres: $${cost.toLocaleString('es-AR')} | Abonado: $${paid.toLocaleString('es-AR')} | <strong class="${bal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}">Saldo: $${bal.toLocaleString('es-AR')}</strong>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center space-x-1">
+                                                <button onclick="openPaymentModal('${escapeJsAttr(t.id)}')" class="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold text-xs rounded-xl">+ Cobro</button>
+                                                <button onclick="openReceipt('${escapeJsAttr(t.id)}')" class="p-1.5 text-slate-500 hover:text-emerald-600 rounded-xl" title="Imprimir Ticket de Orden"><i class="fas fa-print text-sm"></i></button>
+                                                <button onclick="editService('${escapeJsAttr(t.id)}')" class="text-slate-400 hover:text-sky-600 p-1.5" title="Editar"><i class="fas fa-edit text-sm"></i></button>
                                             </div>
                                         </div>
-                                        <div class="flex items-center space-x-1">
-                                            <button onclick="openPaymentModal('${escapeJsAttr(t.id)}')" class="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold text-xs rounded-xl">+ Cobro</button>
-                                            <button onclick="openReceipt('${escapeJsAttr(t.id)}')" class="p-1.5 text-slate-500 hover:text-emerald-600 rounded-xl" title="Imprimir Ticket de Orden"><i class="fas fa-print text-sm"></i></button>
-                                            <button onclick="editService('${escapeJsAttr(t.id)}')" class="text-slate-400 hover:text-sky-600 p-1.5" title="Editar"><i class="fas fa-edit text-sm"></i></button>
-                                        </div>
-                                    </div>
-                                `}).join('')}
+                                    `}).join('')}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `}).join('');
+                    `}).join('');
+                }
             } catch (e) {
                 console.error("renderClientsTab error:", e);
+            }
+        }
+
+        function toggleClientRowOrders(idx) {
+            const row = document.getElementById(`client-orders-drawer-${idx}`);
+            const icon = document.getElementById(`client-drawer-icon-${idx}`);
+            if (!row) return;
+            const isHidden = row.classList.contains('hidden');
+            row.classList.toggle('hidden', !isHidden);
+            if (icon) {
+                icon.className = isHidden ? 'fas fa-chevron-up text-[11px] text-sky-500' : 'fas fa-chevron-down text-[11px] text-slate-400';
             }
         }
 
@@ -3872,6 +4314,8 @@
             allServices.forEach(s => {
                 if (getClientDniKey(s) === dni || String(s.clientDni).trim() === dni) {
                     s.clientAddress = cleanAddr;
+                    s.updatedAt = new Date().toISOString();
+                    appendOrderLog(s, 'Modificado');
                 }
             });
 
@@ -3902,6 +4346,7 @@
             } else {
                 if (cdisp) cdisp.innerText = `Código Cliente: Autogenerado`;
             }
+            updateFormMapsButton();
         }
 
         function searchClientByDni() {
@@ -3920,8 +4365,10 @@
                 if (cphone) cphone.value = client.phone;
                 if (caddr) caddr.value = client.address || '';
                 if (cdisp) cdisp.innerText = `Código Cliente: ${client.code}`;
+                updateFormMapsButton();
                 showToast("Cliente Encontrado", `Datos cargados para ${client.name} (${client.code})`, "success");
             } else {
+                updateFormMapsButton();
                 showToast("Nuevo Cliente", "DNI no registrado previamente. Complete los datos.", "info");
             }
         }
@@ -4411,30 +4858,40 @@
             const fileName = typeof file === 'string' ? 'Despiece' : (file.name || 'Despiece');
             const driveId = extractDriveId(file);
 
-            if (driveId) {
-                const viewerUrl = `https://drive.google.com/file/d/${driveId}/view`;
-                window.open(viewerUrl, '_blank');
+            if (driveId && /^[a-zA-Z0-9_-]{10,60}$/.test(driveId)) {
+                const viewerUrl = `https://drive.google.com/file/d/${encodeURIComponent(driveId)}/view`;
+                window.open(viewerUrl, '_blank', 'noopener,noreferrer');
                 return;
             }
 
             let fileUrl = typeof file === 'string' ? file : (file.url || '');
-            if (fileUrl && fileUrl.startsWith('http')) {
-                window.open(fileUrl, '_blank');
-                return;
+            if (fileUrl && typeof fileUrl === 'string') {
+                const trimmedUrl = fileUrl.trim();
+                // Requisito 3: No considerar que cualquier URL HTTPS es automáticamente segura.
+                // Permitir estrictamente enlaces de Google Drive y Google Docs
+                if (/^https:\/\/(drive|docs)\.google\.com\/[a-zA-Z0-9_#?&=%./-]+$/i.test(trimmedUrl)) {
+                    window.open(trimmedUrl, '_blank', 'noopener,noreferrer');
+                    return;
+                }
             }
 
-            const b64Data = file.previewUrl || file.dataBase64 || (typeof file === 'string' && file.startsWith('data:') ? file : '');
-            if (b64Data) {
+            const rawB64 = file.previewUrl || file.dataBase64 || (typeof file === 'string' && file.startsWith('data:') ? file : '');
+            if (rawB64 && typeof rawB64 === 'string') {
+                const b64Data = rawB64.trim();
                 const isPdf = fileName.toLowerCase().endsWith('.pdf') || b64Data.startsWith('data:application/pdf');
-                try {
-                    const mime = isPdf ? 'application/pdf' : (file.type || 'application/octet-stream');
-                    const blob = base64ToBlob(b64Data, mime);
-                    if (blob) {
-                        const blobUrl = URL.createObjectURL(blob);
-                        window.open(blobUrl, '_blank');
-                        return;
-                    }
-                } catch (e) {}
+                // Validar estrictamente esquemas Base64 permitidos (PDF o imágenes estándar)
+                const isSafeB64 = /^data:(application\/pdf|image\/(jpeg|jpg|png|webp|gif));base64,[A-Za-z0-9+/=]+$/i.test(b64Data);
+                if (isSafeB64) {
+                    try {
+                        const mime = isPdf ? 'application/pdf' : (file.type || 'image/jpeg');
+                        const blob = base64ToBlob(b64Data, mime);
+                        if (blob) {
+                            const blobUrl = URL.createObjectURL(blob);
+                            window.open(blobUrl, '_blank', 'noopener,noreferrer');
+                            return;
+                        }
+                    } catch (e) {}
+                }
             }
 
             showInlineDespieceModal(file);
@@ -4691,7 +5148,7 @@
             }
 
             container.innerHTML = filtered.map(c => `
-                <div onclick="selectExistingClientForOrder('${escapeJsAttr(c.dni)}')" class="p-3.5 bg-slate-50 dark:bg-slate-800/60 hover:bg-sky-50 dark:hover:bg-sky-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl cursor-pointer flex items-center justify-between transition-colors">
+                <div onclick="selectExistingClientForOrder('${escapeJsAttr(c.code)}')" class="p-3.5 bg-slate-50 dark:bg-slate-800/60 hover:bg-sky-50 dark:hover:bg-sky-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl cursor-pointer flex items-center justify-between transition-colors">
                     <div>
                         <div class="flex items-center space-x-2">
                             <span class="px-2.5 py-0.5 bg-sky-600 text-white font-black text-xs rounded-lg">${escapeHtml(c.code)}</span>
@@ -4708,8 +5165,8 @@
             `).join('');
         }
 
-        function selectExistingClientForOrder(dni) {
-            const client = allClients.find(c => c.dni === dni);
+        function selectExistingClientForOrder(clientCode) {
+            const client = allClients.find(c => c.code === clientCode || (c.dni && c.dni !== 'Sin DNI' && c.dni === clientCode));
             if (!client) return;
 
             const cdni = document.getElementById('client-dni');
@@ -4720,11 +5177,12 @@
             const badge = document.getElementById('selected-client-badge-container');
             const badgeText = document.getElementById('selected-client-badge-text');
 
-            if (cdni) cdni.value = client.dni;
-            if (cname) cname.value = client.name;
-            if (cphone) cphone.value = client.phone;
+            if (cdni) cdni.value = (client.dni && client.dni !== 'Sin DNI') ? client.dni : '';
+            if (cname) cname.value = client.name || '';
+            if (cphone) cphone.value = client.phone || '';
             if (caddr) caddr.value = client.address || '';
             if (cdisp) cdisp.innerText = `Código Cliente: ${client.code}`;
+            updateFormMapsButton();
 
             if (badge && badgeText) {
                 badgeText.innerText = `Cliente Existente Seleccionado: ${client.name} (${client.code})`;
@@ -4756,6 +5214,7 @@
             if (caddr) caddr.value = '';
             if (cdisp) cdisp.innerText = `Código Cliente: Autogenerado`;
             if (badge) badge.classList.add('hidden');
+            updateFormMapsButton();
         }
 
         /* ----------------------------------------------------
@@ -4857,6 +5316,9 @@
             }
         }
 
+        const debouncedFilterServices = debounce(() => filterServices(), 250);
+        const debouncedRenderClientsTab = debounce(() => renderClientsTab(), 250);
+
         function handleSearchInputChange(val) {
             const clearBtn = document.getElementById('clear-search-btn');
             if (clearBtn) {
@@ -4866,7 +5328,11 @@
                     clearBtn.classList.add('hidden');
                 }
             }
-            filterServices();
+            debouncedFilterServices();
+        }
+
+        function handleClientSearchInput(val) {
+            debouncedRenderClientsTab();
         }
 
         function clearSearchInput() {
@@ -5004,6 +5470,8 @@
                                             ? deliveryDateObj.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})
                                             : '';
                                         const total = parseFloat(item.estimatedCost) || 0;
+                                        const repairCost = parseFloat(item.repairCost) || 0;
+                                        const realProfit = Math.max(0, total - repairCost);
                                         const paid = parseFloat(item.amountPaid) || 0;
                                         const balance = Math.max(0, total - paid);
                                         const imgCount = (item.imagesBase64 || []).length;
@@ -5022,6 +5490,9 @@
                                                         <i class="fas fa-check-circle mr-1 text-[10px]"></i> Entrega: ${deliveryDateFormatted}
                                                     </div>
                                                 ` : ''}
+                                                <div class="text-[10px] text-slate-400 mt-1 font-normal max-w-[210px] leading-tight" title="Historial de la orden">
+                                                    (${getOrderLogs(item).map(l => `${escapeHtml(l.action)} ${formatLogDateTime(l.at)}`).join(', ')})
+                                                </div>
                                             </td>
                                             <td class="p-4">
                                                 <div class="font-extrabold text-slate-900 dark:text-white">${escapeHtml(item.clientName || 'Sin Nombre')}</div>
@@ -5029,7 +5500,14 @@
                                                     <span>DNI: ${escapeHtml(item.clientDni || '-')}</span>
                                                     ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 hover:text-emerald-700 font-extrabold flex items-center ml-1"><i class="fab fa-whatsapp text-sm mr-0.5"></i> ${escapeHtml(item.clientPhone)}</a>` : `<span>${escapeHtml(item.clientPhone || '')}</span>`}
                                                 </div>
-                                                ${item.clientAddress ? `<div class="text-slate-400 text-[11px] truncate max-w-[180px] mt-0.5" title="${escapeHtml(item.clientAddress)}"><i class="fas fa-map-marker-alt mr-1 text-slate-400"></i>${escapeHtml(item.clientAddress)}</div>` : ''}
+                                                ${item.clientAddress ? `
+                                                    <div class="mt-0.5">
+                                                        <a href="${getGoogleMapsUrl(item.clientAddress)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-[11px] font-semibold truncate max-w-[190px] transition-colors group" title="Abrir en Google Maps: ${escapeHtml(item.clientAddress)}">
+                                                            <i class="fas fa-map-location-dot mr-1 text-rose-500 group-hover:scale-110 transition-transform text-[10px]"></i>
+                                                            <span class="underline decoration-dotted underline-offset-2">${escapeHtml(item.clientAddress)}</span>
+                                                        </a>
+                                                    </div>
+                                                ` : ''}
                                             </td>
                                             <td class="p-4">
                                                 <div class="font-extrabold text-slate-800 dark:text-slate-200">${escapeHtml(item.toolType || 'Herramienta')}</div>
@@ -5060,7 +5538,14 @@
                                                     </div>
                                                 ` : '<span class="text-slate-400 text-xs">Sin despiece</span>'}
                                             </td>
-                                            <td class="p-4 font-extrabold text-slate-800 dark:text-slate-200">$ ${total.toLocaleString('es-AR')}</td>
+                                            <td class="p-4">
+                                                <div class="font-extrabold text-slate-800 dark:text-slate-200">$ ${total.toLocaleString('es-AR')}</div>
+                                                ${repairCost > 0 ? `
+                                                    <div class="text-[10px] text-slate-400 mt-0.5 whitespace-nowrap" title="Costo Insumos: $${repairCost.toLocaleString('es-AR')} · Ganancia: $${realProfit.toLocaleString('es-AR')}">
+                                                        <span class="text-amber-600 dark:text-amber-400 font-bold">C: $${repairCost.toLocaleString('es-AR')}</span> · <span class="text-emerald-600 dark:text-emerald-400 font-black">G: $${realProfit.toLocaleString('es-AR')}</span>
+                                                    </div>
+                                                ` : ''}
+                                            </td>
                                             <td class="p-4 font-black text-emerald-600 dark:text-emerald-400">$ ${paid.toLocaleString('es-AR')}</td>
                                             <td class="p-4 font-black ${balance > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}">$ ${balance.toLocaleString('es-AR')}</td>
                                             <td class="p-4">${getStatusSelector(safeId, item.status)}</td>
@@ -5090,6 +5575,8 @@
                         ? deliveryDateObj.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})
                         : '';
                     const total = parseFloat(item.estimatedCost) || 0;
+                    const repairCost = parseFloat(item.repairCost) || 0;
+                    const realProfit = Math.max(0, total - repairCost);
                     const paid = parseFloat(item.amountPaid) || 0;
                     const balance = Math.max(0, total - paid);
                     const images = item.imagesBase64 || [];
@@ -5162,7 +5649,15 @@
                                     </a>
                                 ` : ''}
                             </div>
-                            ${item.clientAddress ? `<div class="text-slate-500 dark:text-slate-400 font-semibold"><strong class="text-slate-700 dark:text-slate-300 font-extrabold">Dom:</strong> ${safeClientAddress}</div>` : ''}
+                            ${item.clientAddress ? `
+                                <div class="text-slate-500 dark:text-slate-400 font-semibold flex items-center flex-wrap gap-1">
+                                    <strong class="text-slate-700 dark:text-slate-300 font-extrabold">Dom:</strong>
+                                    <a href="${getGoogleMapsUrl(item.clientAddress)}" target="_blank" rel="noopener noreferrer" class="text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-bold underline decoration-dotted underline-offset-2 inline-flex items-center space-x-1 transition-colors" title="Abrir en Google Maps: ${escapeHtml(item.clientAddress)}">
+                                        <i class="fas fa-map-location-dot text-rose-500 text-xs"></i>
+                                        <span>${safeClientAddress}</span>
+                                    </a>
+                                </div>
+                            ` : ''}
                             <div class="text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-200/60 dark:border-slate-700 font-medium"><strong class="text-slate-800 dark:text-slate-200 font-extrabold">Falla:</strong> ${safeFailureDesc}</div>
 
                             <!-- (VISUALIZADOR DE MÚLTIPLES DESPIECES) -->
@@ -5198,6 +5693,12 @@
                                 <span class="font-black ${balance > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}">$ ${balance.toLocaleString('es-AR')}</span>
                             </div>
                         </div>
+                        ${repairCost > 0 ? `
+                        <div class="flex items-center justify-between px-3.5 py-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-xs font-bold border border-slate-200/60 dark:border-slate-800/60">
+                            <span class="text-slate-600 dark:text-slate-400"><i class="fas fa-wrench text-amber-500 mr-1 text-[11px]"></i> Costo: <strong class="text-slate-800 dark:text-slate-200">$ ${repairCost.toLocaleString('es-AR')}</strong></span>
+                            <span class="text-emerald-600 dark:text-emerald-400"><i class="fas fa-coins text-[11px] mr-1"></i> Ganancia: <strong class="font-black">$ ${realProfit.toLocaleString('es-AR')}</strong></span>
+                        </div>
+                        ` : ''}
 
                         <div class="text-xs text-slate-400 flex justify-between pt-1 font-semibold">
                             <span>Fecha Ingreso:</span>
@@ -5226,6 +5727,8 @@
                                 </button>
                             </div>
                         </div>
+
+                        ${renderOrderHistoryHtml(item)}
                     </div>
                 `}).join('');
             }
@@ -5241,9 +5744,21 @@
 
         function validateFormPayment() {
             const budget = parseFormattedCurrency(document.getElementById('estimated-cost')?.value);
+            const repairCost = parseFormattedCurrency(document.getElementById('repair-cost')?.value);
             const paid = parseFormattedCurrency(document.getElementById('amount-paid')?.value);
             const warning = document.getElementById('form-payment-warning');
             const btnSave = document.getElementById('btn-save-service');
+            const profitEl = document.getElementById('form-calc-profit');
+
+            if (profitEl) {
+                const profit = budget - repairCost;
+                profitEl.innerText = `$ ${profit.toLocaleString('es-AR')}`;
+                if (profit < 0) {
+                    profitEl.className = 'font-black text-rose-600 dark:text-rose-400 text-sm';
+                } else {
+                    profitEl.className = 'font-black text-emerald-600 dark:text-emerald-400 text-sm';
+                }
+            }
 
             if (budget > 0 && paid > budget) {
                 if (warning) warning.classList.remove('hidden');
@@ -5381,6 +5896,7 @@
 
             item.amountPaid = newPaid;
             item.updatedAt = new Date().toISOString();
+            appendOrderLog(item, 'Modificado');
 
             await saveDatabaseData();
             pushDatabaseToDriveSilently();
@@ -5389,7 +5905,7 @@
 
             activePaymentReceiptData = {
                 receiptNum: `REC-${item.ticketNum || item.id.substring(0,4)}-${Date.now().toString().slice(-4)}`,
-                date: new Date().toLocaleString('es-AR'),
+                date: new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
                 orderNum: `ST-${item.ticketNum || item.id.substring(0,4)}`,
                 clientName: item.clientName,
                 clientDni: item.clientDni || '-',
@@ -5416,32 +5932,36 @@
 
             e.target.value = '';
 
-            await Promise.all(files.map(async (file) => {
+            // Asignación síncrona de slots para evitar colisiones de índice durante procesamiento asíncrono concurrente
+            const startIdx = currentImagesBase64.length;
+            const slots = files.map((file, i) => {
+                const ext = (file.name.split('.').pop() || '').toLowerCase();
+                const isHeic = ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif';
+                const cleanName = isHeic ? file.name.replace(/\.[a-zA-Z0-9]+$/i, '.jpg') : file.name;
+                currentImagesBase64.push({
+                    id: '',
+                    name: cleanName,
+                    type: isHeic ? 'image/jpeg' : (file.type || 'image/jpeg'),
+                    previewUrl: getPlaceholderSvg(isHeic ? 'Convirtiendo HD...' : 'Cargando...'),
+                    pendingUpload: true
+                });
+                return { file, slotIndex: startIdx + i, cleanName, isHeic };
+            });
+            renderImagesPreviewGrid();
+
+            await Promise.all(slots.map(async ({ file, slotIndex, cleanName, isHeic }) => {
                 const ext = (file.name.split('.').pop() || '').toLowerCase();
                 const isJpgOrPng = (ext === 'jpg' || ext === 'jpeg' || ext === 'png') && (file.type === 'image/jpeg' || file.type === 'image/png');
-                const isHeic = ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif';
                 const needsConversion = !isJpgOrPng || isHeic;
 
                 if (needsConversion && typeof heic2any !== 'undefined') {
-                    const placeholderIdx = currentImagesBase64.length;
-                    const cleanName = file.name.replace(/\.[a-zA-Z0-9]+$/i, '.jpg');
-
-                    currentImagesBase64.push({
-                        id: '',
-                        name: cleanName,
-                        type: 'image/jpeg',
-                        previewUrl: getPlaceholderSvg('Convirtiendo a JPG...'),
-                        pendingUpload: true
-                    });
-                    renderImagesPreviewGrid();
-
                     try {
                         let finalBlob = null;
                         if (isHeic) {
                             const conversionResult = await heic2any({
                                 blob: file,
                                 toType: 'image/jpeg',
-                                quality: 1.0
+                                quality: 1.0 // Calidad nativa 1.0 para nitidez absoluta en lectura de etiquetas
                             });
                             finalBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
                         } else {
@@ -5468,7 +5988,7 @@
 
                         const reader = new FileReader();
                         reader.onload = function(evt) {
-                            currentImagesBase64[placeholderIdx] = {
+                            currentImagesBase64[slotIndex] = {
                                 id: '',
                                 name: cleanName,
                                 type: 'image/jpeg',
@@ -5482,7 +6002,7 @@
                         console.warn('Conversión de imagen a JPG fallback:', convErr);
                         const reader = new FileReader();
                         reader.onload = function(evt) {
-                            currentImagesBase64[placeholderIdx] = {
+                            currentImagesBase64[slotIndex] = {
                                 id: '',
                                 name: cleanName,
                                 type: 'image/jpeg',
@@ -5494,16 +6014,16 @@
                         reader.readAsDataURL(file);
                     }
                 } else {
-                    // Archivo estándar JPG/PNG directo sin procesar
+                    // Archivo estándar JPG/PNG directo sin pérdida ni recompresión
                     const reader = new FileReader();
                     reader.onload = function(evt) {
-                        currentImagesBase64.push({
+                        currentImagesBase64[slotIndex] = {
                             id: '',
                             name: file.name,
                             type: file.type || 'image/jpeg',
                             previewUrl: evt.target.result,
                             pendingUpload: true
-                        });
+                        };
                         renderImagesPreviewGrid();
                     };
                     reader.readAsDataURL(file);
@@ -5539,23 +6059,33 @@
             const files = Array.from(e.target.files);
             if (!files.length) return;
 
-            files.forEach(file => {
+            e.target.value = '';
+
+            const startIdx = currentDespieceFiles.length;
+            files.forEach((file, i) => {
+                const mime = file.type || getExtensionType(file.name);
+                const slotIndex = startIdx + i;
+                currentDespieceFiles.push({
+                    id: '',
+                    name: file.name,
+                    type: mime,
+                    previewUrl: '',
+                    pendingUpload: true
+                });
                 const reader = new FileReader();
                 reader.onload = function(evt) {
-                    const b64 = evt.target.result;
-                    const mime = file.type || getExtensionType(file.name);
-                    currentDespieceFiles.push({
+                    currentDespieceFiles[slotIndex] = {
                         id: '',
                         name: file.name,
                         type: mime,
-                        previewUrl: b64,
+                        previewUrl: evt.target.result,
                         pendingUpload: true
-                    });
+                    };
                     renderDespiecePreviewList();
                 };
                 reader.readAsDataURL(file);
             });
-            e.target.value = '';
+            renderDespiecePreviewList();
         }
 
         function getExtensionType(filename) {
@@ -5648,23 +6178,32 @@
             if (titleEl) titleEl.innerText = fileName;
             if (iconEl) iconEl.className = `${getDespieceIconClass(fileName)} text-lg`;
 
-            if (driveId) {
+            if (driveId && /^[a-zA-Z0-9_-]{10,60}$/.test(driveId)) {
                 const driveUrl = `https://drive.google.com/file/d/${encodeURIComponent(driveId)}/preview`;
                 if (contentEl) {
                     contentEl.innerHTML = `
-                        <iframe src="${driveUrl}" class="w-full h-full rounded-xl border-0" allow="autoplay"></iframe>
+                        <iframe src="${driveUrl}" class="w-full h-full rounded-xl border-0" allow="autoplay" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
                     `;
                 }
             } else {
-                const dataString = file.previewUrl || file.dataBase64 || file.data || file.url || (typeof file === 'string' ? file : '');
+                const rawData = file.previewUrl || file.dataBase64 || file.data || file.url || (typeof file === 'string' ? file : '');
+                const dataString = typeof rawData === 'string' ? rawData.trim() : '';
+
                 if (contentEl) {
-                    const isImage = (dataString && dataString.startsWith('data:image/')) || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
-                    if (isImage && dataString) {
+                    // Validar si es una imagen en Base64 segura
+                    const isSafeImage = /^data:image\/(jpeg|jpg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/i.test(dataString);
+                    // Validar si es un PDF en Base64 seguro
+                    const isSafePdf = /^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/i.test(dataString);
+                    // Validar si es una URL HTTPS legítima de Google Drive / Docs
+                    const isSafeGoogleDoc = /^https:\/\/(drive|docs)\.google\.com\/[a-zA-Z0-9_#?&=%./-]+$/i.test(dataString);
+
+                    if (isSafeImage) {
                         contentEl.innerHTML = `<img src="${dataString}" alt="Despiece" class="max-w-full max-h-full object-contain rounded-xl shadow-lg">`;
-                    } else if (dataString) {
+                    } else if (isSafePdf || isSafeGoogleDoc) {
+                        const safeSrc = isSafeGoogleDoc ? escapeHtml(dataString) : dataString;
                         contentEl.innerHTML = `
-                            <object data="${dataString}" type="application/pdf" class="w-full h-full rounded-xl">
-                                <iframe src="${dataString}" class="w-full h-full rounded-xl border-0">
+                            <object data="${safeSrc}" type="application/pdf" class="w-full h-full rounded-xl">
+                                <iframe src="${safeSrc}" class="w-full h-full rounded-xl border-0" sandbox="allow-scripts allow-same-origin allow-popups">
                                     <div class="p-6 text-center text-white text-sm">
                                         <p class="mb-4 font-bold">Documento PDF / Despiece: ${safeFileName}</p>
                                         <button onclick="downloadDespieceCurrent()" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold rounded-xl text-xs shadow-lg">
@@ -5673,6 +6212,18 @@
                                     </div>
                                 </iframe>
                             </object>
+                        `;
+                    } else if (dataString) {
+                        // El dato existe pero no cumple con los formatos seguros o esquemas autorizados (Requisito 6)
+                        contentEl.innerHTML = `
+                            <div class="p-8 text-center text-slate-300 flex flex-col items-center justify-center h-full">
+                                <i class="fas fa-shield-halved text-amber-400 text-4xl mb-3"></i>
+                                <p class="font-bold text-base text-white mb-2">Previsualización restringida por seguridad</p>
+                                <p class="text-xs text-slate-400 max-w-md mb-4">El archivo adjunto no posee un formato admitido para incrustación directa (solo se admiten PDFs oficiales, imágenes y enlaces a Google Drive).</p>
+                                <button onclick="downloadDespieceCurrent()" class="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl text-xs shadow-md transition-all">
+                                    <i class="fas fa-download mr-1.5"></i> Intentar Descargar
+                                </button>
+                            </div>
                         `;
                     } else {
                         contentEl.innerHTML = `<div class="p-6 text-center text-slate-400">No se pudo previsualizar el archivo adjunto.</div>`;
@@ -5686,23 +6237,43 @@
         function closeDespieceInlineModal() {
             const modalEl = document.getElementById('despiece-inline-modal');
             if (modalEl) modalEl.classList.add('hidden');
+            const contentEl = document.getElementById('despiece-modal-content');
+            if (contentEl) contentEl.innerHTML = '';
         }
 
         function downloadDespieceCurrent() {
             if (!activeDespieceFile) return;
             const driveId = extractDriveId(activeDespieceFile);
-            if (driveId) {
-                window.open(`https://drive.google.com/uc?export=download&id=${driveId}`, '_blank');
+            if (driveId && /^[a-zA-Z0-9_-]{10,60}$/.test(driveId)) {
+                window.open(`https://drive.google.com/uc?export=download&id=${encodeURIComponent(driveId)}`, '_blank', 'noopener,noreferrer');
                 return;
             }
-            const dataString = activeDespieceFile.previewUrl || activeDespieceFile.dataBase64 || activeDespieceFile.data || activeDespieceFile.url || (typeof activeDespieceFile === 'string' ? activeDespieceFile : '');
-            if (!dataString) return;
-            const a = document.createElement('a');
-            a.href = dataString;
-            a.download = activeDespieceFile.name || 'despiece.pdf';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
+            const rawData = activeDespieceFile.previewUrl || activeDespieceFile.dataBase64 || activeDespieceFile.data || activeDespieceFile.url || (typeof activeDespieceFile === 'string' ? activeDespieceFile : '');
+            if (!rawData || typeof rawData !== 'string') return;
+            const trimmed = rawData.trim();
+
+            // Rechazar esquemas de ejecución de scripts
+            if (/^javascript:/i.test(trimmed) || /^vbscript:/i.test(trimmed)) {
+                showToast("Descarga Bloqueada", "Enlace no válido o no seguro.", "error");
+                return;
+            }
+
+            if (/^data:(application\/pdf|image\/(jpeg|jpg|png|webp|gif));base64,/i.test(trimmed)) {
+                const a = document.createElement('a');
+                a.href = trimmed;
+                a.download = activeDespieceFile.name || 'despiece.pdf';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                return;
+            }
+
+            if (/^https:\/\/(drive|docs)\.google\.com\/[a-zA-Z0-9_#?&=%./-]+$/i.test(trimmed)) {
+                window.open(trimmed, '_blank', 'noopener,noreferrer');
+                return;
+            }
+
+            showToast("Aviso", "Formato de archivo no descargable directamente.", "warning");
         }
 
         function openGalleryModal(orderId, startIdx = 0) {
@@ -5825,6 +6396,9 @@
         function closeImageModal() {
             const modal = document.getElementById('image-modal');
             if (modal) modal.classList.add('hidden');
+            const img = document.getElementById('image-modal-img');
+            if (img) img.src = '';
+            resetZoom();
         }
 
         /* GESTOS TOUCH Y MOUSE PARA LUPA DINÁMICA */
@@ -5836,10 +6410,14 @@
         let panStartPanX = 0;
         let panStartPanY = 0;
 
+        let _zoomEventsInitialized = false;
+
         function setupZoomEvents() {
+            if (_zoomEventsInitialized) return;
             const viewport = document.getElementById('zoom-viewport');
             const img = document.getElementById('image-modal-img');
             if (!viewport || !img) return;
+            _zoomEventsInitialized = true;
 
             viewport.addEventListener('wheel', (e) => {
                 const modal = document.getElementById('image-modal');
@@ -5983,15 +6561,58 @@
         }
 
         document.addEventListener('keydown', (e) => {
-            const imgModal = document.getElementById('image-modal');
-            if (imgModal && !imgModal.classList.contains('hidden')) {
-                if (e.key === 'ArrowLeft') navigateGallery(-1);
-                if (e.key === 'ArrowRight') navigateGallery(1);
-                if (e.key === 'Escape') closeImageModal();
-            }
-            const receiptModal = document.getElementById('receipt-modal');
-            if (receiptModal && !receiptModal.classList.contains('hidden')) {
-                if (e.key === 'Escape') closeReceiptModal();
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                const imgModal = document.getElementById('image-modal');
+                if (imgModal && !imgModal.classList.contains('hidden')) {
+                    if (e.key === 'ArrowLeft') navigateGallery(-1);
+                    if (e.key === 'ArrowRight') navigateGallery(1);
+                }
+            } else if (e.key === 'Escape') {
+                const canvasModal = document.getElementById('canvas-annotator-modal');
+                if (canvasModal && !canvasModal.classList.contains('hidden')) {
+                    if (typeof closeCanvasAnnotatorModal === 'function') closeCanvasAnnotatorModal();
+                    return;
+                }
+                const despieceModal = document.getElementById('despiece-inline-modal');
+                if (despieceModal && !despieceModal.classList.contains('hidden')) {
+                    if (typeof closeDespieceInlineModal === 'function') closeDespieceInlineModal();
+                    return;
+                }
+                const imgModal = document.getElementById('image-modal');
+                if (imgModal && !imgModal.classList.contains('hidden')) {
+                    if (typeof closeImageModal === 'function') closeImageModal();
+                    return;
+                }
+                const clientModal = document.getElementById('client-selector-modal');
+                if (clientModal && !clientModal.classList.contains('hidden')) {
+                    if (typeof closeClientSelectorModal === 'function') closeClientSelectorModal();
+                    return;
+                }
+                const payModal = document.getElementById('payment-modal');
+                if (payModal && !payModal.classList.contains('hidden')) {
+                    if (typeof closePaymentModal === 'function') closePaymentModal();
+                    return;
+                }
+                const techModal = document.getElementById('tech-note-modal');
+                if (techModal && !techModal.classList.contains('hidden')) {
+                    if (typeof closeTechNoteModal === 'function') closeTechNoteModal();
+                    return;
+                }
+                const receiptModal = document.getElementById('receipt-modal');
+                if (receiptModal && !receiptModal.classList.contains('hidden')) {
+                    if (typeof closeReceiptModal === 'function') closeReceiptModal();
+                    return;
+                }
+                const delModal = document.getElementById('delete-modal');
+                if (delModal && !delModal.classList.contains('hidden')) {
+                    if (typeof closeDeleteModal === 'function') closeDeleteModal();
+                    return;
+                }
+                const saveSuccessModal = document.getElementById('save-success-modal');
+                if (saveSuccessModal && !saveSuccessModal.classList.contains('hidden')) {
+                    if (typeof closeSaveSuccessModal === 'function') closeSaveSuccessModal();
+                    return;
+                }
             }
         });
 
@@ -6137,6 +6758,7 @@
                     toolAccessories: (document.getElementById('tool-accessories')?.value || '').trim(),
                     failureDescription: (document.getElementById('failure-description')?.value || '').trim(),
                     estimatedCost: parseFormattedCurrency(document.getElementById('estimated-cost')?.value),
+                    repairCost: parseFormattedCurrency(document.getElementById('repair-cost')?.value),
                     amountPaid: parseFormattedCurrency(document.getElementById('amount-paid')?.value),
                     status: document.getElementById('order-status')?.value || 'Ingresado',
                     updatedAt: nowIso,
@@ -6153,6 +6775,9 @@
                         } else {
                             data.deliveredAt = null;
                         }
+                        const prevHist = Array.isArray(allServices[index].history) ? [...allServices[index].history] : getOrderLogs(allServices[index]);
+                        prevHist.push({ action: 'Modificado', at: nowIso });
+                        data.history = prevHist.length > 30 ? [prevHist[0], ...prevHist.slice(-29)] : prevHist;
                         allServices[index] = { ...allServices[index], ...data, ticketNum: savedTicket };
                         lastSavedOrderId = serviceId;
                     }
@@ -6161,6 +6786,7 @@
                     data.id = newId;
                     data.ticketNum = savedTicket;
                     data.createdAt = nowIso;
+                    data.history = [{ action: 'Creación', at: nowIso }];
                     if (data.status === 'Entregado') {
                         data.deliveredAt = nowIso;
                     } else {
@@ -6241,9 +6867,13 @@
             if (tacc) tacc.value = item.toolAccessories || '';
             if (fdesc) fdesc.value = item.failureDescription || '';
             if (ecost) ecost.value = formatCurrencyInput(item.estimatedCost || 0);
+            const rcost = document.getElementById('repair-cost');
+            if (rcost) rcost.value = formatCurrencyInput(item.repairCost || 0);
             if (apaid) apaid.value = formatCurrencyInput(item.amountPaid || 0);
             if (ost) ost.value = item.status || 'Ingresado';
             if (cdisp) cdisp.innerText = `Código Cliente: ${item.clientCode || 'Autogenerado'}`;
+            updateFormMapsButton();
+            validateFormPayment();
 
             currentImagesBase64 = item.imagesBase64 ? [...item.imagesBase64] : [];
             currentDespieceFiles = item.despieceFiles ? [...item.despieceFiles] : [];
@@ -6260,6 +6890,12 @@
             if (eon) eon.innerText = ticketDisplay;
             if (ewb) ewb.classList.remove('hidden');
 
+            const historyBox = document.getElementById('form-order-history-box');
+            if (historyBox) {
+                historyBox.innerHTML = renderOrderHistoryHtml(item);
+                historyBox.classList.remove('hidden');
+            }
+
             switchTab('new-service');
         }
 
@@ -6271,13 +6907,23 @@
             const cdisp = document.getElementById('client-code-display');
             const fttl = document.getElementById('form-title');
             const ewb = document.getElementById('edit-warning-banner');
+            const rcost = document.getElementById('repair-cost');
 
             if (sid) sid.value = '';
+            if (rcost) rcost.value = '';
             if (cdisp) cdisp.innerText = `Código Cliente: Autogenerado`;
+            updateFormMapsButton();
+            validateFormPayment();
             currentImagesBase64 = [];
             currentDespieceFiles = [];
             renderImagesPreviewGrid();
             renderDespiecePreviewList();
+
+            const historyBox = document.getElementById('form-order-history-box');
+            if (historyBox) {
+                historyBox.innerHTML = '';
+                historyBox.classList.add('hidden');
+            }
 
             if (fttl) fttl.innerText = 'Ingreso de Herramienta a Taller';
             if (ewb) ewb.classList.add('hidden');
@@ -6305,30 +6951,39 @@
             if (!orderToDeleteId) return;
 
             const idToDelete = orderToDeleteId;
-            const targetOrder = allServices.find(s => s.id === idToDelete);
-            if (targetOrder) {
-                const fids = [];
-                if (Array.isArray(targetOrder.imagesBase64)) {
-                    targetOrder.imagesBase64.forEach(img => { const fid = extractDriveId(img); if (fid) fids.push(fid); });
-                }
-                if (Array.isArray(targetOrder.despieceFiles)) {
-                    targetOrder.despieceFiles.forEach(f => { const fid = extractDriveId(f); if (fid) fids.push(fid); });
-                }
-                if (fids.length > 0) addPendingTrashedFileIds(fids);
-            }
-
             closeDeleteModal();
 
-            recentlyDeletedOrderIds.push(idToDelete);
-            addPendingDeletedOrderId(idToDelete);
-            allServices = allServices.filter(s => s.id !== idToDelete);
-            await ADL_DB.deleteOrder(idToDelete);
-            await saveDatabaseData();
-            pushDatabaseToDriveSilently();
-            rebuildClientsMap();
-            sortAndRefreshUI();
+            try {
+                const targetOrder = allServices.find(s => s.id === idToDelete);
+                if (targetOrder) {
+                    const fids = [];
+                    if (Array.isArray(targetOrder.imagesBase64)) {
+                        targetOrder.imagesBase64.forEach(img => { const fid = extractDriveId(img); if (fid) fids.push(fid); });
+                    }
+                    if (Array.isArray(targetOrder.despieceFiles)) {
+                        targetOrder.despieceFiles.forEach(f => { const fid = extractDriveId(f); if (fid) fids.push(fid); });
+                    }
+                    if (fids.length > 0) addPendingTrashedFileIds(fids);
+                }
 
-            showToast('Orden Eliminada', 'Eliminada correctamente del sistema', 'info');
+                recentlyDeletedOrderIds.push(idToDelete);
+                addPendingDeletedOrderId(idToDelete);
+                allServices = allServices.filter(s => s.id !== idToDelete);
+                await ADL_DB.deleteOrder(idToDelete);
+                await saveDatabaseData();
+                pushDatabaseToDriveSilently();
+                rebuildClientsMap();
+                sortAndRefreshUI();
+
+                showToast('Orden Eliminada', 'Eliminada correctamente del sistema', 'info');
+            } catch (err) {
+                console.error("Error al eliminar orden:", err);
+                // Asegurar que la orden se retire del listado local y refresque
+                allServices = allServices.filter(s => s.id !== idToDelete);
+                rebuildClientsMap();
+                sortAndRefreshUI();
+                showToast('Orden Eliminada', 'Eliminada localmente', 'warning');
+            }
         }
 
         const APP_DEFAULT_TITLE = 'ADL Servicio Técnico - Gestión de Herramientas y Clientes';
@@ -6459,7 +7114,9 @@
             if (activePrintType === 'payment') {
                 const p = activePaymentReceiptData;
                 const safeReceiptNum = escapeHtml(p.receiptNum);
-                const safeDate = escapeHtml(p.date);
+                const rawDateStr = p.date ? String(p.date) : '';
+                const cleanDate = rawDateStr.includes(',') ? rawDateStr.split(',')[0].trim() : (rawDateStr.includes(' ') && !rawDateStr.includes('/') ? rawDateStr.split(' ')[0].trim() : rawDateStr);
+                const safeDate = escapeHtml(cleanDate || '-');
                 const safeClientName = escapeHtml(p.clientName);
                 const safeClientDni = escapeHtml(p.clientDni);
                 const safeClientPhone = escapeHtml(p.clientPhone);
@@ -6481,7 +7138,7 @@
                                     <strong class="text-2xl sm:text-3xl font-black text-sky-900 print-ticket-number tracking-tight">${safeReceiptNum}</strong>
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-slate-500 font-extrabold block text-xs uppercase">FECHA Y HORA</span>
+                                    <span class="text-slate-500 font-extrabold block text-xs uppercase">FECHA</span>
                                     <strong class="text-sm text-slate-800">${safeDate}</strong>
                                 </div>
                             </div>
@@ -6531,7 +7188,7 @@
                 const total = parseFloat(item.estimatedCost) || 0;
                 const paid = parseFloat(item.amountPaid) || 0;
                 const balance = Math.max(0, total - paid);
-                const dateCreated = item.createdAt ? new Date(item.createdAt).toLocaleString('es-AR') : '-';
+                const dateCreated = item.createdAt ? new Date(item.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
                 const rawImages = item.imagesBase64 || [];
                 const showImagesPage = includeImages && rawImages.length > 0;
 
@@ -6735,23 +7392,33 @@
         });
 
         function exportDatabaseJSON() {
-            const backupObj = {
-                app: "ADL Servicio Técnico",
-                version: "2.0",
-                exportedAt: new Date().toISOString(),
-                totalOrders: allServices.length,
-                orders: allServices,
-                notes: allTechNotes
-            };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj, null, 2));
-            const downloadAnchor = document.createElement('a');
-            const dateStr = new Date().toISOString().split('T')[0];
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `adl_database_backup_${dateStr}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-            showToast("Base de Datos Exportada", `Respaldo JSON creado con ${allServices.length} órdenes y ${allTechNotes.length} notas.`, "success");
+            try {
+                const backupObj = {
+                    app: "ADL Servicio Técnico",
+                    version: "2.0",
+                    exportedAt: new Date().toISOString(),
+                    totalOrders: allServices.length,
+                    orders: allServices,
+                    notes: allTechNotes
+                };
+                const jsonText = JSON.stringify(backupObj, null, 2);
+                const blob = new Blob([jsonText], { type: "application/json;charset=utf-8" });
+                const blobUrl = URL.createObjectURL(blob);
+                const downloadAnchor = document.createElement('a');
+                const dateStr = new Date().toISOString().split('T')[0];
+                downloadAnchor.href = blobUrl;
+                downloadAnchor.download = `adl_database_backup_${dateStr}.json`;
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                setTimeout(() => {
+                    downloadAnchor.remove();
+                    URL.revokeObjectURL(blobUrl);
+                }, 1000);
+                showToast("Base de Datos Exportada", `Respaldo JSON creado con ${allServices.length} órdenes y ${allTechNotes.length} notas.`, "success");
+            } catch (err) {
+                console.error("Error al exportar base JSON:", err);
+                showToast("Error de Exportación", "No se pudo generar el archivo JSON de respaldo.", "error");
+            }
         }
 
         function importDatabaseJSON(e) {
@@ -6832,7 +7499,9 @@
 
             const exportData = allServices.map(item => {
                 const total = parseFloat(item.estimatedCost) || 0;
+                const cost = parseFloat(item.repairCost) || 0;
                 const paid = parseFloat(item.amountPaid) || 0;
+                const profit = Math.max(0, total - cost);
                 const despieceNames = (item.despieceFiles || []).map(d => d.name).join(', ');
 
                 return {
@@ -6849,6 +7518,8 @@
                     "Falla": item.failureDescription || '',
                     "Archivos Despiece": despieceNames || 'Ninguno',
                     "Presupuesto Total ($)": total,
+                    "Costos / Insumos ($)": cost,
+                    "Ganancia Real ($)": profit,
                     "Monto Abonado ($)": paid,
                     "Saldo Pendiente ($)": Math.max(0, total - paid),
                     "Estado": item.status || 'Ingresado'
@@ -6867,13 +7538,16 @@
         function exportClientsToExcel() {
             rebuildClientsMap();
             const exportData = allClients.map(c => {
-                let totalBudget = 0, totalPaid = 0, totalDebt = 0;
+                let totalBudget = 0, totalPaid = 0, totalDebt = 0, totalCost = 0, totalProfit = 0;
                 c.tickets.forEach(t => {
-                    const cost = parseFloat(t.estimatedCost) || 0;
+                    const budget = parseFloat(t.estimatedCost) || 0;
+                    const cost = parseFloat(t.repairCost) || 0;
                     const paid = parseFloat(t.amountPaid) || 0;
-                    totalBudget += cost;
+                    totalBudget += budget;
+                    totalCost += cost;
+                    totalProfit += Math.max(0, budget - cost);
                     totalPaid += paid;
-                    totalDebt += Math.max(0, cost - paid);
+                    totalDebt += Math.max(0, budget - paid);
                 });
 
                 return {
@@ -6884,6 +7558,8 @@
                     "Domicilio": c.address || '',
                     "Cantidad de Órdenes": c.tickets.length,
                     "Presupuesto Acumulado ($)": totalBudget,
+                    "Costos Acumulados ($)": totalCost,
+                    "Ganancia Neta ($)": totalProfit,
                     "Total Abonado ($)": totalPaid,
                     "Saldo Pendiente ($)": totalDebt
                 };
@@ -6924,24 +7600,33 @@
                         importedRows.forEach((row, idx) => {
                             maxTicket++;
                             const newTicketNum = maxTicket;
+                            const dniVal = String(row['DNI'] || row['DNI Cliente'] || row['DNI / CUIT'] || ('SD-' + idx)).trim();
+                            const estCost = parseFloat(row['Presupuesto Total ($)'] || row['Presupuesto'] || row['estimatedCost'] || 0) || 0;
+                            const repCost = parseFloat(row['Costos / Insumos ($)'] || row['Costo'] || row['Costos'] || row['repairCost'] || 0) || 0;
+                            const paidVal = parseFloat(row['Monto Abonado ($)'] || row['Abonado'] || row['amountPaid'] || 0) || 0;
+                            const clientCodeVal = row['Código Cliente'] || row['clientCode'] || `CLI-${String(idx+1).padStart(4,'0')}`;
+                            const nowIso = new Date().toISOString();
+
                             const newOrder = {
                                 id: 'imp-' + Date.now() + '-' + idx,
                                 ticketNum: newTicketNum,
-                                clientDni: row['DNI'] || row['DNI Cliente'] || 'SD-' + idx,
-                                clientCode: row['Código Cliente'] || `CLI-${String(idx+1).padStart(4,'0')}`,
-                                clientName: row['Cliente'] || row['Nombre Cliente'] || 'Cliente Importado',
-                                clientPhone: row['Teléfono'] || '',
-                                clientAddress: row['Domicilio'] || row['Dirección'] || '',
-                                toolType: row['Herramienta'] || 'Herramienta',
-                                toolBrand: row['Marca'] || 'Genérico',
-                                toolModel: row['Modelo'] || '',
-                                toolAccessories: '',
-                                failureDescription: row['Falla'] || 'Importado desde Excel',
-                                estimatedCost: parseFloat(row['Presupuesto Total ($)'] || row['Presupuesto'] || 0),
-                                amountPaid: parseFloat(row['Monto Abonado ($)'] || row['Abonado'] || 0),
-                                status: row['Estado'] || 'Ingresado',
-                                createdAt: new Date().toISOString(),
-                                updatedAt: new Date().toISOString(),
+                                clientDni: dniVal,
+                                clientCode: clientCodeVal,
+                                clientName: String(row['Cliente'] || row['Nombre Cliente'] || 'Cliente Importado').trim(),
+                                clientPhone: String(row['Teléfono'] || row['phone'] || '').trim(),
+                                clientAddress: String(row['Domicilio'] || row['Dirección'] || row['address'] || '').trim(),
+                                toolType: String(row['Herramienta'] || row['toolType'] || 'Herramienta').trim(),
+                                toolBrand: String(row['Marca'] || row['toolBrand'] || 'Genérico').trim(),
+                                toolModel: String(row['Modelo'] || row['toolModel'] || '').trim(),
+                                toolAccessories: String(row['Accesorios'] || '').trim(),
+                                failureDescription: String(row['Falla'] || row['failureDescription'] || 'Importado desde Excel').trim(),
+                                estimatedCost: estCost,
+                                repairCost: repCost,
+                                amountPaid: paidVal,
+                                status: row['Estado'] || row['status'] || 'Ingresado',
+                                createdAt: nowIso,
+                                updatedAt: nowIso,
+                                history: [{ action: 'Importado Excel', at: nowIso }],
                                 imagesBase64: [],
                                 despieceFiles: []
                             };
@@ -7029,6 +7714,8 @@
                 item.deliveredAt = null;
             }
 
+            appendOrderLog(item, 'Modificado');
+
             await saveDatabaseData();
             pushDatabaseToDriveSilently();
             sortAndRefreshUI();
@@ -7100,7 +7787,6 @@
         window.editService = editService;
         window.openReceipt = openReceipt;
         window.onPrintIncludeImagesChanged = onPrintIncludeImagesChanged;
-        window.promptRenumberClientCodes = promptRenumberClientCodes;
         window.closeDeleteModal = closeDeleteModal;
         window.confirmDeleteOrder = confirmDeleteOrder;
         window.promptDeleteService = promptDeleteService;
@@ -7115,9 +7801,17 @@
         window.selectDashboardMetric = selectDashboardMetric;
         window.renderCartesianChart = renderCartesianChart;
         window.renderClientsTab = renderClientsTab;
+        window.setClientViewMode = setClientViewMode;
+        window.toggleClientRowOrders = toggleClientRowOrders;
         window.getTicketDisplay = getTicketDisplay;
         window.createNewOrderForClient = createNewOrderForClient;
         window.promptEditClientAddress = promptEditClientAddress;
+        window.getGoogleMapsUrl = getGoogleMapsUrl;
+        window.updateFormMapsButton = updateFormMapsButton;
+        window.getOrderLogs = getOrderLogs;
+        window.appendOrderLog = appendOrderLog;
+        window.renderOrderHistoryHtml = renderOrderHistoryHtml;
+        window.formatLogDateTime = formatLogDateTime;
         window.onDniInputChanged = onDniInputChanged;
         window.searchClientByDni = searchClientByDni;
         window.openTechNoteModal = openTechNoteModal;
