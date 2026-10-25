@@ -960,7 +960,7 @@
                                     <span><i class="fas fa-images text-xs mr-2"></i> Fotografías (Alta Calidad HD)</span>
                                 </h3>
                                 <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-3xl border border-slate-200 dark:border-slate-900 space-y-3">
-                                    <input type="file" id="tool-images-input" accept="image/*" multiple onchange="handleMultipleImagesSelected(event)" class="text-xs text-slate-500 file:mr-3 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-sky-100 file:text-sky-700 dark:file:bg-sky-950 dark:file:text-sky-300 hover:file:bg-sky-200 w-full cursor-pointer">
+                                    <input type="file" id="tool-images-input" accept="image/jpeg,image/png,image/webp,image/*" multiple onchange="handleMultipleImagesSelected(event)" class="text-xs text-slate-500 file:mr-3 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-sky-100 file:text-sky-700 dark:file:bg-sky-950 dark:file:text-sky-300 hover:file:bg-sky-200 w-full cursor-pointer">
                                     
                                     <div id="images-preview-grid" class="grid grid-cols-2 gap-2 pt-1">
                                         <!-- Dynamic previews -->
@@ -1363,7 +1363,7 @@
                         <label class="block text-xs font-extrabold text-sky-600 dark:text-sky-400">
                             <i class="fas fa-camera mr-1"></i> Adjuntar Fotografías
                         </label>
-                        <input type="file" id="note-images-input" accept="image/*" multiple onchange="handleNoteImagesSelected(event)" class="text-xs text-slate-500 w-full cursor-pointer">
+                        <input type="file" id="note-images-input" accept="image/jpeg,image/png,image/webp,image/*" multiple onchange="handleNoteImagesSelected(event)" class="text-xs text-slate-500 w-full cursor-pointer">
                         <div id="note-images-preview-grid" class="grid grid-cols-3 gap-2 pt-2"></div>
                     </div>
 
@@ -1810,6 +1810,122 @@
                     localStorage.setItem('adl_tech_notes', JSON.stringify(notesArray));
                     return true;
                 } catch(e) { return false; }
+            }
+        };
+
+        /* ====================================================
+           ALMACENAMIENTO SEGURO DE BORRADORES CON BLOBS EN INDEXEDDB
+           (Previene cuotas de 5MB en LocalStorage y crashes de RAM en móviles)
+        ==================================================== */
+        function blobToBase64(blob) {
+            return new Promise((resolve) => {
+                if (!blob) return resolve('');
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result || '');
+                reader.onerror = () => resolve('');
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        async function blobUrlToBase64(blobUrl) {
+            if (!blobUrl || typeof blobUrl !== 'string') return '';
+            if (blobUrl.startsWith('data:')) return blobUrl;
+            try {
+                const res = await fetch(blobUrl);
+                const blob = await res.blob();
+                return await blobToBase64(blob);
+            } catch(e) {
+                console.warn("Fallo blobUrlToBase64:", e);
+                return '';
+            }
+        }
+
+        const ADL_DRAFT_STORAGE = {
+            dbName: 'ADL_DraftDatabase_v1',
+            storeName: 'form_drafts',
+            db: null,
+
+            async open() {
+                if (this.db) return this.db;
+                if (!window.indexedDB) return null;
+                return new Promise((resolve) => {
+                    try {
+                        const req = indexedDB.open(this.dbName, 1);
+                        req.onupgradeneeded = (e) => {
+                            const db = e.target.result;
+                            if (!db.objectStoreNames.contains(this.storeName)) {
+                                db.createObjectStore(this.storeName, { keyPath: 'key' });
+                            }
+                        };
+                        req.onsuccess = (e) => {
+                            this.db = e.target.result;
+                            resolve(this.db);
+                        };
+                        req.onerror = () => resolve(null);
+                    } catch(e) {
+                        resolve(null);
+                    }
+                });
+            },
+
+            async saveDraft(data) {
+                try {
+                    const db = await this.open();
+                    if (!db) return false;
+                    return new Promise((resolve) => {
+                        try {
+                            const tx = db.transaction(this.storeName, 'readwrite');
+                            const store = tx.objectStore(this.storeName);
+                            store.put({ key: 'active_service_draft', ...data, savedAt: Date.now() });
+                            tx.oncomplete = () => resolve(true);
+                            tx.onerror = () => resolve(false);
+                        } catch(e) {
+                            resolve(false);
+                        }
+                    });
+                } catch(e) {
+                    return false;
+                }
+            },
+
+            async getDraft() {
+                try {
+                    const db = await this.open();
+                    if (!db) return null;
+                    return new Promise((resolve) => {
+                        try {
+                            const tx = db.transaction(this.storeName, 'readonly');
+                            const store = tx.objectStore(this.storeName);
+                            const req = store.get('active_service_draft');
+                            req.onsuccess = () => resolve(req.result || null);
+                            req.onerror = () => resolve(null);
+                        } catch(e) {
+                            resolve(null);
+                        }
+                    });
+                } catch(e) {
+                    return null;
+                }
+            },
+
+            async clearDraft() {
+                try {
+                    const db = await this.open();
+                    if (!db) return false;
+                    return new Promise((resolve) => {
+                        try {
+                            const tx = db.transaction(this.storeName, 'readwrite');
+                            const store = tx.objectStore(this.storeName);
+                            store.delete('active_service_draft');
+                            tx.oncomplete = () => resolve(true);
+                            tx.onerror = () => resolve(false);
+                        } catch(e) {
+                            resolve(false);
+                        }
+                    });
+                } catch(e) {
+                    return false;
+                }
             }
         };
 
@@ -3585,7 +3701,7 @@
             } catch(e){}
         }
 
-        function switchTab(tabId) {
+        function switchTab(tabId, options = {}) {
             try {
                 window.safeSetStorage('adl_active_tab', tabId);
                 try { sessionStorage.setItem('adl_active_tab', tabId); } catch(e){}
@@ -3639,7 +3755,12 @@
                 if (tabId === 'clients') renderClientsTab();
                 if (tabId === 'current-accounts') renderCurrentAccountsTab();
                 if (tabId === 'dashboard') updateDashboardStats();
-                if (tabId === 'new-service') restoreFormDraft();
+                if (tabId === 'new-service' && !options.skipDraftRestore) {
+                    const currentSid = document.getElementById('service-id')?.value;
+                    if (!currentSid) {
+                        restoreFormDraft();
+                    }
+                }
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (e) {
                 console.error("switchTab error:", e);
@@ -4474,15 +4595,23 @@
             if (!imgItem) return '';
             
             // 1. Vista previa local inmediata en memoria (durante edicion de orden)
-            if (typeof imgItem === 'string' && imgItem.startsWith('data:image')) {
-                return imgItem;
+            if (typeof imgItem === 'string') {
+                if (imgItem.startsWith('data:image') || imgItem.startsWith('blob:') || imgItem.startsWith('http')) {
+                    return imgItem;
+                }
             }
             if (typeof imgItem === 'object') {
-                if (imgItem.previewUrl && imgItem.previewUrl.startsWith('data:image')) {
+                if (imgItem.previewUrl && (imgItem.previewUrl.startsWith('data:image') || imgItem.previewUrl.startsWith('blob:') || imgItem.previewUrl.startsWith('http'))) {
                     return imgItem.previewUrl;
                 }
-                if (imgItem.dataBase64 && imgItem.dataBase64.startsWith('data:image')) {
+                if (imgItem.dataBase64 && (imgItem.dataBase64.startsWith('data:image') || imgItem.dataBase64.startsWith('blob:'))) {
                     return imgItem.dataBase64;
+                }
+                if (imgItem.blob instanceof Blob) {
+                    try {
+                        imgItem.previewUrl = URL.createObjectURL(imgItem.blob);
+                        return imgItem.previewUrl;
+                    } catch(e) {}
                 }
             }
 
@@ -4562,97 +4691,64 @@
 
             e.target.value = '';
 
-            await Promise.all(files.map(async (file) => {
+            const startIdx = currentNoteImages.length;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
                 const ext = (file.name.split('.').pop() || '').toLowerCase();
-                const isJpgOrPng = (ext === 'jpg' || ext === 'jpeg' || ext === 'png') && (file.type === 'image/jpeg' || file.type === 'image/png');
                 const isHeic = ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif';
-                const needsConversion = !isJpgOrPng || isHeic;
+                const cleanName = isHeic ? file.name.replace(/\.[a-zA-Z0-9]+$/i, '.jpg') : file.name;
 
-                if (needsConversion && typeof heic2any !== 'undefined') {
-                    const placeholderIdx = currentNoteImages.length;
-                    const cleanName = file.name.replace(/\.[a-zA-Z0-9]+$/i, '.jpg');
-
-                    currentNoteImages.push({
-                        id: '',
-                        name: cleanName,
-                        type: 'image/jpeg',
-                        previewUrl: getPlaceholderSvg('Convirtiendo a JPG...'),
-                        pendingUpload: true
-                    });
-                    renderNoteImagesPreviewGrid();
-
+                let previewUrl = '';
+                if (!isHeic) {
                     try {
-                        let finalBlob = null;
-                        if (isHeic) {
-                            const conversionResult = await heic2any({
-                                blob: file,
-                                toType: 'image/jpeg',
-                                quality: 1.0
-                            });
-                            finalBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
-                        } else {
-                            finalBlob = await new Promise((resolve) => {
-                                const reader = new FileReader();
-                                reader.onload = (re) => {
-                                    const imgEl = new Image();
-                                    imgEl.onload = () => {
-                                        const canvas = document.createElement('canvas');
-                                        canvas.width = imgEl.naturalWidth;
-                                        canvas.height = imgEl.naturalHeight;
-                                        const ctx = canvas.getContext('2d');
-                                        ctx.drawImage(imgEl, 0, 0);
-                                        canvas.toBlob((b) => resolve(b || file), 'image/jpeg', 1.0);
-                                    };
-                                    imgEl.onerror = () => resolve(file);
-                                    imgEl.src = re.target.result;
-                                };
-                                reader.onerror = () => resolve(file);
-                                reader.readAsDataURL(file);
-                            });
-                        }
-
-                        const reader = new FileReader();
-                        reader.onload = function(evt) {
-                            currentNoteImages[placeholderIdx] = {
-                                id: '',
-                                name: cleanName,
-                                type: 'image/jpeg',
-                                previewUrl: evt.target.result,
-                                pendingUpload: true
-                            };
-                            renderNoteImagesPreviewGrid();
-                        };
-                        reader.readAsDataURL(finalBlob || file);
-                    } catch (convErr) {
-                        console.warn('Conversión de nota a JPG fallback:', convErr);
-                        const reader = new FileReader();
-                        reader.onload = function(evt) {
-                            currentNoteImages[placeholderIdx] = {
-                                id: '',
-                                name: cleanName,
-                                type: 'image/jpeg',
-                                previewUrl: evt.target.result,
-                                pendingUpload: true
-                            };
-                            renderNoteImagesPreviewGrid();
-                        };
-                        reader.readAsDataURL(file);
+                        previewUrl = URL.createObjectURL(file);
+                    } catch(err) {
+                        previewUrl = getPlaceholderSvg('Cargando...');
                     }
                 } else {
-                    const reader = new FileReader();
-                    reader.onload = function(evt) {
-                        currentNoteImages.push({
-                            id: '',
-                            name: file.name,
-                            type: file.type || 'image/jpeg',
-                            previewUrl: evt.target.result,
-                            pendingUpload: true
-                        });
-                        renderNoteImagesPreviewGrid();
-                    };
-                    reader.readAsDataURL(file);
+                    previewUrl = getPlaceholderSvg('Convirtiendo HD...');
                 }
-            }));
+
+                currentNoteImages.push({
+                    id: '',
+                    name: cleanName,
+                    type: isHeic ? 'image/jpeg' : (file.type || 'image/jpeg'),
+                    previewUrl: previewUrl,
+                    blob: file,
+                    pendingUpload: true
+                });
+            }
+            renderNoteImagesPreviewGrid();
+
+            // Conversión HEIC secuencial si corresponde
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const slotIndex = startIdx + i;
+                const ext = (file.name.split('.').pop() || '').toLowerCase();
+                const isHeic = ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif';
+
+                if (isHeic && typeof heic2any !== 'undefined') {
+                    try {
+                        const conversionResult = await heic2any({
+                            blob: file,
+                            toType: 'image/jpeg',
+                            quality: 0.95
+                        });
+                        const convertedBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+                        const objectUrl = URL.createObjectURL(convertedBlob);
+
+                        if (currentNoteImages[slotIndex]) {
+                            currentNoteImages[slotIndex].previewUrl = objectUrl;
+                            currentNoteImages[slotIndex].blob = convertedBlob;
+                            currentNoteImages[slotIndex].type = 'image/jpeg';
+                            renderNoteImagesPreviewGrid();
+                        }
+                    } catch(heicErr) {
+                        console.warn("Conversión HEIC nota fallback:", heicErr);
+                    }
+                }
+            }
         }
 
         function renderNoteImagesPreviewGrid() {
@@ -4679,23 +4775,25 @@
             const files = Array.from(e.target.files);
             if (!files.length) return;
 
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    const b64 = evt.target.result;
-                    const mime = file.type || getExtensionType(file.name);
-                    currentNoteDespieces.push({
-                        id: '',
-                        name: file.name,
-                        type: mime,
-                        previewUrl: b64,
-                        pendingUpload: true
-                    });
-                    renderNoteDespiecePreviewList();
-                };
-                reader.readAsDataURL(file);
-            });
             e.target.value = '';
+
+            files.forEach(file => {
+                const mime = file.type || getExtensionType(file.name);
+                let previewUrl = '';
+                try {
+                    previewUrl = URL.createObjectURL(file);
+                } catch(err) {}
+
+                currentNoteDespieces.push({
+                    id: '',
+                    name: file.name,
+                    type: mime,
+                    previewUrl: previewUrl,
+                    blob: file,
+                    pendingUpload: true
+                });
+            });
+            renderNoteDespiecePreviewList();
         }
 
         function renderNoteDespiecePreviewList() {
@@ -4737,33 +4835,55 @@
                 // OCC: Sincronización silenciosa previa
                 await syncLatestCloudDataSilently();
 
-                // Subir imagenes de notas pendientes a IMAGENES
+                // Subir imagenes de notas pendientes a IMAGENES una a una
                 const finalNoteImages = [];
                 for (let i = 0; i < currentNoteImages.length; i++) {
                     const img = currentNoteImages[i];
                     const ext = getFileExtension(img.name, 'jpg');
                     const targetFileName = `foto_nota_${i + 1}_${Date.now()}.${ext}`;
-                    if (img.pendingUpload && img.previewUrl) {
-                        const uploaded = await apiUploadFile(img.previewUrl, targetFileName, img.type || 'image/jpeg', 'image');
-                        if (uploaded && uploaded.id) {
-                            ADL_MEDIA_CACHE.set(uploaded.id, img.previewUrl);
-                            finalNoteImages.push({ id: uploaded.id, name: targetFileName, url: uploaded.url });
+                    if (img.pendingUpload && (img.blob || img.previewUrl)) {
+                        let base64 = '';
+                        if (img.blob) {
+                            base64 = await blobToBase64(img.blob);
+                        } else if (typeof img.previewUrl === 'string' && img.previewUrl.startsWith('blob:')) {
+                            base64 = await blobUrlToBase64(img.previewUrl);
+                        } else if (typeof img.previewUrl === 'string' && img.previewUrl.startsWith('data:')) {
+                            base64 = img.previewUrl;
+                        }
+
+                        if (base64) {
+                            const uploaded = await apiUploadFile(base64, targetFileName, img.type || 'image/jpeg', 'image');
+                            if (uploaded && uploaded.id) {
+                                ADL_MEDIA_CACHE.set(uploaded.id, img.previewUrl || base64);
+                                finalNoteImages.push({ id: uploaded.id, name: targetFileName, url: uploaded.url });
+                            }
                         }
                     } else {
                         finalNoteImages.push({ id: img.id || extractDriveId(img), name: img.name || targetFileName, url: img.url || '' });
                     }
                 }
 
-                // Subir despieces de notas pendientes a DESPIECES
+                // Subir despieces de notas pendientes a DESPIECES una a una
                 const finalNoteDespieces = [];
                 for (let i = 0; i < currentNoteDespieces.length; i++) {
                     const doc = currentNoteDespieces[i];
                     const ext = getFileExtension(doc.name, 'pdf');
                     const targetFileName = `despiece_nota_${i + 1}_${Date.now()}.${ext}`;
-                    if (doc.pendingUpload && doc.previewUrl) {
-                        const uploaded = await apiUploadFile(doc.previewUrl, targetFileName, doc.type || 'application/pdf', 'despiece');
-                        if (uploaded && uploaded.id) {
-                            finalNoteDespieces.push({ id: uploaded.id, name: targetFileName, type: doc.type, url: uploaded.url });
+                    if (doc.pendingUpload && (doc.blob || doc.previewUrl)) {
+                        let despBase64 = '';
+                        if (doc.blob) {
+                            despBase64 = await blobToBase64(doc.blob);
+                        } else if (typeof doc.previewUrl === 'string' && doc.previewUrl.startsWith('blob:')) {
+                            despBase64 = await blobUrlToBase64(doc.previewUrl);
+                        } else if (typeof doc.previewUrl === 'string' && doc.previewUrl.startsWith('data:')) {
+                            despBase64 = doc.previewUrl;
+                        }
+
+                        if (despBase64) {
+                            const uploaded = await apiUploadFile(despBase64, targetFileName, doc.type || 'application/pdf', 'despiece');
+                            if (uploaded && uploaded.id) {
+                                finalNoteDespieces.push({ id: uploaded.id, name: targetFileName, type: doc.type, url: uploaded.url });
+                            }
                         }
                     } else {
                         finalNoteDespieces.push({ id: doc.id || extractDriveId(doc), name: doc.name || targetFileName, type: doc.type || 'application/pdf', url: doc.url || '' });
@@ -5967,106 +6087,74 @@
 
             e.target.value = '';
 
-            // Asignación síncrona de slots para evitar colisiones de índice durante procesamiento asíncrono concurrente
             const startIdx = currentImagesBase64.length;
-            const slots = files.map((file, i) => {
+
+            // 1. Asignación inmediata y generación de ObjectURLs instantáneos (0 RAM, sin canvas, sin demoras)
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
                 const ext = (file.name.split('.').pop() || '').toLowerCase();
                 const isHeic = ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif';
                 const cleanName = isHeic ? file.name.replace(/\.[a-zA-Z0-9]+$/i, '.jpg') : file.name;
+
+                let previewUrl = '';
+                if (!isHeic) {
+                    try {
+                        previewUrl = URL.createObjectURL(file);
+                    } catch(e) {
+                        previewUrl = getPlaceholderSvg('Cargando...');
+                    }
+                } else {
+                    previewUrl = getPlaceholderSvg('Convirtiendo HD...');
+                }
+
                 currentImagesBase64.push({
                     id: '',
                     name: cleanName,
                     type: isHeic ? 'image/jpeg' : (file.type || 'image/jpeg'),
-                    previewUrl: getPlaceholderSvg(isHeic ? 'Convirtiendo HD...' : 'Cargando...'),
+                    previewUrl: previewUrl,
+                    blob: file,
                     pendingUpload: true
                 });
-                return { file, slotIndex: startIdx + i, cleanName, isHeic };
-            });
+            }
             renderImagesPreviewGrid();
+            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
 
-            await Promise.all(slots.map(async ({ file, slotIndex, cleanName, isHeic }) => {
+            // 2. Procesamiento secuencial (uno a uno) para archivos HEIC si se requiere
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const slotIndex = startIdx + i;
                 const ext = (file.name.split('.').pop() || '').toLowerCase();
-                const isJpgOrPng = (ext === 'jpg' || ext === 'jpeg' || ext === 'png') && (file.type === 'image/jpeg' || file.type === 'image/png');
-                const needsConversion = !isJpgOrPng || isHeic;
+                const isHeic = ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif';
 
-                if (needsConversion && typeof heic2any !== 'undefined') {
+                if (isHeic && typeof heic2any !== 'undefined') {
                     try {
-                        let finalBlob = null;
-                        if (isHeic) {
-                            const conversionResult = await heic2any({
-                                blob: file,
-                                toType: 'image/jpeg',
-                                quality: 1.0 // Calidad nativa 1.0 para nitidez absoluta en lectura de etiquetas
-                            });
-                            finalBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
-                        } else {
-                            // Conversión estándar de cualquier otro formato no-JPG/PNG a través de canvas a JPEG nativo
-                            finalBlob = await new Promise((resolve) => {
-                                const reader = new FileReader();
-                                reader.onload = (re) => {
-                                    const imgEl = new Image();
-                                    imgEl.onload = () => {
-                                        const canvas = document.createElement('canvas');
-                                        canvas.width = imgEl.naturalWidth;
-                                        canvas.height = imgEl.naturalHeight;
-                                        const ctx = canvas.getContext('2d');
-                                        ctx.drawImage(imgEl, 0, 0);
-                                        canvas.toBlob((b) => resolve(b || file), 'image/jpeg', 1.0);
-                                    };
-                                    imgEl.onerror = () => resolve(file);
-                                    imgEl.src = re.target.result;
-                                };
-                                reader.onerror = () => resolve(file);
-                                reader.readAsDataURL(file);
-                            });
-                        }
+                        const conversionResult = await heic2any({
+                            blob: file,
+                            toType: 'image/jpeg',
+                            quality: 0.95
+                        });
+                        const convertedBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+                        const objectUrl = URL.createObjectURL(convertedBlob);
 
-                        const reader = new FileReader();
-                        reader.onload = function(evt) {
-                            currentImagesBase64[slotIndex] = {
-                                id: '',
-                                name: cleanName,
-                                type: 'image/jpeg',
-                                previewUrl: evt.target.result,
-                                pendingUpload: true
-                            };
+                        if (currentImagesBase64[slotIndex]) {
+                            currentImagesBase64[slotIndex].previewUrl = objectUrl;
+                            currentImagesBase64[slotIndex].blob = convertedBlob;
+                            currentImagesBase64[slotIndex].type = 'image/jpeg';
                             renderImagesPreviewGrid();
-                            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
-                        };
-                        reader.readAsDataURL(finalBlob || file);
-                    } catch (convErr) {
-                        console.warn('Conversión de imagen a JPG fallback:', convErr);
-                        const reader = new FileReader();
-                        reader.onload = function(evt) {
-                            currentImagesBase64[slotIndex] = {
-                                id: '',
-                                name: cleanName,
-                                type: 'image/jpeg',
-                                previewUrl: evt.target.result,
-                                pendingUpload: true
-                            };
-                            renderImagesPreviewGrid();
-                            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
-                        };
-                        reader.readAsDataURL(file);
+                        }
+                    } catch(heicErr) {
+                        console.warn("Conversión HEIC alternativa:", heicErr);
+                        try {
+                            const fallbackUrl = URL.createObjectURL(file);
+                            if (currentImagesBase64[slotIndex]) {
+                                currentImagesBase64[slotIndex].previewUrl = fallbackUrl;
+                                renderImagesPreviewGrid();
+                            }
+                        } catch(e) {}
                     }
-                } else {
-                    // Archivo estándar JPG/PNG directo sin pérdida ni recompresión
-                    const reader = new FileReader();
-                    reader.onload = function(evt) {
-                        currentImagesBase64[slotIndex] = {
-                            id: '',
-                            name: file.name,
-                            type: file.type || 'image/jpeg',
-                            previewUrl: evt.target.result,
-                            pendingUpload: true
-                        };
-                        renderImagesPreviewGrid();
-                        if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
-                    };
-                    reader.readAsDataURL(file);
                 }
-            }));
+            }
+            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
         }
 
         function renderImagesPreviewGrid() {
@@ -6100,32 +6188,24 @@
 
             e.target.value = '';
 
-            const startIdx = currentDespieceFiles.length;
-            files.forEach((file, i) => {
+            files.forEach((file) => {
                 const mime = file.type || getExtensionType(file.name);
-                const slotIndex = startIdx + i;
+                let previewUrl = '';
+                try {
+                    previewUrl = URL.createObjectURL(file);
+                } catch(err) {}
+
                 currentDespieceFiles.push({
                     id: '',
                     name: file.name,
                     type: mime,
-                    previewUrl: '',
+                    previewUrl: previewUrl,
+                    blob: file,
                     pendingUpload: true
                 });
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    currentDespieceFiles[slotIndex] = {
-                        id: '',
-                        name: file.name,
-                        type: mime,
-                        previewUrl: evt.target.result,
-                        pendingUpload: true
-                    };
-                    renderDespiecePreviewList();
-                    if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
-                };
-                reader.readAsDataURL(file);
             });
             renderDespiecePreviewList();
+            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
         }
 
         function getExtensionType(filename) {
@@ -6703,6 +6783,7 @@
                         type: img.type || 'image/jpeg',
                         url: img.url || '',
                         previewUrl: img.previewUrl || '',
+                        blob: img.blob || null,
                         pendingUpload: img.pendingUpload !== false && !img.id
                     };
                 });
@@ -6717,6 +6798,7 @@
                         type: desp.type || 'application/pdf',
                         url: desp.url || '',
                         previewUrl: desp.previewUrl || '',
+                        blob: desp.blob || null,
                         pendingUpload: desp.pendingUpload !== false && !desp.id
                     };
                 });
@@ -6803,16 +6885,27 @@
             if (Array.isArray(order.imagesBase64)) {
                 for (let i = 0; i < order.imagesBase64.length; i++) {
                     const img = order.imagesBase64[i];
-                    if (img && img.pendingUpload && img.previewUrl) {
+                    if (img && img.pendingUpload) {
                         try {
-                            const targetFileName = img.name || `foto_ST${ticketDigits}_${i + 1}.jpg`;
-                            const uploaded = await apiUploadFile(img.previewUrl, targetFileName, img.type || 'image/jpeg', 'image');
-                            if (uploaded && uploaded.id) {
-                                ADL_MEDIA_CACHE.set(uploaded.id, img.previewUrl);
-                                img.id = uploaded.id;
-                                img.url = uploaded.url || `https://drive.google.com/file/d/${uploaded.id}/view`;
-                                img.pendingUpload = false;
-                                changed = true;
+                            let base64ToUpload = '';
+                            if (img.blob) {
+                                base64ToUpload = await blobToBase64(img.blob);
+                            } else if (typeof img.previewUrl === 'string' && img.previewUrl.startsWith('blob:')) {
+                                base64ToUpload = await blobUrlToBase64(img.previewUrl);
+                            } else if (typeof img.previewUrl === 'string' && img.previewUrl.startsWith('data:')) {
+                                base64ToUpload = img.previewUrl;
+                            }
+
+                            if (base64ToUpload) {
+                                const targetFileName = img.name || `foto_ST${ticketDigits}_${i + 1}.jpg`;
+                                const uploaded = await apiUploadFile(base64ToUpload, targetFileName, img.type || 'image/jpeg', 'image');
+                                if (uploaded && uploaded.id) {
+                                    ADL_MEDIA_CACHE.set(uploaded.id, img.previewUrl || base64ToUpload);
+                                    img.id = uploaded.id;
+                                    img.url = uploaded.url || `https://drive.google.com/file/d/${uploaded.id}/view`;
+                                    img.pendingUpload = false;
+                                    changed = true;
+                                }
                             }
                         } catch(upErr) {
                             console.warn("Subida diferida de imagen:", upErr);
@@ -6825,15 +6918,26 @@
             if (Array.isArray(order.despieceFiles)) {
                 for (let i = 0; i < order.despieceFiles.length; i++) {
                     const desp = order.despieceFiles[i];
-                    if (desp && desp.pendingUpload && desp.previewUrl) {
+                    if (desp && desp.pendingUpload) {
                         try {
-                            const targetFileName = desp.name || `despiece_ST${ticketDigits}_${i + 1}.pdf`;
-                            const uploaded = await apiUploadFile(desp.previewUrl, targetFileName, desp.type || 'application/pdf', 'despiece');
-                            if (uploaded && uploaded.id) {
-                                desp.id = uploaded.id;
-                                desp.url = uploaded.url || `https://drive.google.com/file/d/${uploaded.id}/view`;
-                                desp.pendingUpload = false;
-                                changed = true;
+                            let despBase64 = '';
+                            if (desp.blob) {
+                                despBase64 = await blobToBase64(desp.blob);
+                            } else if (typeof desp.previewUrl === 'string' && desp.previewUrl.startsWith('blob:')) {
+                                despBase64 = await blobUrlToBase64(desp.previewUrl);
+                            } else if (typeof desp.previewUrl === 'string' && desp.previewUrl.startsWith('data:')) {
+                                despBase64 = desp.previewUrl;
+                            }
+
+                            if (despBase64) {
+                                const targetFileName = desp.name || `despiece_ST${ticketDigits}_${i + 1}.pdf`;
+                                const uploaded = await apiUploadFile(despBase64, targetFileName, desp.type || 'application/pdf', 'despiece');
+                                if (uploaded && uploaded.id) {
+                                    desp.id = uploaded.id;
+                                    desp.url = uploaded.url || `https://drive.google.com/file/d/${uploaded.id}/view`;
+                                    desp.pendingUpload = false;
+                                    changed = true;
+                                }
                             }
                         } catch(upErr) {
                             console.warn("Subida diferida de despiece:", upErr);
@@ -6928,7 +7032,8 @@
                 historyBox.classList.remove('hidden');
             }
 
-            switchTab('new-service');
+            switchTab('new-service', { skipDraftRestore: true });
+            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
         }
 
         function cancelServiceForm() {
@@ -6975,12 +7080,9 @@
             if (banner) banner.classList.add('hidden');
         }
 
-        function saveFormDraft() {
+        async function saveFormDraft() {
             try {
                 const sid = document.getElementById('service-id')?.value || '';
-                // Si estamos editando una orden existente, no sobrescribir el borrador de nueva orden
-                if (sid) return;
-
                 const dni = (document.getElementById('client-dni')?.value || '').trim();
                 const name = (document.getElementById('client-name')?.value || '').trim();
                 const phone = (document.getElementById('client-phone')?.value || '').trim();
@@ -7001,18 +7103,45 @@
                     return;
                 }
 
-                const draft = {
+                // 1. Guardar metadatos livianos en sessionStorage / localStorage (< 1KB, cero riesgo de cuota)
+                const lightDraft = {
+                    serviceId: sid,
                     dni, name, phone, address,
                     toolType, toolBrand, toolModel, toolAccessories,
                     failureDescription, estimatedCost, repairCost, amountPaid, status,
-                    images: currentImagesBase64 || [],
-                    despieces: currentDespieceFiles || [],
+                    imagesCount: currentImagesBase64 ? currentImagesBase64.length : 0,
+                    despiecesCount: currentDespieceFiles ? currentDespieceFiles.length : 0,
                     savedAt: Date.now()
                 };
 
-                const serialized = JSON.stringify(draft);
+                const serialized = JSON.stringify(lightDraft);
                 try { sessionStorage.setItem('adl_order_draft', serialized); } catch(e){}
                 try { localStorage.setItem('adl_order_draft', serialized); } catch(e){}
+
+                // 2. Guardar en IndexedDB los Blobs y datos completos (Gigabytes de cuota, sin bloqueo de memoria)
+                const fullDraft = {
+                    ...lightDraft,
+                    images: (currentImagesBase64 || []).map(img => ({
+                        id: img.id || '',
+                        name: img.name || '',
+                        type: img.type || 'image/jpeg',
+                        url: img.url || '',
+                        blob: img.blob || null,
+                        previewUrl: (typeof img.previewUrl === 'string' && img.previewUrl.startsWith('data:')) ? img.previewUrl : '',
+                        pendingUpload: img.pendingUpload !== false && !img.id
+                    })),
+                    despieces: (currentDespieceFiles || []).map(desp => ({
+                        id: desp.id || '',
+                        name: desp.name || '',
+                        type: desp.type || 'application/pdf',
+                        url: desp.url || '',
+                        blob: desp.blob || null,
+                        previewUrl: (typeof desp.previewUrl === 'string' && desp.previewUrl.startsWith('data:')) ? desp.previewUrl : '',
+                        pendingUpload: desp.pendingUpload !== false && !desp.id
+                    }))
+                };
+
+                await ADL_DRAFT_STORAGE.saveDraft(fullDraft);
             } catch (err) {
                 console.warn("Autoguardado de borrador diferido:", err);
             }
@@ -7024,13 +7153,25 @@
             draftSaveTimer = setTimeout(saveFormDraft, 400);
         }
 
-        function restoreFormDraft() {
+        async function restoreFormDraft() {
             try {
                 let draftRaw = null;
                 try { draftRaw = sessionStorage.getItem('adl_order_draft') || localStorage.getItem('adl_order_draft'); } catch(e){}
-                if (!draftRaw) return false;
+                
+                // Si no hay en localStorage, verificar en IndexedDB
+                let dbDraft = null;
+                try { dbDraft = await ADL_DRAFT_STORAGE.getDraft(); } catch(e){}
 
-                const draft = JSON.parse(draftRaw);
+                if (!draftRaw && !dbDraft) return false;
+
+                let draft = null;
+                if (draftRaw) {
+                    try { draft = JSON.parse(draftRaw); } catch(e){}
+                }
+                if (!draft && dbDraft) {
+                    draft = dbDraft;
+                }
+
                 if (!draft || typeof draft !== 'object') return false;
 
                 // Si el borrador tiene más de 24 horas, descartarlo
@@ -7039,6 +7180,7 @@
                     return false;
                 }
 
+                const sid = document.getElementById('service-id');
                 const cdni = document.getElementById('client-dni');
                 const cname = document.getElementById('client-name');
                 const cphone = document.getElementById('client-phone');
@@ -7053,6 +7195,7 @@
                 const apaid = document.getElementById('amount-paid');
                 const ost = document.getElementById('order-status');
 
+                if (sid && draft.serviceId !== undefined) sid.value = draft.serviceId;
                 if (cdni && draft.dni !== undefined) cdni.value = draft.dni;
                 if (cname && draft.name !== undefined) cname.value = draft.name;
                 if (cphone && draft.phone !== undefined) cphone.value = draft.phone;
@@ -7067,13 +7210,46 @@
                 if (apaid && draft.amountPaid !== undefined) apaid.value = draft.amountPaid;
                 if (ost && draft.status !== undefined) ost.value = draft.status;
 
-                if (Array.isArray(draft.images) && draft.images.length > 0) {
-                    currentImagesBase64 = [...draft.images];
-                    renderImagesPreviewGrid();
+                // Si restauramos una orden existente que se estaba editando
+                if (draft.serviceId) {
+                    const existingOrder = allServices.find(s => s.id === draft.serviceId);
+                    const ticketDisplay = existingOrder ? `ST-${getTicketDisplay(existingOrder)}` : 'Existente';
+                    const fttl = document.getElementById('form-title');
+                    const eon = document.getElementById('edit-order-num');
+                    const ewb = document.getElementById('edit-warning-banner');
+                    if (fttl) fttl.innerText = `Editar Orden ${ticketDisplay}`;
+                    if (eon) eon.innerText = ticketDisplay;
+                    if (ewb) ewb.classList.remove('hidden');
                 }
-                if (Array.isArray(draft.despieces) && draft.despieces.length > 0) {
-                    currentDespieceFiles = [...draft.despieces];
-                    renderDespiecePreviewList();
+
+                // Restaurar imágenes y despieces desde IndexedDB (alta fidelidad con Blobs originales)
+                if (dbDraft) {
+                    if (Array.isArray(dbDraft.images) && dbDraft.images.length > 0) {
+                        currentImagesBase64 = dbDraft.images.map(img => {
+                            let previewUrl = img.previewUrl || '';
+                            if (img.blob instanceof Blob) {
+                                try { previewUrl = URL.createObjectURL(img.blob); } catch(e){}
+                            }
+                            return {
+                                ...img,
+                                previewUrl: previewUrl
+                            };
+                        });
+                        renderImagesPreviewGrid();
+                    }
+                    if (Array.isArray(dbDraft.despieces) && dbDraft.despieces.length > 0) {
+                        currentDespieceFiles = dbDraft.despieces.map(desp => {
+                            let previewUrl = desp.previewUrl || '';
+                            if (desp.blob instanceof Blob) {
+                                try { previewUrl = URL.createObjectURL(desp.blob); } catch(e){}
+                            }
+                            return {
+                                ...desp,
+                                previewUrl: previewUrl
+                            };
+                        });
+                        renderDespiecePreviewList();
+                    }
                 }
 
                 updateFormMapsButton();
@@ -7093,6 +7269,7 @@
             }
             try { sessionStorage.removeItem('adl_order_draft'); } catch(e){}
             try { localStorage.removeItem('adl_order_draft'); } catch(e){}
+            try { ADL_DRAFT_STORAGE.clearDraft(); } catch(e){}
             hideDraftRecoveredBanner();
         }
 
