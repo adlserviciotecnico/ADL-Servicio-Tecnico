@@ -850,6 +850,19 @@
                         </button>
                     </div>
 
+                    <div id="draft-recovered-banner" class="hidden mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 rounded-2xl text-emerald-900 dark:text-emerald-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-shield-halved text-emerald-500 text-lg shrink-0"></i>
+                            <div>
+                                <span class="font-bold block text-sm">Borrador recuperado automáticamente</span>
+                                <span>Se restauraron los datos y fotografías precargadas para que no pierdas tu trabajo.</span>
+                            </div>
+                        </div>
+                        <button type="button" onclick="cancelServiceForm()" class="w-full sm:w-auto px-4 py-2 bg-white dark:bg-slate-950 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 text-emerald-900 dark:text-emerald-200 font-extrabold rounded-xl text-xs transition-colors text-center">
+                            Descartar Borrador
+                        </button>
+                    </div>
+
                     <form id="service-form" onsubmit="saveServiceOrder(event)" class="space-y-6">
                         <input type="hidden" id="service-id" value="">
                         
@@ -2068,6 +2081,13 @@
             if (sessionInactivityTimer) clearTimeout(sessionInactivityTimer);
             sessionInactivityTimer = setTimeout(() => {
                 const idleTime = Date.now() - lastUserActivityTime;
+                // Si el usuario está activamente en la pestaña de nueva orden completando datos o fotos, NO cerrar sesión
+                const formTab = document.getElementById('tab-new-service');
+                const isFormActive = formTab && !formTab.classList.contains('hidden');
+                if (isFormActive) {
+                    resetInactivityWatchdog();
+                    return;
+                }
                 if (idleTime >= INACTIVITY_TIMEOUT_MS) {
                     logoutUser('Por inactividad, la sesión se cerró automáticamente.');
                 }
@@ -2075,7 +2095,7 @@
         }
 
         function setupInactivityListeners() {
-            const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+            const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'touchend', 'scroll', 'click', 'input', 'change', 'focus'];
             events.forEach(evt => {
                 window.addEventListener(evt, resetInactivityWatchdog, { passive: true });
             });
@@ -2597,51 +2617,45 @@
 
         async function initApp() {
             try {
-                // 1. Verificación previa de sesión persistente contra el servidor
+                // 1. Verificación previa de sesión persistente contra el servidor (Offline-First Resiliente)
                 const storedToken = window.safeGetStorage('adl_session_token', '') || (typeof localStorage !== 'undefined' ? localStorage.getItem('adl_session_token') || '' : '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_session_token') || '' : '');
                 const storedUser = window.safeGetStorage('adl_current_user', '') || (typeof localStorage !== 'undefined' ? localStorage.getItem('adl_current_user') || '' : '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('adl_current_user') || '' : '');
 
-                let sessionVerified = false;
+                if (storedToken && storedUser) {
+                    sessionToken = storedToken;
+                    currentUser = storedUser;
+                    hideLoginModal();
+                    updateHeaderUserUI();
+                    resetInactivityWatchdog();
+                    setupLiveSyncTimers();
 
-                if (storedToken && storedUser && navigator.onLine) {
-                    try {
-                        const checkUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=verifyToken';
-                        const vRes = await fetch(checkUrl, {
-                            method: 'POST',
-                            mode: 'cors',
-                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            body: JSON.stringify({ action: 'verifyToken', token: storedToken })
-                        });
-                        if (vRes.ok) {
-                            const vData = await vRes.json();
-                            if (vData && vData.success && vData.user) {
-                                sessionToken = storedToken;
-                                currentUser = vData.user;
-                                hideLoginModal();
-                                updateHeaderUserUI();
-                                resetInactivityWatchdog();
-                                setupLiveSyncTimers();
-                                sessionVerified = true;
+                    // Comprobación de fondo en línea: no bloquea ni destruye la sesión si la red tarda o reconecta
+                    if (navigator.onLine) {
+                        try {
+                            const checkUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=verifyToken';
+                            const vRes = await fetch(checkUrl, {
+                                method: 'POST',
+                                mode: 'cors',
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                body: JSON.stringify({ action: 'verifyToken', token: storedToken })
+                            });
+                            if (vRes.ok) {
+                                const vData = await vRes.json();
+                                if (vData && vData.success && vData.user) {
+                                    currentUser = vData.user;
+                                    updateHeaderUserUI();
+                                } else if (vData && (vData.reason === 'EXPIRED_TOKEN' || vData.reason === 'INVALID_SIGNATURE')) {
+                                    logoutUser('Su sesión ha caducado por seguridad. Ingrese nuevamente.');
+                                    return;
+                                }
                             }
+                        } catch (netErr) {
+                            console.warn("Verificación de sesión online diferida:", netErr);
                         }
-                    } catch (netErr) {
-                        console.warn("Verificación de sesión online no disponible:", netErr);
                     }
-                }
-
-                if (!sessionVerified) {
-                    // Si no hay token, si el token es inválido/expiró, o si está offline:
-                    // Se asegura que la sesión esté limpia y se muestra el formulario de login.
+                } else {
                     sessionToken = '';
                     currentUser = '';
-                    if (storedToken) {
-                        window.safeSetStorage('adl_session_token', '');
-                        window.safeSetStorage('adl_current_user', '');
-                        try {
-                            sessionStorage.removeItem('adl_session_token');
-                            sessionStorage.removeItem('adl_current_user');
-                        } catch (e) {}
-                    }
                     showLoginModal(navigator.onLine ? '' : 'Modo sin conexión: ingrese sus credenciales para acceder localmente.');
                 }
 
@@ -3573,6 +3587,9 @@
 
         function switchTab(tabId) {
             try {
+                window.safeSetStorage('adl_active_tab', tabId);
+                try { sessionStorage.setItem('adl_active_tab', tabId); } catch(e){}
+
                 document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
                 
                 document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -3622,6 +3639,7 @@
                 if (tabId === 'clients') renderClientsTab();
                 if (tabId === 'current-accounts') renderCurrentAccountsTab();
                 if (tabId === 'dashboard') updateDashboardStats();
+                if (tabId === 'new-service') restoreFormDraft();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (e) {
                 console.error("switchTab error:", e);
@@ -5106,7 +5124,22 @@
         /* ----------------------------------------------------
            4. SELECTOR PREVIO DE CLIENTES EN NUEVA ORDEN
         ---------------------------------------------------- */
+        function hasActiveFormData() {
+            const dni = (document.getElementById('client-dni')?.value || '').trim();
+            const name = (document.getElementById('client-name')?.value || '').trim();
+            const toolType = (document.getElementById('tool-type')?.value || '').trim();
+            const toolBrand = (document.getElementById('tool-brand')?.value || '').trim();
+            const fdesc = (document.getElementById('failure-description')?.value || '').trim();
+            let hasDraft = false;
+            try { hasDraft = !!(sessionStorage.getItem('adl_order_draft') || localStorage.getItem('adl_order_draft')); } catch(e){}
+            return !!(dni || name || toolType || toolBrand || fdesc || (currentImagesBase64 && currentImagesBase64.length > 0) || (currentDespieceFiles && currentDespieceFiles.length > 0) || hasDraft);
+        }
+
         function onNewOrderNavClicked() {
+            if (hasActiveFormData()) {
+                switchTab('new-service');
+                return;
+            }
             cancelServiceForm();
             openClientSelectorModal();
         }
@@ -5192,6 +5225,7 @@
             closeClientSelectorModal();
             switchTab('new-service');
             showToast("Cliente Asignado", `Se cargaron los datos de ${client.name}`, "success");
+            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
         }
 
         function selectNewClientMode() {
@@ -5215,6 +5249,7 @@
             if (cdisp) cdisp.innerText = `Código Cliente: Autogenerado`;
             if (badge) badge.classList.add('hidden');
             updateFormMapsButton();
+            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
         }
 
         /* ----------------------------------------------------
@@ -5996,6 +6031,7 @@
                                 pendingUpload: true
                             };
                             renderImagesPreviewGrid();
+                            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
                         };
                         reader.readAsDataURL(finalBlob || file);
                     } catch (convErr) {
@@ -6010,6 +6046,7 @@
                                 pendingUpload: true
                             };
                             renderImagesPreviewGrid();
+                            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
                         };
                         reader.readAsDataURL(file);
                     }
@@ -6025,6 +6062,7 @@
                             pendingUpload: true
                         };
                         renderImagesPreviewGrid();
+                        if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
                     };
                     reader.readAsDataURL(file);
                 }
@@ -6053,6 +6091,7 @@
         function removeImageFromForm(idx) {
             currentImagesBase64.splice(idx, 1);
             renderImagesPreviewGrid();
+            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
         }
 
         function handleDespieceSelected(e) {
@@ -6082,6 +6121,7 @@
                         pendingUpload: true
                     };
                     renderDespiecePreviewList();
+                    if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
                 };
                 reader.readAsDataURL(file);
             });
@@ -6130,6 +6170,7 @@
         function removeDespieceFromForm(idx) {
             currentDespieceFiles.splice(idx, 1);
             renderDespiecePreviewList();
+            if (typeof debouncedSaveFormDraft === 'function') debouncedSaveFormDraft();
         }
 
         function base64ToBlob(base64Data, defaultType = 'application/pdf') {
@@ -6621,13 +6662,10 @@
             const btnSave = document.getElementById('btn-save-service');
             if (btnSave) {
                 btnSave.disabled = true;
-                btnSave.innerHTML = `<i class="fas fa-spinner fa-spin mr-2 text-lg"></i> Guardando y Subiendo Medios...`;
+                btnSave.innerHTML = `<i class="fas fa-spinner fa-spin mr-2 text-lg"></i> Guardando Orden...`;
             }
 
             try {
-                // OCC: Sincronización silenciosa con la nube antes de guardar para evitar colisiones
-                await syncLatestCloudDataSilently();
-
                 const serviceId = document.getElementById('service-id')?.value || '';
                 const dni = (document.getElementById('client-dni')?.value || '').trim();
 
@@ -6654,97 +6692,34 @@
                 const existingClient = allClients.find(c => c.dni === dni);
                 const clientCode = existingClient ? existingClient.code : getNextClientCode();
 
-                // Subir fotos a la carpeta IMAGENES con nombre estandarizado: foto_ST[TICKET]_[ORDEN].jpg
-                const finalImages = [];
-                for (let i = 0; i < currentImagesBase64.length; i++) {
-                    const img = currentImagesBase64[i];
+                // 1. Preparar lista de imágenes locales inmediatas
+                const preparedImages = currentImagesBase64.map((img, i) => {
                     let ext = getFileExtension(img.name, 'jpg');
                     if (ext === 'heic' || ext === 'heif') ext = 'jpg';
                     const targetFileName = `foto_ST${ticketDigits}_${i + 1}.${ext}`;
+                    return {
+                        id: img.id || extractDriveId(img) || '',
+                        name: targetFileName,
+                        type: img.type || 'image/jpeg',
+                        url: img.url || '',
+                        previewUrl: img.previewUrl || '',
+                        pendingUpload: img.pendingUpload !== false && !img.id
+                    };
+                });
 
-                    if (img.pendingUpload && img.previewUrl) {
-                        showToast("Subiendo Foto", `Subiendo ${targetFileName} a Google Drive...`, "info");
-                        const uploaded = await apiUploadFile(img.previewUrl, targetFileName, img.type || 'image/jpeg', 'image');
-                        if (uploaded && uploaded.id) {
-                            ADL_MEDIA_CACHE.set(uploaded.id, img.previewUrl);
-                            finalImages.push({
-                                id: uploaded.id,
-                                name: targetFileName,
-                                type: img.type || 'image/jpeg',
-                                url: uploaded.url
-                            });
-                        } else {
-                            finalImages.push({ id: '', name: targetFileName, type: img.type || 'image/jpeg', url: '' });
-                        }
-                    } else {
-                        const driveId = img.id || extractDriveId(img);
-                        const isOldHeic = (img.name && /\.(heic|heif)$/i.test(img.name)) || (img.type && (img.type.includes('heic') || img.type.includes('heif')));
-
-                        // Saneamiento de a una: si la foto existente en Drive es HEIC, convertir a JPG y actualizar ID
-                        if (isOldHeic && driveId) {
-                            try {
-                                const b64 = await fetchMediaViaProxy(driveId);
-                                if (b64 && b64.startsWith('data:image')) {
-                                    const uploaded = await apiUploadFile(b64, targetFileName, 'image/jpeg', 'image');
-                                    if (uploaded && uploaded.id) {
-                                        ADL_MEDIA_CACHE.set(uploaded.id, b64);
-                                        finalImages.push({
-                                            id: uploaded.id,
-                                            name: targetFileName,
-                                            type: 'image/jpeg',
-                                            url: uploaded.url
-                                        });
-                                        continue;
-                                    }
-                                } else {
-                                    // Si no existe físicamente en Drive, omitir para limpiar la referencia huérfana sin errores
-                                    console.warn("Foto HEIC huérfana no encontrada en Drive, omitiendo referencia:", targetFileName);
-                                    continue;
-                                }
-                            } catch(migErr) {
-                                console.warn("No se pudo migrar foto HEIC vieja:", migErr);
-                                continue;
-                            }
-                        }
-
-                        finalImages.push({
-                            id: driveId,
-                            name: targetFileName,
-                            type: isOldHeic ? 'image/jpeg' : (img.type || 'image/jpeg'),
-                            url: img.url || ''
-                        });
-                    }
-                }
-
-                // Subir despieces a la carpeta DESPIECES con nombre estandarizado: despiece_ST[TICKET]_[ORDEN].[EXT]
-                const finalDespieces = [];
-                for (let i = 0; i < currentDespieceFiles.length; i++) {
-                    const desp = currentDespieceFiles[i];
+                // 2. Preparar lista de despieces locales inmediatos
+                const preparedDespieces = currentDespieceFiles.map((desp, i) => {
                     const ext = getFileExtension(desp.name, 'pdf');
                     const targetFileName = `despiece_ST${ticketDigits}_${i + 1}.${ext}`;
-
-                    if (desp.pendingUpload && desp.previewUrl) {
-                        showToast("Subiendo Despiece", `Subiendo ${targetFileName} a Google Drive...`, "info");
-                        const uploaded = await apiUploadFile(desp.previewUrl, targetFileName, desp.type || 'application/pdf', 'despiece');
-                        if (uploaded && uploaded.id) {
-                            finalDespieces.push({
-                                id: uploaded.id,
-                                name: targetFileName,
-                                type: desp.type || 'application/pdf',
-                                url: uploaded.url
-                            });
-                        } else {
-                            finalDespieces.push({ id: '', name: targetFileName, type: desp.type || 'application/pdf', url: '' });
-                        }
-                    } else {
-                        finalDespieces.push({
-                            id: desp.id || extractDriveId(desp),
-                            name: targetFileName,
-                            type: desp.type || 'application/pdf',
-                            url: desp.url || ''
-                        });
-                    }
-                }
+                    return {
+                        id: desp.id || extractDriveId(desp) || '',
+                        name: targetFileName,
+                        type: desp.type || 'application/pdf',
+                        url: desp.url || '',
+                        previewUrl: desp.previewUrl || '',
+                        pendingUpload: desp.pendingUpload !== false && !desp.id
+                    };
+                });
 
                 const data = {
                     clientDni: dni,
@@ -6762,19 +6737,16 @@
                     amountPaid: parseFormattedCurrency(document.getElementById('amount-paid')?.value),
                     status: document.getElementById('order-status')?.value || 'Ingresado',
                     updatedAt: nowIso,
-                    imagesBase64: finalImages,
-                    despieceFiles: finalDespieces
+                    imagesBase64: preparedImages,
+                    despieceFiles: preparedDespieces
                 };
 
+                // GUARDADO LOCAL-FIRST INMEDIATO: Garantiza que la orden esté 100% segura en IndexedDB y LocalStorage
                 if (serviceId) {
                     const index = allServices.findIndex(s => s.id === serviceId);
                     if (index !== -1) {
                         data.createdAt = allServices[index].createdAt || nowIso;
-                        if (data.status === 'Entregado') {
-                            data.deliveredAt = allServices[index].deliveredAt || nowIso;
-                        } else {
-                            data.deliveredAt = null;
-                        }
+                        data.deliveredAt = (data.status === 'Entregado') ? (allServices[index].deliveredAt || nowIso) : null;
                         const prevHist = Array.isArray(allServices[index].history) ? [...allServices[index].history] : getOrderLogs(allServices[index]);
                         prevHist.push({ action: 'Modificado', at: nowIso });
                         data.history = prevHist.length > 30 ? [prevHist[0], ...prevHist.slice(-29)] : prevHist;
@@ -6787,11 +6759,7 @@
                     data.ticketNum = savedTicket;
                     data.createdAt = nowIso;
                     data.history = [{ action: 'Creación', at: nowIso }];
-                    if (data.status === 'Entregado') {
-                        data.deliveredAt = nowIso;
-                    } else {
-                        data.deliveredAt = null;
-                    }
+                    data.deliveredAt = (data.status === 'Entregado') ? nowIso : null;
                     allServices.unshift(data);
                     lastSavedOrderId = newId;
                 }
@@ -6800,11 +6768,15 @@
                 rebuildClientsMap();
                 sortAndRefreshUI();
 
-                // Publicación delta silenciosa a Google Drive
-                pushDatabaseToDriveSilently();
+                // Limpiar borrador temporal inmediatamente (orden ya registrada y persistida)
+                clearFormDraft();
 
-                showSaveSuccessModal(`Orden ST-${savedTicket} procesada correctamente.`, savedTicket);
+                // Notificar éxito al usuario de inmediato sin demoras
+                showSaveSuccessModal(`Orden ST-${savedTicket} guardada localmente con éxito.`, savedTicket);
                 cancelServiceForm();
+
+                // Subida asíncrona de archivos y sincronización con Google Drive en segundo plano
+                uploadOrderMediaInBackground(lastSavedOrderId, ticketDigits);
             } catch (err) {
                 console.error("Error al guardar orden:", err);
                 showToast("Error", "No se pudo guardar la orden: " + err.message, "error");
@@ -6814,6 +6786,66 @@
                     btnSave.innerHTML = `<i class="fas fa-save mr-2 text-lg"></i> Guardar Orden`;
                 }
             }
+        }
+
+        async function uploadOrderMediaInBackground(orderId, ticketDigits) {
+            if (!orderId || !navigator.onLine || !sessionToken) {
+                pushDatabaseToDriveSilently();
+                return;
+            }
+
+            const order = allServices.find(s => s.id === orderId);
+            if (!order) return;
+
+            let changed = false;
+
+            // Subir fotos pendientes una a una sin bloquear la interfaz
+            if (Array.isArray(order.imagesBase64)) {
+                for (let i = 0; i < order.imagesBase64.length; i++) {
+                    const img = order.imagesBase64[i];
+                    if (img && img.pendingUpload && img.previewUrl) {
+                        try {
+                            const targetFileName = img.name || `foto_ST${ticketDigits}_${i + 1}.jpg`;
+                            const uploaded = await apiUploadFile(img.previewUrl, targetFileName, img.type || 'image/jpeg', 'image');
+                            if (uploaded && uploaded.id) {
+                                ADL_MEDIA_CACHE.set(uploaded.id, img.previewUrl);
+                                img.id = uploaded.id;
+                                img.url = uploaded.url || `https://drive.google.com/file/d/${uploaded.id}/view`;
+                                img.pendingUpload = false;
+                                changed = true;
+                            }
+                        } catch(upErr) {
+                            console.warn("Subida diferida de imagen:", upErr);
+                        }
+                    }
+                }
+            }
+
+            // Subir despieces pendientes
+            if (Array.isArray(order.despieceFiles)) {
+                for (let i = 0; i < order.despieceFiles.length; i++) {
+                    const desp = order.despieceFiles[i];
+                    if (desp && desp.pendingUpload && desp.previewUrl) {
+                        try {
+                            const targetFileName = desp.name || `despiece_ST${ticketDigits}_${i + 1}.pdf`;
+                            const uploaded = await apiUploadFile(desp.previewUrl, targetFileName, desp.type || 'application/pdf', 'despiece');
+                            if (uploaded && uploaded.id) {
+                                desp.id = uploaded.id;
+                                desp.url = uploaded.url || `https://drive.google.com/file/d/${uploaded.id}/view`;
+                                desp.pendingUpload = false;
+                                changed = true;
+                            }
+                        } catch(upErr) {
+                            console.warn("Subida diferida de despiece:", upErr);
+                        }
+                    }
+                }
+            }
+
+            if (changed) {
+                await saveDatabaseData();
+            }
+            pushDatabaseToDriveSilently();
         }
 
         function showSaveSuccessModal(message, ticketNum) {
@@ -6927,6 +6959,148 @@
 
             if (fttl) fttl.innerText = 'Ingreso de Herramienta a Taller';
             if (ewb) ewb.classList.add('hidden');
+            clearFormDraft();
+        }
+
+        /* ====================================================
+           SISTEMA DE PERSISTENCIA AUTOMÁTICA DE BORRADOR (AUTOSAVE)
+        ==================================================== */
+        function showDraftRecoveredBanner() {
+            const banner = document.getElementById('draft-recovered-banner');
+            if (banner) banner.classList.remove('hidden');
+        }
+
+        function hideDraftRecoveredBanner() {
+            const banner = document.getElementById('draft-recovered-banner');
+            if (banner) banner.classList.add('hidden');
+        }
+
+        function saveFormDraft() {
+            try {
+                const sid = document.getElementById('service-id')?.value || '';
+                // Si estamos editando una orden existente, no sobrescribir el borrador de nueva orden
+                if (sid) return;
+
+                const dni = (document.getElementById('client-dni')?.value || '').trim();
+                const name = (document.getElementById('client-name')?.value || '').trim();
+                const phone = (document.getElementById('client-phone')?.value || '').trim();
+                const address = (document.getElementById('client-address')?.value || '').trim();
+                const toolType = (document.getElementById('tool-type')?.value || '').trim();
+                const toolBrand = (document.getElementById('tool-brand')?.value || '').trim();
+                const toolModel = (document.getElementById('tool-model')?.value || '').trim();
+                const toolAccessories = (document.getElementById('tool-accessories')?.value || '').trim();
+                const failureDescription = (document.getElementById('failure-description')?.value || '').trim();
+                const estimatedCost = document.getElementById('estimated-cost')?.value || '';
+                const repairCost = document.getElementById('repair-cost')?.value || '';
+                const amountPaid = document.getElementById('amount-paid')?.value || '';
+                const status = document.getElementById('order-status')?.value || 'Ingresado';
+
+                const hasData = dni || name || phone || address || toolType || toolBrand || toolModel || failureDescription || (currentImagesBase64 && currentImagesBase64.length > 0) || (currentDespieceFiles && currentDespieceFiles.length > 0);
+                if (!hasData) {
+                    clearFormDraft();
+                    return;
+                }
+
+                const draft = {
+                    dni, name, phone, address,
+                    toolType, toolBrand, toolModel, toolAccessories,
+                    failureDescription, estimatedCost, repairCost, amountPaid, status,
+                    images: currentImagesBase64 || [],
+                    despieces: currentDespieceFiles || [],
+                    savedAt: Date.now()
+                };
+
+                const serialized = JSON.stringify(draft);
+                try { sessionStorage.setItem('adl_order_draft', serialized); } catch(e){}
+                try { localStorage.setItem('adl_order_draft', serialized); } catch(e){}
+            } catch (err) {
+                console.warn("Autoguardado de borrador diferido:", err);
+            }
+        }
+
+        let draftSaveTimer = null;
+        function debouncedSaveFormDraft() {
+            clearTimeout(draftSaveTimer);
+            draftSaveTimer = setTimeout(saveFormDraft, 400);
+        }
+
+        function restoreFormDraft() {
+            try {
+                let draftRaw = null;
+                try { draftRaw = sessionStorage.getItem('adl_order_draft') || localStorage.getItem('adl_order_draft'); } catch(e){}
+                if (!draftRaw) return false;
+
+                const draft = JSON.parse(draftRaw);
+                if (!draft || typeof draft !== 'object') return false;
+
+                // Si el borrador tiene más de 24 horas, descartarlo
+                if (draft.savedAt && (Date.now() - draft.savedAt > 24 * 60 * 60 * 1000)) {
+                    clearFormDraft();
+                    return false;
+                }
+
+                const cdni = document.getElementById('client-dni');
+                const cname = document.getElementById('client-name');
+                const cphone = document.getElementById('client-phone');
+                const caddr = document.getElementById('client-address');
+                const ttype = document.getElementById('tool-type');
+                const tbrand = document.getElementById('tool-brand');
+                const tmodel = document.getElementById('tool-model');
+                const tacc = document.getElementById('tool-accessories');
+                const fdesc = document.getElementById('failure-description');
+                const ecost = document.getElementById('estimated-cost');
+                const rcost = document.getElementById('repair-cost');
+                const apaid = document.getElementById('amount-paid');
+                const ost = document.getElementById('order-status');
+
+                if (cdni && draft.dni !== undefined) cdni.value = draft.dni;
+                if (cname && draft.name !== undefined) cname.value = draft.name;
+                if (cphone && draft.phone !== undefined) cphone.value = draft.phone;
+                if (caddr && draft.address !== undefined) caddr.value = draft.address;
+                if (ttype && draft.toolType !== undefined) ttype.value = draft.toolType;
+                if (tbrand && draft.toolBrand !== undefined) tbrand.value = draft.toolBrand;
+                if (tmodel && draft.toolModel !== undefined) tmodel.value = draft.toolModel;
+                if (tacc && draft.toolAccessories !== undefined) tacc.value = draft.toolAccessories;
+                if (fdesc && draft.failureDescription !== undefined) fdesc.value = draft.failureDescription;
+                if (ecost && draft.estimatedCost !== undefined) ecost.value = draft.estimatedCost;
+                if (rcost && draft.repairCost !== undefined) rcost.value = draft.repairCost;
+                if (apaid && draft.amountPaid !== undefined) apaid.value = draft.amountPaid;
+                if (ost && draft.status !== undefined) ost.value = draft.status;
+
+                if (Array.isArray(draft.images) && draft.images.length > 0) {
+                    currentImagesBase64 = [...draft.images];
+                    renderImagesPreviewGrid();
+                }
+                if (Array.isArray(draft.despieces) && draft.despieces.length > 0) {
+                    currentDespieceFiles = [...draft.despieces];
+                    renderDespiecePreviewList();
+                }
+
+                updateFormMapsButton();
+                validateFormPayment();
+                showDraftRecoveredBanner();
+                return true;
+            } catch (err) {
+                console.warn("Error restaurando borrador:", err);
+                return false;
+            }
+        }
+
+        function clearFormDraft() {
+            if (draftSaveTimer) {
+                clearTimeout(draftSaveTimer);
+                draftSaveTimer = null;
+            }
+            try { sessionStorage.removeItem('adl_order_draft'); } catch(e){}
+            try { localStorage.removeItem('adl_order_draft'); } catch(e){}
+            hideDraftRecoveredBanner();
+        }
+
+        function setupFormDraftListeners() {
+            const form = document.getElementById('service-form');
+            if (!form) return;
+            form.addEventListener('input', debouncedSaveFormDraft);
+            form.addEventListener('change', debouncedSaveFormDraft);
         }
 
         function promptDeleteService(id) {
@@ -7852,12 +8026,28 @@
         window.showLoginModal = showLoginModal;
         window.hideLoginModal = hideLoginModal;
         window.getAuthToken = getAuthToken;
+        window.saveFormDraft = saveFormDraft;
+        window.debouncedSaveFormDraft = debouncedSaveFormDraft;
+        window.restoreFormDraft = restoreFormDraft;
+        window.clearFormDraft = clearFormDraft;
+        window.cancelServiceForm = cancelServiceForm;
 
         /* AUTOMATIC APP LOAD */
         document.addEventListener('DOMContentLoaded', async function() {
             await initApp();
             setupZoomEvents();
-            switchTab('services');
+            setupFormDraftListeners();
+
+            let savedTab = 'services';
+            try { savedTab = sessionStorage.getItem('adl_active_tab') || localStorage.getItem('adl_active_tab') || 'services'; } catch(e){}
+            let hasDraft = false;
+            try { hasDraft = !!(sessionStorage.getItem('adl_order_draft') || localStorage.getItem('adl_order_draft')); } catch(e){}
+
+            if (hasDraft || savedTab === 'new-service') {
+                switchTab('new-service');
+            } else {
+                switchTab(savedTab || 'services');
+            }
         });
     </script>
 </body>
